@@ -13,7 +13,7 @@
 <div class="space-y-6">
   <!-- Header -->
   <div>
-    <h1 class="text-2xl font-bold text-gray-100">Dashboard</h1>
+    <h1 class="text-2xl font-bold text-gray-100">Home</h1>
     {#if $project?.description}
       <p class="text-gray-400 mt-1">{$project.description}</p>
     {/if}
@@ -21,25 +21,39 @@
 
   <!-- Stats Cards -->
   {#if $stats}
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-      <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6">
-        <div class="text-sm font-medium text-gray-400">Total Specs</div>
-        <div class="text-3xl font-bold text-gray-100 mt-1">{$stats.totalSpecs}</div>
-      </div>
-      <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6">
-        <div class="text-sm font-medium text-gray-400">Active Changes</div>
-        <div class="text-3xl font-bold text-blue-400 mt-1">{$stats.activeChanges}</div>
-      </div>
-      <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6">
-        <div class="text-sm font-medium text-gray-400">Archived Changes</div>
-        <div class="text-3xl font-bold text-gray-100 mt-1">{$stats.archivedChanges}</div>
-      </div>
-      <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6">
-        <div class="text-sm font-medium text-gray-400">Overall Progress</div>
-        <div class="mt-2">
-          <TaskProgress progress={$stats.overallTaskProgress} showLabel={true} />
+    <div class="grid grid-cols-3 gap-3">
+      <!-- Active Changes -->
+      <div class="bg-gray-800 rounded-lg border border-gray-700 px-4 py-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm text-gray-400">Active Changes</div>
+            <div class="text-2xl font-bold text-blue-400">{$stats.activeChanges}</div>
+          </div>
+          {#if $stats.activeChanges > 0}
+            <div class="w-20">
+              <TaskProgress progress={$stats.overallTaskProgress} size="sm" />
+            </div>
+          {/if}
         </div>
       </div>
+
+      <!-- Archived Changes (link) -->
+      <button
+        class="bg-gray-800 rounded-lg border border-gray-700 px-4 py-3 text-left hover:bg-gray-750 hover:border-gray-600 transition-colors"
+        onclick={() => navigateTo('/changes')}
+      >
+        <div class="text-sm text-gray-400">Archived Changes</div>
+        <div class="text-2xl font-bold text-gray-100">{$stats.archivedChanges}</div>
+      </button>
+
+      <!-- Total Specs (link) -->
+      <button
+        class="bg-gray-800 rounded-lg border border-gray-700 px-4 py-3 text-left hover:bg-gray-750 hover:border-gray-600 transition-colors"
+        onclick={() => navigateTo('/specs')}
+      >
+        <div class="text-sm text-gray-400">Total Specs</div>
+        <div class="text-2xl font-bold text-gray-100">{$stats.totalSpecs}</div>
+      </button>
     </div>
   {/if}
 

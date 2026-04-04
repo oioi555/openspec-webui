@@ -39,12 +39,6 @@
     searchQuery.set('');
   }
 
-  function isActive(path: string): boolean {
-    if (path === '/') {
-      return $currentRoute === '/' || $currentRoute === '';
-    }
-    return $currentRoute.startsWith(path);
-  }
 </script>
 
 <nav class="bg-gray-800 shadow-lg border-b border-gray-700">
@@ -62,15 +56,7 @@
         <!-- Nav Links -->
         <div class="flex space-x-4">
           <button
-            class="px-3 py-2 rounded-md text-sm font-medium transition-colors {isActive('/')
-              ? 'bg-gray-700 text-blue-400'
-              : 'text-gray-300 hover:bg-gray-700'}"
-            onclick={() => navigateTo('/')}
-          >
-            Dashboard
-          </button>
-          <button
-            class="px-3 py-2 rounded-md text-sm font-medium transition-colors {isActive('/specs')
+            class="px-3 py-2 rounded-md text-sm font-medium transition-colors {$currentRoute.startsWith('/specs')
               ? 'bg-gray-700 text-blue-400'
               : 'text-gray-300 hover:bg-gray-700'}"
             onclick={() => navigateTo('/specs')}
@@ -79,13 +65,13 @@
             <span class="ml-1 px-1.5 py-0.5 text-xs bg-gray-600 text-gray-300 rounded-full">{$specs.length}</span>
           </button>
           <button
-            class="px-3 py-2 rounded-md text-sm font-medium transition-colors {isActive('/changes')
+            class="px-3 py-2 rounded-md text-sm font-medium transition-colors {$currentRoute.startsWith('/changes')
               ? 'bg-gray-700 text-blue-400'
               : 'text-gray-300 hover:bg-gray-700'}"
             onclick={() => navigateTo('/changes')}
           >
             Changes
-            <span class="ml-1 px-1.5 py-0.5 text-xs bg-gray-600 text-gray-300 rounded-full">{$activeChanges.length}</span>
+            <span class="ml-1 px-1.5 py-0.5 text-xs bg-gray-600 text-gray-300 rounded-full">{$archivedChanges.length}</span>
           </button>
         </div>
       </div>

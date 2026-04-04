@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { getChange, getChangeFileUrl, type Change, type FileGroup, type ChangeFile } from '../lib/api';
-  import { navigateTo, changesRefreshTrigger, addToast } from '../stores/index';
+  import { navigateTo, changesRefreshTrigger, addToast, activeChanges } from '../stores/index';
   import { suggestionStore } from '../stores/suggestions';
   import { commandPreferencesStore } from '../stores/commandPreferences';
   import { getChangeCommands } from '../lib/commandShortcuts';
@@ -121,6 +121,9 @@
 
   $: if (changeName) loadChange();
 
+  // Determine back link based on whether the change is active or archived
+  $: backLink = $activeChanges.some(c => c.name === changeName) ? '/' : '/changes';
+
   // Suggestion mode state
   $: suggestionModeActive = $suggestionStore.isActive;
   $: changeCommands = change ? getChangeCommands(change, $commandPreferencesStore) : [];
@@ -150,7 +153,7 @@
       aria-label="Back to changes list"
       title="Back to changes list"
       class="p-2 hover:bg-gray-700 rounded-lg"
-      onclick={() => navigateTo('/changes')}
+      onclick={() => navigateTo(backLink)}
     >
       <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />

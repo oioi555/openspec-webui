@@ -1,35 +1,4 @@
-# project-context Specification
-
-## Purpose
-TBD - created by archiving change capture-baseline-specs. Update Purpose after archive.
-## Requirements
-### Requirement: Expose project identity and documentation
-The system SHALL derive the displayed project name from the parent directory name of the loaded OpenSpec directory, SHALL read `project.md` from that directory, SHALL expose the full markdown content, and SHALL derive the short description from the first paragraph after the top heading.
-
-#### Scenario: Load project metadata from project.md
-- **WHEN** the target OpenSpec directory contains a readable `project.md`
-- **THEN** the system exposes the derived project name
-- **AND** returns the full `project.md` content
-- **AND** returns the first paragraph after the heading as the project description
-
-#### Scenario: Fall back when project.md is missing
-- **WHEN** the target OpenSpec directory does not contain `project.md`
-- **THEN** the system still derives the project name from the directory name
-- **AND** exposes an empty project content body
-- **AND** uses `No project.md file found` as the fallback description
-
-### Requirement: Summarize workspace metrics
-The system SHALL report the total number of specs, the number of active changes, the number of archived changes, and the overall task progress aggregated from active changes only. The metric cards SHALL be rendered in a compact single-line format showing the count and label.
-
-#### Scenario: Calculate overall progress from active changes
-- **WHEN** active changes contain markdown task lists
-- **THEN** the system aggregates completed and total tasks across active changes only
-- **AND** returns the rounded completion percentage
-
-#### Scenario: Report empty progress when no active tasks exist
-- **WHEN** there are no active change tasks to count
-- **THEN** the system reports `0` completed tasks
-- **AND** reports `0%` overall progress
+## MODIFIED Requirements
 
 ### Requirement: Provide dashboard and primary navigation context
 The web UI SHALL provide top-level Home, Changes, and Specs views, SHALL show the current project name in navigation, SHALL show counts for active changes and specs in navigation badges, and SHALL render the Home page with compact metric cards (Active Changes, Archived Changes, Total Specs), active change summaries, and project documentation when available. The Archived Changes metric card SHALL link to the Changes page, and the Total Specs metric card SHALL link to the Specs page. The Stats Cards SHALL display in the order: Active Changes, Archived Changes, Total Specs. The navigation SHALL NOT include a separate Dashboard link; the project logo/title SHALL link to the Home page.
@@ -53,6 +22,19 @@ The web UI SHALL provide top-level Home, Changes, and Specs views, SHALL show th
 - **THEN** the system navigates to the Changes page (`/changes`)
 - **WHEN** the operator clicks the Total Specs metric card
 - **THEN** the system navigates to the Specs page (`/specs`)
+
+### Requirement: Summarize workspace metrics
+The system SHALL report the total number of specs, the number of active changes, the number of archived changes, and the overall task progress aggregated from active changes only. The metric cards SHALL be rendered in a compact single-line format showing the count and label.
+
+#### Scenario: Calculate overall progress from active changes
+- **WHEN** active changes contain markdown task lists
+- **THEN** the system aggregates completed and total tasks across active changes only
+- **AND** returns the rounded completion percentage
+
+#### Scenario: Report empty progress when no active tasks exist
+- **WHEN** there are no active change tasks to count
+- **THEN** the system reports `0` completed tasks
+- **AND** reports `0%` overall progress
 
 ### Requirement: Change viewer back navigation
 The system SHALL provide a back link in the ChangeViewer that navigates to the Home page (`/`) when viewing an active change, and to the Changes page (`/changes`) when viewing an archived change.

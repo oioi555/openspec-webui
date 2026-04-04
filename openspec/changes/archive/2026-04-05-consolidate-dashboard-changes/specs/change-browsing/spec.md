@@ -1,8 +1,5 @@
-# change-browsing Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change capture-baseline-specs. Update Purpose after archive.
-## Requirements
 ### Requirement: List active and archived changes
 The system SHALL list active changes on the Home page alphabetically, SHALL list archived changes on the dedicated Changes page (`/changes`) newest-first by leading archive date when available, and SHALL expose per-change summary data including task progress, spec delta count, design presence, file counts, and archive status. Active changes SHALL be rendered by the shared `ActiveChangesList` component on the Home page only. The Changes page SHALL display only archived changes and SHALL be titled "Archived Changes".
 
@@ -17,8 +14,8 @@ The system SHALL list active changes on the Home page alphabetically, SHALL list
 - **THEN** the Changes page (`/changes`) lists them newest-first
 - **AND** each summary includes the change name and archive date
 - **AND** the UI displays them as completed archived items
+- **AND** the page title is "Archived Changes"
 
 #### Scenario: Empty archived changes page
 - **WHEN** the workspace contains no archived changes
 - **THEN** the Changes page shows `No archived changes`
-
