@@ -1,4 +1,4 @@
-<script lang="ts" context="module">
+<script lang="ts" module>
   const ICONS = {
     gear: {
       content:
@@ -65,12 +65,15 @@
 </script>
 
 <script lang="ts">
-  export let name: IconName;
-  let className = '';
-  export { className as class };
-  export let size: number | string = 20;
+  interface Props {
+    name: IconName;
+    class?: string;
+    size?: number | string;
+  }
 
-  $: icon = ICONS[name];
+  let { name, class: className = '', size = 20 }: Props = $props();
+
+  let icon = $derived(ICONS[name]);
 </script>
 
 {#if icon}

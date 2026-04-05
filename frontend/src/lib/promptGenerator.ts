@@ -1,4 +1,4 @@
-import type { Suggestion } from '../stores/suggestions';
+import type { Suggestion } from '../stores/suggestions.svelte.ts';
 import type { Change, ChangeFile } from './api';
 
 interface SuggestionLocation {

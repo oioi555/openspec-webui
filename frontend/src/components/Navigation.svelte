@@ -1,21 +1,28 @@
 <script lang="ts">
-  import { currentRoute, navigateTo, searchQuery, specs, activeChanges, archivedChanges } from '../stores/index';
+  import { currentRoute, navigateTo, searchQuery, specs, archivedChanges } from '../stores/index.svelte.ts';
   import { search, type SearchResult } from '../lib/api';
   import Icon from './Icon.svelte';
   import SettingsModal from './SettingsModal.svelte';
 
-  export let projectName: string;
+  interface Props {
+    projectName: string;
+  }
 
-  let searchResults: SearchResult[] = [];
-  let showResults = false;
-  let settingsOpen = false;
-  let searchTimeout: ReturnType<typeof setTimeout>;
+  let { projectName }: Props = $props();
+
+  let searchResults = $state<SearchResult[]>([]);
+  let showResults = $state(false);
+  let settingsOpen = $state(false);
+  let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 
   function handleSearch(event: Event) {
     const query = (event.target as HTMLInputElement).value;
-    searchQuery.set(query);
+    searchQuery.value = query;
 
-    clearTimeout(searchTimeout);
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+
     if (query.length < 2) {
       searchResults = [];
       showResults = false;
@@ -37,9 +44,16 @@
       navigateTo('/');
     }
     showResults = false;
-    searchQuery.set('');
+    searchQuery.value = '';
   }
 
+  $effect(() => {
+    return () => {
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+    };
+  });
 </script>
 
 <nav class="bg-surface shadow-lg border-b border-border">
@@ -57,22 +71,22 @@
         <!-- Nav Links -->
         <div class="flex space-x-4">
           <button
-            class="px-3 py-2 rounded-md text-sm font-medium transition-colors {$currentRoute.startsWith('/specs')
+            class="px-3 py-2 rounded-md text-sm font-medium transition-colors {currentRoute.value.startsWith('/specs')
               ? 'bg-input-bg text-brand'
               : 'text-on-surface hover:bg-surface'}"
             onclick={() => navigateTo('/specs')}
           >
             Specs
-            <span class="ml-1 px-1.5 py-0.5 text-xs bg-input-border text-on-surface rounded-full">{$specs.length}</span>
+            <span class="ml-1 px-1.5 py-0.5 text-xs bg-input-border text-on-surface rounded-full">{specs.value.length}</span>
           </button>
           <button
-            class="px-3 py-2 rounded-md text-sm font-medium transition-colors {$currentRoute.startsWith('/changes')
+            class="px-3 py-2 rounded-md text-sm font-medium transition-colors {currentRoute.value.startsWith('/changes')
               ? 'bg-input-bg text-brand'
               : 'text-on-surface hover:bg-surface'}"
             onclick={() => navigateTo('/changes')}
           >
             Changes
-            <span class="ml-1 px-1.5 py-0.5 text-xs bg-input-border text-on-surface rounded-full">{$archivedChanges.length}</span>
+            <span class="ml-1 px-1.5 py-0.5 text-xs bg-input-border text-on-surface rounded-full">{archivedChanges.value.length}</span>
           </button>
         </div>
       </div>
@@ -83,9 +97,9 @@
           <input
             type="text"
             placeholder="Search..."
-            value={$searchQuery}
+            value={searchQuery.value}
             oninput={handleSearch}
-            onfocus={() => $searchQuery.length >= 2 && (showResults = true)}
+            onfocus={() => searchQuery.value.length >= 2 && (showResults = true)}
             onblur={() => setTimeout(() => (showResults = false), 200)}
             class="w-64 px-4 py-2 bg-input-bg border border-input-border text-on-surface placeholder-on-surface-muted rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
           />

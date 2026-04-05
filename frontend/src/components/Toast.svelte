@@ -1,6 +1,10 @@
 <script lang="ts">
-  export let message: string;
-  export let type: 'info' | 'success' | 'error' = 'info';
+  interface Props {
+    message: string;
+    type?: 'info' | 'success' | 'error';
+  }
+
+  let { message, type = 'info' }: Props = $props();
 
   const colors = {
     info: 'bg-info-solid',

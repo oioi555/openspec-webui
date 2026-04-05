@@ -1,9 +1,14 @@
 <script lang="ts">
   import type { Task } from '../lib/api';
   import Icon from './Icon.svelte';
+  import TaskList from './TaskList.svelte';
 
-  export let tasks: Task[];
-  export let depth: number = 0;
+  interface Props {
+    tasks: Task[];
+    depth?: number;
+  }
+
+  let { tasks, depth = 0 }: Props = $props();
 </script>
 
 <ul class="space-y-2 {depth > 0 ? 'ml-6 mt-2' : ''}">
@@ -22,7 +27,7 @@
         </span>
       </div>
       {#if task.subtasks.length > 0}
-        <svelte:self tasks={task.subtasks} depth={depth + 1} />
+        <TaskList tasks={task.subtasks} depth={depth + 1} />
       {/if}
     </li>
   {/each}

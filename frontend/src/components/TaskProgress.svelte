@@ -1,19 +1,24 @@
 <script lang="ts">
   import type { TaskProgress } from '../lib/api';
 
-  export let progress: TaskProgress;
-  export let size: 'sm' | 'md' = 'md';
-  export let showLabel: boolean = false;
+  interface Props {
+    progress: TaskProgress;
+    size?: 'sm' | 'md';
+    showLabel?: boolean;
+  }
 
-  $: percentage = progress.percentage;
-  $: color =
+  let { progress, size = 'md', showLabel = false }: Props = $props();
+
+  let percentage = $derived(progress.percentage);
+  let color = $derived(
     percentage === 100
       ? 'bg-success-solid'
       : percentage > 50
         ? 'bg-brand'
         : percentage > 0
           ? 'bg-warning-solid'
-          : 'bg-input-border';
+          : 'bg-input-border'
+  );
 </script>
 
 <div class="w-full">

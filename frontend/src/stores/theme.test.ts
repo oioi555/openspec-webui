@@ -1,8 +1,7 @@
 import assert from 'node:assert/strict';
 import { afterEach, test } from 'node:test';
-import { get } from 'svelte/store';
 
-import { createThemeStore } from './theme';
+import { createThemeStore } from './themeCore';
 
 const STORAGE_KEY = 'openspec-theme';
 
@@ -113,11 +112,11 @@ test('loads dark theme by default when storage is empty', () => {
   const mocks = installBrowserMocks(false);
   const store = createThemeStore();
 
-  assert.equal(get(store), 'dark');
+  assert.equal(store.value, 'dark');
 
   store.initialize();
 
-  assert.equal(get(store), 'dark');
+  assert.equal(store.value, 'dark');
   assert.equal(mocks.documentElement.getAttribute('data-theme'), 'dark');
 });
 

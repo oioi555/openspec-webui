@@ -1,19 +1,35 @@
 <script lang="ts">
+  import type { Snippet } from 'svelte';
   import Icon from './Icon.svelte';
   import type { IconName } from './Icon.svelte';
 
-  export let open = false;
-  export let title = '';
-  export let description: string | null = null;
-  export let titleIcon: IconName | null = null;
-  export let size: 'md' | 'lg' = 'md';
-  export let fixedHeight = false;
-  export let bodyClass = '';
-  export let onClose: () => void = () => {};
+  interface Props {
+    open?: boolean;
+    title?: string;
+    description?: string | null;
+    titleIcon?: IconName | null;
+    size?: 'md' | 'lg';
+    fixedHeight?: boolean;
+    bodyClass?: string;
+    onClose?: () => void;
+    children?: Snippet;
+  }
 
-  $: maxWidthClass = size === 'lg' ? 'max-w-4xl' : 'max-w-2xl';
-  $: heightClass = fixedHeight ? 'h-[85vh]' : 'max-h-[85vh]';
-  $: resolvedBodyClass = bodyClass || 'overflow-y-auto';
+  let {
+    open = false,
+    title = '',
+    description = null,
+    titleIcon = null,
+    size = 'md',
+    fixedHeight = false,
+    bodyClass = '',
+    onClose = () => {},
+    children,
+  }: Props = $props();
+
+  let maxWidthClass = $derived(size === 'lg' ? 'max-w-4xl' : 'max-w-2xl');
+  let heightClass = $derived(fixedHeight ? 'h-[85vh]' : 'max-h-[85vh]');
+  let resolvedBodyClass = $derived(bodyClass || 'overflow-y-auto');
 
   function handleWindowKeydown(event: KeyboardEvent) {
     if (open && event.key === 'Escape') {
@@ -63,7 +79,7 @@
       </div>
 
       <div class={`min-h-0 flex-1 px-6 py-5 ${resolvedBodyClass}`}>
-        <slot />
+        {@render children?.()}
       </div>
     </div>
   </div>

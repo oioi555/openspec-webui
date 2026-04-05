@@ -78,7 +78,7 @@ The settings modal SHALL include an Appearance section with three radio options:
 - **AND** the selection is persisted to localStorage
 
 ### Requirement: Persist AI tool syntax preferences in the browser
-The system SHALL let the operator choose between `default` and `Claude Code` command syntax, SHALL interpret `default` as `/opsx-<command>`, SHALL interpret `Claude Code` as `/opsx:<command>`, and SHALL persist the selected AI tool in browser localStorage.
+The system SHALL let the operator choose between `default` and `Claude Code` command syntax, SHALL interpret `default` as `/opsx-<command>`, SHALL interpret `Claude Code` as `/opsx:<command>`, and SHALL persist the selected AI tool in browser localStorage. The command preferences store SHALL use Svelte 5 `$state` rune for reactive state instead of `writable()`.
 
 #### Scenario: Save the default syntax preference
 - **WHEN** the operator selects the `default` AI tool option
@@ -93,6 +93,10 @@ The system SHALL let the operator choose between `default` and `Claude Code` com
 #### Scenario: Restore the saved AI tool preference
 - **WHEN** the operator reloads the application in the same browser
 - **THEN** the system restores the last saved AI tool preference from localStorage
+
+#### Scenario: Command preferences state is reactive via runes
+- **WHEN** the command preferences store's `$state` value changes
+- **THEN** all components reading the preference update automatically without `$store` prefix syntax
 
 ### Requirement: Persist independent expanded-command visibility preferences
 The system SHALL provide independent visibility controls for the expanded commands `new`, `continue`, `ff`, `verify`, `sync`, and `bulk-archive`, SHALL persist each visibility value independently in browser localStorage, and SHALL not provide show/hide toggles for the core commands `propose`, `explore`, `apply`, and `archive`.

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { archivedChanges, navigateTo } from '../stores/index';
+  import { archivedChanges, navigateTo } from '../stores/index.svelte.ts';
   import Icon from './Icon.svelte';
 </script>
 
@@ -11,11 +11,11 @@
 
   <!-- Archived Changes -->
   <div class="bg-surface rounded-lg shadow-lg border border-border">
-    {#if $archivedChanges.length === 0}
+    {#if archivedChanges.value.length === 0}
       <div class="px-6 py-8 text-center text-on-surface-muted">No archived changes</div>
     {:else}
       <div class="divide-y divide-border">
-        {#each $archivedChanges as change}
+        {#each archivedChanges.value as change}
           <button
             class="w-full px-6 py-4 hover:bg-surface/50 text-left"
             onclick={() => navigateTo(`/changes/${change.name}`)}

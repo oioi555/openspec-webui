@@ -3,8 +3,12 @@
   import Icon from './Icon.svelte';
   import TaskProgress from './TaskProgress.svelte';
 
-  export let changes: ChangeSummary[] = [];
-  export let onSelect: (changeName: string) => void = () => {};
+  interface Props {
+    changes?: ChangeSummary[];
+    onSelect?: (changeName: string) => void;
+  }
+
+  let { changes = [], onSelect = () => {} }: Props = $props();
 </script>
 
 <div class="divide-y divide-border">

@@ -14,6 +14,7 @@ export class WebSocketClient {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private reconnectDelay = 1000;
   private maxReconnectDelay = 30000;
+  private shouldReconnect = true;
 
   constructor(private url: string) {}
 
@@ -21,6 +22,8 @@ export class WebSocketClient {
     if (this.ws?.readyState === WebSocket.OPEN) {
       return;
     }
+
+    this.shouldReconnect = true;
 
     this.ws = new WebSocket(this.url);
 
@@ -39,6 +42,10 @@ export class WebSocketClient {
     };
 
     this.ws.onclose = () => {
+      if (!this.shouldReconnect) {
+        return;
+      }
+
       console.log('WebSocket disconnected, reconnecting...');
       this.scheduleReconnect();
     };
@@ -65,13 +72,18 @@ export class WebSocketClient {
   }
 
   disconnect() {
+    this.shouldReconnect = false;
+
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
     }
+
     this.ws?.close();
+    this.ws = null;
   }
 }
 
 // Create singleton instance
-const wsUrl = `ws://${window.location.host}/ws`;
+const wsUrl = typeof window === 'undefined' ? 'ws://127.0.0.1/ws' : `ws://${window.location.host}/ws`;
 export const wsClient = new WebSocketClient(wsUrl);

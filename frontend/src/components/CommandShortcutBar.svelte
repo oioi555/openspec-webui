@@ -1,15 +1,19 @@
 <script lang="ts">
   import type { WorkflowCommand } from '../lib/commandTypes';
   import { buildCommand } from '../lib/commandShortcuts';
-  import { addToast } from '../stores/index';
-  import { commandPreferencesStore } from '../stores/commandPreferences';
+  import { addToast } from '../stores/index.svelte.ts';
+  import { commandPreferencesStore } from '../stores/commandPreferences.svelte.ts';
   import Icon from './Icon.svelte';
 
-  export let commands: WorkflowCommand[] = [];
-  export let changeName: string | null = null;
+  interface Props {
+    commands?: WorkflowCommand[];
+    changeName?: string | null;
+  }
+
+  let { commands = [], changeName = null }: Props = $props();
 
   async function copyCommand(command: WorkflowCommand) {
-    const text = buildCommand(command, $commandPreferencesStore.aiTool, changeName ?? undefined);
+    const text = buildCommand(command, commandPreferencesStore.aiTool, changeName ?? undefined);
 
     try {
       await navigator.clipboard.writeText(text);
@@ -27,7 +31,7 @@
         type="button"
         class="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors
               bg-success-bg text-success hover:bg-success-border"
-        title={`Copy ${buildCommand(command, $commandPreferencesStore.aiTool, changeName ?? undefined)}`}
+        title={`Copy ${buildCommand(command, commandPreferencesStore.aiTool, changeName ?? undefined)}`}
         onclick={() => copyCommand(command)}
       >
         <Icon name="clipboard" class="h-5 w-5 text-success" />

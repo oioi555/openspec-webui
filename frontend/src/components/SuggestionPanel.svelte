@@ -1,25 +1,28 @@
 <script lang="ts">
-  import { suggestionStore } from '../stores/suggestions';
+  import { suggestionStore, type Suggestion } from '../stores/suggestions.svelte.ts';
   import { generatePrompt } from '../lib/promptGenerator';
-  import { addToast } from '../stores/index';
+  import { addToast } from '../stores/index.svelte.ts';
   import type { Change } from '../lib/api';
   import Icon from './Icon.svelte';
 
-  export let changeName: string;
-  export let change: Change | null;
+  interface Props {
+    changeName: string;
+    change: Change | null;
+  }
 
-  let showPromptModal = false;
-  let generatedPrompt = '';
+  let { changeName, change }: Props = $props();
 
-  $: suggestions = $suggestionStore.suggestions;
+  let showPromptModal = $state(false);
+  let generatedPrompt = $state('');
+
+  let suggestions = $derived(suggestionStore.suggestions);
 
   function truncateText(text: string, maxLength: number = 60): string {
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength) + '...';
   }
 
-  function handleEdit(suggestion: typeof suggestions[0]) {
-    // Find the block element and simulate clicking it
+  function handleEdit(suggestion: Suggestion) {
     const block = document.querySelector(`[data-block-id="${suggestion.blockId}"]`);
     if (block) {
       const rect = block.getBoundingClientRect();

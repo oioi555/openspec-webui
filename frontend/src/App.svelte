@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import {
     initializeData,
     setupWebSocket,
@@ -8,10 +7,9 @@
     error,
     project,
     toasts,
-    navigateTo,
-  } from './stores/index';
-  import { commandPreferencesStore } from './stores/commandPreferences';
-  import { themeStore } from './stores/theme';
+  } from './stores/index.svelte.ts';
+  import { commandPreferencesStore } from './stores/commandPreferences.svelte.ts';
+  import { themeStore } from './stores/theme.svelte.ts';
   import Navigation from './components/Navigation.svelte';
   import Dashboard from './components/Dashboard.svelte';
   import SpecsList from './components/SpecsList.svelte';
@@ -20,15 +18,11 @@
   import ChangeViewer from './components/ChangeViewer.svelte';
   import Toast from './components/Toast.svelte';
 
-  onMount(() => {
-    // Set initial route from URL
-    currentRoute.set(window.location.pathname);
-
-    // Initialize theme
+  $effect(() => {
+    currentRoute.value = window.location.pathname;
     themeStore.initialize();
 
-    // Initialize data and WebSocket
-    initializeData();
+    void initializeData();
     void commandPreferencesStore.initialize();
     const unsubscribe = setupWebSocket();
 
@@ -38,7 +32,6 @@
     };
   });
 
-  // Parse route to get component and params
   function parseRoute(route: string): { component: string; param?: string } {
     if (route === '/' || route === '') {
       return { component: 'dashboard' };
@@ -58,21 +51,21 @@
     return { component: 'dashboard' };
   }
 
-  $: routeInfo = parseRoute($currentRoute);
+  let routeInfo = $derived(parseRoute(currentRoute.value));
 </script>
 
 <div class="min-h-screen bg-bg">
-  <Navigation projectName={$project?.name || 'OpenSpec WebUI'} />
+  <Navigation projectName={project.value?.name || 'OpenSpec WebUI'} />
 
   <main class="max-w-7xl mx-auto px-4 py-6">
-    {#if $isLoading}
+    {#if isLoading.value}
       <div class="flex items-center justify-center h-64">
         <div class="text-on-surface-muted">Loading...</div>
       </div>
-    {:else if $error}
+    {:else if error.value}
       <div class="rounded-lg border border-danger-border bg-danger-bg p-4">
         <h2 class="font-semibold text-danger">Error</h2>
-        <p class="text-danger">{$error}</p>
+        <p class="text-danger">{error.value}</p>
         <button
           class="mt-2 rounded px-4 py-2 bg-danger-solid text-on-brand transition-colors hover:bg-danger-solid-hover"
           onclick={() => initializeData()}
@@ -97,7 +90,7 @@
 
   <!-- Toast notifications -->
   <div class="fixed bottom-4 right-4 space-y-2">
-    {#each $toasts as toast (toast.id)}
+    {#each toasts.value as toast (toast.id)}
       <Toast message={toast.message} type={toast.type} />
     {/each}
   </div>

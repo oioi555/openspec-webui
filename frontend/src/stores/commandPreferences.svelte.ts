@@ -1,4 +1,3 @@
-import { get, writable } from 'svelte/store';
 import { getCommandAvailability, type CommandAvailability } from '../lib/api';
 import { EXPANDED_COMMANDS, type AiTool, type ExpandedCommand } from '../lib/commandTypes';
 
@@ -46,8 +45,9 @@ function normalizeExpandedVisibility(value: unknown): ExpandedVisibility {
 
   const candidate = value as Partial<Record<ExpandedCommand, unknown>>;
   for (const command of EXPANDED_COMMANDS) {
-    if (typeof candidate[command] === 'boolean') {
-      normalized[command] = candidate[command];
+    const commandValue = candidate[command];
+    if (typeof commandValue === 'boolean') {
+      normalized[command] = commandValue;
     }
   }
 
@@ -94,7 +94,7 @@ function savePreferences(state: Pick<CommandPreferencesState, 'aiTool' | 'expand
       STORAGE_KEY,
       JSON.stringify({
         aiTool: state.aiTool,
-        expandedVisibility: state.expandedVisibility,
+        expandedVisibility: { ...state.expandedVisibility },
       })
     );
   } catch {
@@ -103,7 +103,7 @@ function savePreferences(state: Pick<CommandPreferencesState, 'aiTool' | 'expand
 }
 
 function createCommandPreferencesStore() {
-  const { subscribe, update } = writable<CommandPreferencesState>({
+  const state = $state<CommandPreferencesState>({
     initialized: false,
     availabilityLoading: false,
     aiTool: 'default',
@@ -112,80 +112,78 @@ function createCommandPreferencesStore() {
   });
 
   async function refreshAvailability() {
-    update((state) => ({
-      ...state,
-      availabilityLoading: true,
-    }));
+    state.availabilityLoading = true;
 
     try {
-      const availability = await getCommandAvailability();
-      update((state) => ({
-        ...state,
-        availability,
-        availabilityLoading: false,
-      }));
-    } catch (error) {
-      update((state) => ({
-        ...state,
-        availability: {
-          status: 'unavailable',
-          profile: null,
-          workflows: [],
-          availableExpandedCommands: [],
-          error: error instanceof Error ? error.message : 'Failed to load command availability',
-        },
-        availabilityLoading: false,
-      }));
-    }
-  }
-
-  async function initialize() {
-    if (get({ subscribe }).initialized) {
-      return;
-    }
-
-    const preferences = loadPreferences();
-    update((state) => ({
-      ...state,
-      initialized: true,
-      aiTool: preferences.aiTool,
-      expandedVisibility: preferences.expandedVisibility,
-    }));
-
-    await refreshAvailability();
-  }
-
-  function setAiTool(aiTool: AiTool) {
-    update((state) => {
-      const nextState = {
-        ...state,
-        aiTool,
+      state.availability = await getCommandAvailability();
+    } catch (cause) {
+      state.availability = {
+        status: 'unavailable',
+        profile: null,
+        workflows: [],
+        availableExpandedCommands: [],
+        error: cause instanceof Error ? cause.message : 'Failed to load command availability',
       };
-      savePreferences(nextState);
-      return nextState;
-    });
-  }
-
-  function setExpandedVisibility(command: ExpandedCommand, visible: boolean) {
-    update((state) => {
-      const nextState = {
-        ...state,
-        expandedVisibility: {
-          ...state.expandedVisibility,
-          [command]: visible,
-        },
-      };
-      savePreferences(nextState);
-      return nextState;
-    });
+    } finally {
+      state.availabilityLoading = false;
+    }
   }
 
   return {
-    subscribe,
-    initialize,
+    get initialized() {
+      return state.initialized;
+    },
+
+    get availabilityLoading() {
+      return state.availabilityLoading;
+    },
+
+    get aiTool() {
+      return state.aiTool;
+    },
+
+    get expandedVisibility() {
+      return state.expandedVisibility;
+    },
+
+    get availability() {
+      return state.availability;
+    },
+
+    async initialize() {
+      if (state.initialized) {
+        return;
+      }
+
+      const preferences = loadPreferences();
+      state.initialized = true;
+      state.aiTool = preferences.aiTool;
+      state.expandedVisibility = preferences.expandedVisibility;
+
+      await refreshAvailability();
+    },
+
     refreshAvailability,
-    setAiTool,
-    setExpandedVisibility,
+
+    setAiTool(aiTool: AiTool) {
+      state.aiTool = aiTool;
+      savePreferences({
+        aiTool: state.aiTool,
+        expandedVisibility: state.expandedVisibility,
+      });
+    },
+
+    setExpandedVisibility(command: ExpandedCommand, visible: boolean) {
+      state.expandedVisibility = {
+        ...state.expandedVisibility,
+        [command]: visible,
+      };
+
+      savePreferences({
+        aiTool: state.aiTool,
+        expandedVisibility: state.expandedVisibility,
+      });
+    },
   };
 }
 

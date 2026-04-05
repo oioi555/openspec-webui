@@ -32,7 +32,7 @@ On every relevant watcher event, the system SHALL reparse the full OpenSpec work
 - **THEN** the system does not replace the previously loaded in-memory data
 
 ### Requirement: Hot-refresh the browser without losing context
-The browser client SHALL refetch the affected entity collections over HTTP after a `data:refresh` message, SHALL always refresh workspace stats, SHALL preserve the current scroll position across the update, and SHALL keep the current spec tab or change group/file selection when the selection is still valid.
+The browser client SHALL refetch the affected entity collections over HTTP after a `data:refresh` message, SHALL always refresh workspace stats, SHALL preserve the current scroll position across the update, and SHALL keep the current spec tab or change group/file selection when the selection is still valid. The WebSocket subscription SHALL be managed via `$effect` rune instead of `onMount` with manual cleanup.
 
 #### Scenario: Refresh a spec detail view in place
 - **WHEN** a websocket refresh targets specs while a spec detail view is open
@@ -48,3 +48,7 @@ The browser client SHALL refetch the affected entity collections over HTTP after
 - **WHEN** a websocket refresh targets a specific entity instead of `all`
 - **THEN** the client shows a toast identifying the updated entity or item
 
+#### Scenario: WebSocket subscription lifecycle via $effect
+- **WHEN** the App component mounts with an `$effect` that sets up the WebSocket subscription
+- **THEN** the subscription is established
+- **AND** when the component destroys, the `$effect` cleanup function unsubscribes and disconnects the WebSocket

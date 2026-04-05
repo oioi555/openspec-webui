@@ -2,13 +2,17 @@
   import type { ExpandedCommand, AiTool } from '../lib/commandTypes';
   import { EXPANDED_COMMANDS, EXPANDED_COMMAND_LABELS } from '../lib/commandTypes';
   import { buildCommand, isExpandedCommandAvailable } from '../lib/commandShortcuts';
-  import { commandPreferencesStore } from '../stores/commandPreferences';
-  import { themeStore, type Theme } from '../stores/theme';
+  import { commandPreferencesStore } from '../stores/commandPreferences.svelte.ts';
+  import { themeStore, type Theme } from '../stores/theme.svelte.ts';
   import Modal from './Modal.svelte';
   import Icon from './Icon.svelte';
 
-  export let open = false;
-  export let onClose: () => void = () => {};
+  interface Props {
+    open?: boolean;
+    onClose?: () => void;
+  }
+
+  let { open = false, onClose = () => {} }: Props = $props();
 
   type Section = 'general' | 'ai-tool' | 'expanded-commands';
 
@@ -34,7 +38,7 @@
     }
   ];
 
-  let activeSection: Section = 'general';
+  let activeSection = $state<Section>('general');
 
   function setAiTool(aiTool: AiTool) {
     commandPreferencesStore.setAiTool(aiTool);
@@ -49,12 +53,14 @@
     commandPreferencesStore.setExpandedVisibility(command, target.checked);
   }
 
-  $: if (open) {
-    activeSection = 'general';
-  }
+  $effect(() => {
+    if (open) {
+      activeSection = 'general';
+    }
+  });
 
-  $: previewCommand = buildCommand('propose', $commandPreferencesStore.aiTool);
-  $: availabilityReady = $commandPreferencesStore.availability.status === 'ready';
+  let previewCommand = $derived(buildCommand('propose', commandPreferencesStore.aiTool));
+  let availabilityReady = $derived(commandPreferencesStore.availability.status === 'ready');
 </script>
 
 <Modal
@@ -101,7 +107,7 @@
                 type="radio"
                 name="theme"
                 class="mt-1"
-                checked={$themeStore === 'light'}
+                checked={themeStore.value === 'light'}
                 onchange={() => setTheme('light')}
               />
               <div>
@@ -115,7 +121,7 @@
                 type="radio"
                 name="theme"
                 class="mt-1"
-                checked={$themeStore === 'dark'}
+                checked={themeStore.value === 'dark'}
                 onchange={() => setTheme('dark')}
               />
               <div>
@@ -129,7 +135,7 @@
                 type="radio"
                 name="theme"
                 class="mt-1"
-                checked={$themeStore === 'system'}
+                checked={themeStore.value === 'system'}
                 onchange={() => setTheme('system')}
               />
               <div>
@@ -152,7 +158,7 @@
                 type="radio"
                 name="ai-tool"
                 class="mt-1"
-                checked={$commandPreferencesStore.aiTool === 'default'}
+                checked={commandPreferencesStore.aiTool === 'default'}
                 onchange={() => setAiTool('default')}
               />
               <div>
@@ -166,7 +172,7 @@
                 type="radio"
                 name="ai-tool"
                 class="mt-1"
-                checked={$commandPreferencesStore.aiTool === 'claude-code'}
+                checked={commandPreferencesStore.aiTool === 'claude-code'}
                 onchange={() => setAiTool('claude-code')}
               />
               <div>
@@ -189,10 +195,10 @@
             </div>
 
             <div class="text-right text-sm text-on-surface-muted">
-              {#if $commandPreferencesStore.availabilityLoading}
+              {#if commandPreferencesStore.availabilityLoading}
                 <div>Checking local OpenSpec workflows...</div>
               {:else if availabilityReady}
-                <div>Local profile: <span class="font-medium text-on-surface">{$commandPreferencesStore.availability.profile || 'unknown'}</span></div>
+                <div>Local profile: <span class="font-medium text-on-surface">{commandPreferencesStore.availability.profile || 'unknown'}</span></div>
               {:else}
                 <div class="text-warning">Workflow availability unavailable</div>
               {/if}
@@ -202,15 +208,15 @@
           {#if !availabilityReady}
             <div class="rounded-lg border border-warning-border bg-warning-bg px-4 py-3 text-sm text-warning">
               Expanded command availability could not be loaded from the local OpenSpec CLI, so these controls are disabled.
-              {#if $commandPreferencesStore.availability.error}
-                <div class="mt-1 text-xs text-warning">{$commandPreferencesStore.availability.error}</div>
+              {#if commandPreferencesStore.availability.error}
+                <div class="mt-1 text-xs text-warning">{commandPreferencesStore.availability.error}</div>
               {/if}
             </div>
           {/if}
 
           <div class="divide-y divide-border overflow-hidden rounded-lg border border-border bg-surface-alt/50">
             {#each EXPANDED_COMMANDS as command}
-              {@const isAvailable = isExpandedCommandAvailable(command, $commandPreferencesStore.availability)}
+              {@const isAvailable = isExpandedCommandAvailable(command, commandPreferencesStore.availability)}
               <label class="flex items-center justify-between gap-4 px-4 py-3 text-sm">
                 <div>
                   <div class="font-medium text-on-bg">{EXPANDED_COMMAND_LABELS[command]}</div>
@@ -229,8 +235,8 @@
 
                 <input
                   type="checkbox"
-                  checked={$commandPreferencesStore.expandedVisibility[command]}
-                  disabled={!availabilityReady || !isAvailable || $commandPreferencesStore.availabilityLoading}
+                  checked={commandPreferencesStore.expandedVisibility[command]}
+                  disabled={!availabilityReady || !isAvailable || commandPreferencesStore.availabilityLoading}
                   onchange={(event) => toggleCommand(command, event)}
                 />
               </label>

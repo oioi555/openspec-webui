@@ -1,37 +1,35 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { getSpec, type Spec } from '../lib/api';
-  import { navigateTo, specsRefreshTrigger } from '../stores/index';
+  import { navigateTo, specsRefreshTrigger } from '../stores/index.svelte.ts';
   import Icon from './Icon.svelte';
   import MarkdownRenderer from './MarkdownRenderer.svelte';
 
-  export let specName: string;
-
-  let spec: Spec | null = null;
-  let loading = true;
-  let error: string | null = null;
-  let activeTab: 'spec' | 'design' = 'spec';
-  let lastRefreshTrigger = 0;
-
-  onMount(async () => {
-    await loadSpec();
-    lastRefreshTrigger = $specsRefreshTrigger;
-  });
-
-  // React to WebSocket refresh signals - preserve state on hot reload
-  $: if ($specsRefreshTrigger > lastRefreshTrigger) {
-    lastRefreshTrigger = $specsRefreshTrigger;
-    loadSpec(true);
+  interface Props {
+    specName: string;
   }
 
+  let { specName }: Props = $props();
+
+  let spec = $state<Spec | null>(null);
+  let loading = $state(true);
+  let error = $state<string | null>(null);
+  let activeTab = $state<'spec' | 'design'>('spec');
+
+  let previousSpecName: string | null = null;
+  let previousRefreshTrigger = -1;
+
   async function loadSpec(preserveState = false) {
-    // Only show loading state on initial load, not hot reload
     if (!preserveState) {
       loading = true;
     }
+
     error = null;
+
     try {
       spec = await getSpec(specName);
+      if (activeTab === 'design' && !spec.designContent) {
+        activeTab = 'spec';
+      }
     } catch (e) {
       error = e instanceof Error ? e.message : 'Failed to load spec';
     } finally {
@@ -39,7 +37,25 @@
     }
   }
 
-  $: if (specName) loadSpec();
+  $effect(() => {
+    const refreshTrigger = specsRefreshTrigger.value;
+
+    if (!specName) {
+      return;
+    }
+
+    const isSameSpec = previousSpecName === specName;
+    const preserveState = isSameSpec && refreshTrigger > previousRefreshTrigger;
+
+    if (!isSameSpec) {
+      activeTab = 'spec';
+    }
+
+    previousSpecName = specName;
+    previousRefreshTrigger = refreshTrigger;
+
+    void loadSpec(preserveState);
+  });
 </script>
 
 <div class="space-y-6">

@@ -1,8 +1,12 @@
 <script lang="ts">
-  export let src: string;
-  export let title: string = 'HTML Preview';
+  interface Props {
+    src: string;
+    title?: string;
+  }
 
-  let iframeHeight = 600;
+  let { src, title = 'HTML Preview' }: Props = $props();
+
+  let iframeHeight = $state(600);
   let iframe: HTMLIFrameElement;
 
   function handleLoad() {

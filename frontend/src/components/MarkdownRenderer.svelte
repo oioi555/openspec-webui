@@ -1,27 +1,32 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
+  import { tick } from 'svelte';
   import { renderMarkdown, renderMarkdownWithBlocks, highlightDeltas } from '../lib/markdown';
-  import { suggestionStore, blockSuggestionMap } from '../stores/suggestions';
+  import { suggestionStore, blockSuggestionMap } from '../stores/suggestions.svelte.ts';
 
-  export let content: string;
-  export let highlightDiff: boolean = false;
-  export let suggestionModeEnabled: boolean = false;
+  interface Props {
+    content: string;
+    highlightDiff?: boolean;
+    suggestionModeEnabled?: boolean;
+  }
 
-  let containerElement: HTMLDivElement;
+  let { content, highlightDiff = false, suggestionModeEnabled = false }: Props = $props();
 
-  $: baseHtml = suggestionModeEnabled
+  let containerElement = $state<HTMLDivElement | null>(null);
+
+  let baseHtml = $derived(
+    suggestionModeEnabled
     ? renderMarkdownWithBlocks(content)
-    : renderMarkdown(content);
-  $: html = highlightDiff ? highlightDeltas(baseHtml) : baseHtml;
-
-  // Track which blocks have suggestions
-  $: suggestionMap = $blockSuggestionMap;
-  $: selectedBlockId = $suggestionStore.selectedBlockId;
+    : renderMarkdown(content)
+  );
+  let html = $derived(highlightDiff ? highlightDeltas(baseHtml) : baseHtml);
+  let suggestionMap = $derived(blockSuggestionMap.value);
+  let selectedBlockId = $derived(suggestionStore.selectedBlockId);
 
   function handleBlockClick(event: MouseEvent) {
-    if (!suggestionModeEnabled) return;
+    if (!suggestionModeEnabled) {
+      return;
+    }
 
-    // Find the clicked block
     const target = event.target as HTMLElement;
     const block = target.closest('.suggestion-block') as HTMLElement | null;
 
@@ -41,21 +46,23 @@
   }
 
   function updateBlockClasses() {
-    if (!containerElement) return;
+    if (!containerElement) {
+      return;
+    }
 
     const blocks = containerElement.querySelectorAll('.suggestion-block');
     blocks.forEach((block) => {
       const blockId = block.getAttribute('data-block-id');
-      if (!blockId) return;
+      if (!blockId) {
+        return;
+      }
 
-      // Update selected state
       if (blockId === selectedBlockId) {
         block.classList.add('selected');
       } else {
         block.classList.remove('selected');
       }
 
-      // Update has-suggestion state
       if (suggestionMap.has(blockId)) {
         block.classList.add('has-suggestion');
       } else {
@@ -64,14 +71,31 @@
     });
   }
 
-  // Update classes when state changes
-  $: if (containerElement && suggestionModeEnabled) {
-    // Run on next tick to ensure DOM is updated
-    setTimeout(updateBlockClasses, 0);
-  }
+  $effect(() => {
+    const renderedHtml = html;
+    const currentSelectedBlockId = selectedBlockId;
+    const currentSuggestionMap = suggestionMap;
 
-  // Also update when selected block or suggestions change
-  $: selectedBlockId, suggestionMap, updateBlockClasses();
+    if (!containerElement || !suggestionModeEnabled) {
+      return;
+    }
+
+    void renderedHtml;
+    void currentSelectedBlockId;
+    void currentSuggestionMap;
+
+    let cancelled = false;
+
+    void tick().then(() => {
+      if (!cancelled) {
+        updateBlockClasses();
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  });
 </script>
 
 <div

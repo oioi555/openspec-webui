@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { specs, navigateTo } from '../stores/index';
+  import { specs, navigateTo } from '../stores/index.svelte.ts';
   import Icon from './Icon.svelte';
 </script>
 
@@ -11,12 +11,12 @@
 
   <div class="bg-surface rounded-lg shadow-lg border border-border">
     <div class="divide-y divide-border">
-      {#if $specs.length === 0}
+      {#if specs.value.length === 0}
         <div class="px-6 py-8 text-center text-on-surface-muted">
           No specifications found
         </div>
       {:else}
-        {#each $specs as spec}
+        {#each specs.value as spec}
           <button
             class="w-full px-6 py-4 hover:bg-surface/50 text-left flex items-center justify-between"
             onclick={() => navigateTo(`/specs/${spec.name}`)}

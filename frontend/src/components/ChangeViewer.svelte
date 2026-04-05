@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
-  import { getChange, getChangeFileUrl, type Change, type FileGroup, type ChangeFile } from '../lib/api';
-  import { navigateTo, changesRefreshTrigger, addToast, activeChanges } from '../stores/index';
-  import { suggestionStore } from '../stores/suggestions';
-  import { commandPreferencesStore } from '../stores/commandPreferences';
+  import { untrack } from 'svelte';
+  import { getChange, getChangeFileUrl, type Change } from '../lib/api';
+  import { navigateTo, changesRefreshTrigger, addToast, activeChanges } from '../stores/index.svelte.ts';
+  import { suggestionStore } from '../stores/suggestions.svelte.ts';
+  import { commandPreferencesStore } from '../stores/commandPreferences.svelte.ts';
   import { getChangeCommands } from '../lib/commandShortcuts';
   import MarkdownRenderer from './MarkdownRenderer.svelte';
   import HtmlRenderer from './HtmlRenderer.svelte';
@@ -13,44 +13,37 @@
   import SuggestionPopover from './SuggestionPopover.svelte';
   import CommandShortcutBar from './CommandShortcutBar.svelte';
 
-  export let changeName: string;
-
-  let change: Change | null = null;
-  let loading = true;
-  let error: string | null = null;
-  let lastRefreshTrigger = 0;
-
-  // Two-level navigation state
-  let activeGroupIndex = 0;
-  let activeFileIndex = 0;
-
-  // Computed: current group and file
-  $: activeGroup = change?.fileGroups[activeGroupIndex] ?? null;
-  $: activeFile = activeGroup?.files[activeFileIndex] ?? null;
-
-  // Special handling for deltas tab (always last if present)
-  $: showDeltasTab = (change?.specDeltas.length ?? 0) > 0;
-  $: isDeltasActive = activeGroupIndex === (change?.fileGroups.length ?? 0);
-
-  onMount(async () => {
-    await loadChange();
-    lastRefreshTrigger = $changesRefreshTrigger;
-  });
-
-  // React to WebSocket refresh signals - preserve navigation state on hot reload
-  $: if ($changesRefreshTrigger > lastRefreshTrigger) {
-    lastRefreshTrigger = $changesRefreshTrigger;
-    loadChange(true);
+  interface Props {
+    changeName: string;
   }
 
+  let { changeName }: Props = $props();
+
+  let change = $state<Change | null>(null);
+  let loading = $state(true);
+  let error = $state<string | null>(null);
+
+  let activeGroupIndex = $state(0);
+  let activeFileIndex = $state(0);
+
+  let activeGroup = $derived(change?.fileGroups[activeGroupIndex] ?? null);
+  let activeFile = $derived(activeGroup?.files[activeFileIndex] ?? null);
+  let showDeltasTab = $derived((change?.specDeltas.length ?? 0) > 0);
+  let isDeltasActive = $derived(activeGroupIndex === (change?.fileGroups.length ?? 0));
+  let backLink = $derived(activeChanges.value.some((item) => item.name === changeName) ? '/' : '/changes');
+  let suggestionModeActive = $derived(suggestionStore.isActive);
+  let changeCommands = $derived(change ? getChangeCommands(change, commandPreferencesStore) : []);
+
+  let previousChangeName: string | null = null;
+  let previousRefreshTrigger = -1;
+
   async function loadChange(preserveState = false) {
-    // Only show loading state on initial load, not hot reload
     if (!preserveState) {
       loading = true;
     }
+
     error = null;
 
-    // Save current navigation state for hot reload
     const savedGroupIndex = activeGroupIndex;
     const savedFileIndex = activeFileIndex;
 
@@ -58,7 +51,6 @@
       change = await getChange(changeName);
 
       if (preserveState && change) {
-        // Restore navigation state, validating indices are still valid
         const maxGroupIndex = change.fileGroups.length + (change.specDeltas.length > 0 ? 1 : 0) - 1;
         activeGroupIndex = Math.min(savedGroupIndex, maxGroupIndex);
 
@@ -66,12 +58,10 @@
         const maxFileIndex = currentGroup ? currentGroup.files.length - 1 : 0;
         activeFileIndex = Math.min(savedFileIndex, Math.max(0, maxFileIndex));
 
-        // Reconcile suggestions on hot-reload if suggestion mode is active
-        if ($suggestionStore.isActive) {
+        if (suggestionStore.isActive) {
           reconcileSuggestionsWithContent(change);
         }
       } else {
-        // Reset selection on initial load or navigation
         activeGroupIndex = 0;
         activeFileIndex = 0;
       }
@@ -83,10 +73,8 @@
   }
 
   function reconcileSuggestionsWithContent(changeData: Change) {
-    // Gather all markdown content from the change
     const contentParts: string[] = [];
 
-    // Add content from all markdown files in all groups
     for (const group of changeData.fileGroups) {
       for (const file of group.files) {
         if (file.type === 'markdown' && file.content) {
@@ -95,7 +83,6 @@
       }
     }
 
-    // Add content from spec deltas
     for (const delta of changeData.specDeltas) {
       contentParts.push(delta.content);
     }
@@ -118,16 +105,8 @@
 
   function selectDeltas() {
     activeGroupIndex = change?.fileGroups.length ?? 0;
+    activeFileIndex = 0;
   }
-
-  $: if (changeName) loadChange();
-
-  // Determine back link based on whether the change is active or archived
-  $: backLink = $activeChanges.some(c => c.name === changeName) ? '/' : '/changes';
-
-  // Suggestion mode state
-  $: suggestionModeActive = $suggestionStore.isActive;
-  $: changeCommands = change ? getChangeCommands(change, $commandPreferencesStore) : [];
 
   function toggleSuggestionMode() {
     if (suggestionModeActive) {
@@ -137,13 +116,29 @@
     }
   }
 
-  // Exit suggestion mode when navigating away
-  onDestroy(() => {
-    if ($suggestionStore.isActive) {
-      suggestionStore.exitSuggestionMode();
+  $effect(() => {
+    const refreshTrigger = changesRefreshTrigger.value;
+
+    if (!changeName) {
+      return;
     }
+
+    const isSameChange = previousChangeName === changeName;
+    const preserveState = isSameChange && refreshTrigger > previousRefreshTrigger;
+
+    previousChangeName = changeName;
+    previousRefreshTrigger = refreshTrigger;
+
+    void untrack(() => loadChange(preserveState));
   });
 
+  $effect(() => {
+    return () => {
+      if (suggestionStore.isActive) {
+        suggestionStore.exitSuggestionMode();
+      }
+    };
+  });
 </script>
 
 <div class="space-y-6">

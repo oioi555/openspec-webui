@@ -1,20 +1,23 @@
 <script lang="ts">
-  import { onMount, onDestroy, tick } from 'svelte';
-  import { suggestionStore, blockSuggestionMap } from '../stores/suggestions';
+  import { tick } from 'svelte';
+  import { suggestionStore, blockSuggestionMap } from '../stores/suggestions.svelte.ts';
 
-  let textareaElement: HTMLTextAreaElement;
-  let suggestionText = '';
-  let popoverElement: HTMLDivElement;
+  let textareaElement = $state<HTMLTextAreaElement | null>(null);
+  let suggestionText = $state('');
+  let popoverElement = $state<HTMLDivElement | null>(null);
 
-  $: position = $suggestionStore.popoverPosition;
-  $: selectedBlockId = $suggestionStore.selectedBlockId;
-  $: existingSuggestion = selectedBlockId ? $blockSuggestionMap.get(selectedBlockId) : undefined;
-
-  // Get the original text from the DOM
-  $: originalText = getOriginalText(selectedBlockId);
+  let position = $derived(suggestionStore.popoverPosition);
+  let selectedBlockId = $derived(suggestionStore.selectedBlockId);
+  let existingSuggestion = $derived(
+    selectedBlockId ? blockSuggestionMap.value.get(selectedBlockId) : undefined
+  );
+  let originalText = $derived(getOriginalText(selectedBlockId));
 
   function getOriginalText(blockId: string | null): string {
-    if (!blockId) return '';
+    if (!blockId) {
+      return '';
+    }
+
     const block = document.querySelector(`[data-block-id="${blockId}"]`);
     return block?.getAttribute('data-block-text') || block?.textContent?.trim() || '';
   }
@@ -25,7 +28,9 @@
   }
 
   function handleAdd() {
-    if (!selectedBlockId || !suggestionText.trim()) return;
+    if (!selectedBlockId || !suggestionText.trim()) {
+      return;
+    }
 
     if (existingSuggestion) {
       suggestionStore.updateSuggestion(existingSuggestion.id, suggestionText.trim());
@@ -48,22 +53,12 @@
     }
   }
 
-  // Focus textarea when popover opens
-  $: if (selectedBlockId && textareaElement) {
-    tick().then(() => {
-      textareaElement?.focus();
-      // Pre-fill with existing suggestion if editing
-      if (existingSuggestion) {
-        suggestionText = existingSuggestion.suggestedChange;
-      }
-    });
-  }
-
-  // Close on click outside
   function handleClickOutside(event: MouseEvent) {
-    if (!popoverElement) return;
+    if (!popoverElement) {
+      return;
+    }
+
     if (!popoverElement.contains(event.target as Node)) {
-      // Don't close if clicking on a suggestion block (let block selection handle it)
       const target = event.target as HTMLElement;
       if (!target.closest('.suggestion-block')) {
         handleCancel();
@@ -71,12 +66,27 @@
     }
   }
 
-  onMount(() => {
-    document.addEventListener('click', handleClickOutside, true);
+  $effect(() => {
+    const currentSelectedBlockId = selectedBlockId;
+    const currentExistingSuggestion = existingSuggestion;
+
+    if (!currentSelectedBlockId || !textareaElement) {
+      return;
+    }
+
+    suggestionText = currentExistingSuggestion?.suggestedChange ?? '';
+
+    void tick().then(() => {
+      textareaElement?.focus();
+    });
   });
 
-  onDestroy(() => {
+  $effect(() => {
+    document.addEventListener('click', handleClickOutside, true);
+
+    return () => {
     document.removeEventListener('click', handleClickOutside, true);
+    };
   });
 </script>
 
