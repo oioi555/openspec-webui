@@ -4,16 +4,35 @@
 Persists operator preferences for AI tool command syntax and expanded-command visibility in browser localStorage, with controls gated by local OpenSpec workflow availability.
 ## Requirements
 ### Requirement: Launch command settings from primary navigation
-The web UI SHALL provide a command settings launcher at the far right edge of the primary navigation and SHALL open a modal dialog for command preferences when the launcher is activated.
+The web UI SHALL provide a command settings launcher at the far right edge of the primary navigation and SHALL open a modal dialog for command preferences and theme settings when the launcher is activated.
 
 #### Scenario: Open command settings from the navigation bar
 - **WHEN** the operator activates the settings launcher from the primary navigation
-- **THEN** the system opens the command settings modal
+- **THEN** the system opens the settings modal
 - **AND** shows the current command preference values
+- **AND** shows the current theme selection
 
 #### Scenario: Return to the current view after closing settings
-- **WHEN** the operator dismisses the command settings modal
+- **WHEN** the operator dismisses the settings modal
 - **THEN** the system closes the modal without navigating away from the current view
+
+### Requirement: Provide theme selection in settings modal
+The settings modal SHALL include an Appearance section with three radio options: Light, Dark, and System. The selected option SHALL immediately apply the corresponding theme without requiring page reload.
+
+#### Scenario: Select Light theme from settings
+- **WHEN** the user selects the Light radio option in the Appearance section
+- **THEN** the UI immediately switches to light colors
+- **AND** the selection is persisted to localStorage
+
+#### Scenario: Select Dark theme from settings
+- **WHEN** the user selects the Dark radio option in the Appearance section
+- **THEN** the UI immediately switches to dark colors
+- **AND** the selection is persisted to localStorage
+
+#### Scenario: Select System theme from settings
+- **WHEN** the user selects the System radio option in the Appearance section
+- **THEN** the UI follows the OS color scheme preference
+- **AND** the selection is persisted to localStorage
 
 ### Requirement: Persist AI tool syntax preferences in the browser
 The system SHALL let the operator choose between `default` and `Claude Code` command syntax, SHALL interpret `default` as `/opsx-<command>`, SHALL interpret `Claude Code` as `/opsx:<command>`, and SHALL persist the selected AI tool in browser localStorage.
