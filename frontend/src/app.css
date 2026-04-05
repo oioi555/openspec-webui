@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+:root {
+  --app-shell-max-width: 80rem;
+  --app-shell-padding: 1rem;
+  --suggestion-panel-width: 24rem;
+  --suggestion-panel-gap: 1rem;
+}
+
 @theme {
   --color-bg: var(--bg);
   --color-surface: var(--surface);

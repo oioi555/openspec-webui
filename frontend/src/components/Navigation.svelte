@@ -62,10 +62,11 @@
       <div class="flex items-center space-x-8">
         <!-- Logo/Title -->
         <button
-          class="text-xl font-bold text-brand hover:text-brand-hover"
+          class="inline-flex items-center gap-4 text-xl font-bold text-brand hover:text-brand-hover"
           onclick={() => navigateTo('/')}
         >
-          {projectName}
+          <img src="/app-icon.svg" alt="" aria-hidden="true" class="h-10 w-10 shrink-0" />
+          <span>{projectName}</span>
         </button>
 
         <!-- Nav Links -->

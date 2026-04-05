@@ -1,8 +1,12 @@
 # OpenSpec WebUI
 
+<img src="./frontend/public/app-icon.svg" alt="OpenSpec WebUI app icon" width="48" height="48" />
+
 Browser UI for OpenSpec-compatible directories.
 
 This repository started from the MIT-licensed `MusicAdam/openspec-viewer` project and is being reshaped into a more general local-first UI for browsing specs, changes, and review workflows.
+
+The shared `app-icon.svg` is used for the navigation home affordance, browser favicon, and repository documentation.
 
 ## Requirements
 
@@ -119,6 +123,7 @@ openspec-webui --no-open
 - Search across supported OpenSpec content
 - Watch files and refresh the UI when content changes
 - Group supplemental change files by folder/tab
+- Reuse a shared app icon across the navigation, favicon, and docs
 
 ## OpenSpec layout
 

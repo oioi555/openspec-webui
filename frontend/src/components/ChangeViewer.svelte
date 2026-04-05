@@ -255,7 +255,7 @@
     <!-- Content area -->
     <div
       class="bg-surface rounded-lg shadow-lg border border-border p-6 transition-all duration-300"
-      class:mr-96={suggestionModeActive}
+      class:suggestion-mode-content={suggestionModeActive}
     >
       {#if isDeltasActive}
         <!-- Spec Deltas -->
@@ -291,3 +291,22 @@
     {/if}
   {/if}
 </div>
+
+<style>
+  .suggestion-mode-content {
+    margin-right: clamp(
+      0px,
+      calc(
+        var(--suggestion-panel-width)
+        + var(--suggestion-panel-gap)
+        - var(--app-shell-padding)
+        - ((100vw - var(--app-shell-max-width)) / 2)
+      ),
+      calc(
+        var(--suggestion-panel-width)
+        + var(--suggestion-panel-gap)
+        - var(--app-shell-padding)
+      )
+    );
+  }
+</style>

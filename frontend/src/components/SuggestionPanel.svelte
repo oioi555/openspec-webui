@@ -65,7 +65,10 @@
 </script>
 
 <!-- Side panel -->
-<div class="fixed top-0 right-0 h-full w-96 bg-surface border-l border-border shadow-xl z-40 flex flex-col">
+<div
+  class="fixed top-0 right-0 h-full bg-surface border-l border-border shadow-xl z-40 flex flex-col"
+  style="width: var(--suggestion-panel-width);"
+>
   <!-- Header -->
   <div class="flex items-center justify-between p-4 border-b border-border">
     <h2 class="text-lg font-semibold text-on-bg">Suggestions</h2>

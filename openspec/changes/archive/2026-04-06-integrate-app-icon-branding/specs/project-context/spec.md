@@ -1,22 +1,4 @@
-# project-context Specification
-
-## Purpose
-TBD - created by archiving change capture-baseline-specs. Update Purpose after archive.
-## Requirements
-### Requirement: Expose project identity and documentation
-The system SHALL derive the displayed project name from the parent directory name of the loaded OpenSpec directory, SHALL read `project.md` from that directory, SHALL expose the full markdown content, and SHALL derive the short description from the first paragraph after the top heading.
-
-#### Scenario: Load project metadata from project.md
-- **WHEN** the target OpenSpec directory contains a readable `project.md`
-- **THEN** the system exposes the derived project name
-- **AND** returns the full `project.md` content
-- **AND** returns the first paragraph after the heading as the project description
-
-#### Scenario: Fall back when project.md is missing
-- **WHEN** the target OpenSpec directory does not contain `project.md`
-- **THEN** the system still derives the project name from the directory name
-- **AND** exposes an empty project content body
-- **AND** uses `No project.md file found` as the fallback description
+## MODIFIED Requirements
 
 ### Requirement: Provide dashboard and primary navigation context
 The web UI SHALL provide top-level Home, Changes, and Specs views, SHALL show the shared application icon immediately before the current project name in navigation linking to the Home page, SHALL use `/app-icon.svg` for that navigation icon, SHALL show counts for specs and archived changes in navigation badges, and SHALL render the Home page with an Active Changes section (with a count badge in its header) and project documentation when available. The navigation SHALL NOT include a separate Dashboard link; the application icon and project title together SHALL link to the Home page. The navigation SHALL highlight the active section using direct reactive store access in the template expression to ensure reactivity. The navigation settings icon SHALL use the `Icon` component instead of inline SVG.
@@ -48,6 +30,8 @@ The web UI SHALL provide top-level Home, Changes, and Specs views, SHALL show th
 - **THEN** the system shows `/app-icon.svg` to the left of the current project name
 - **AND** the icon and project name are presented as a single control that navigates to the Home page
 
+## ADDED Requirements
+
 ### Requirement: Expose a shared application favicon
 The app shell SHALL reference `/app-icon.svg` as the browser favicon so the same branding asset is used for the navigation and browser chrome.
 
@@ -55,21 +39,3 @@ The app shell SHALL reference `/app-icon.svg` as the browser favicon so the same
 - **WHEN** the browser loads the application HTML shell
 - **THEN** the document includes a `rel="icon"` link whose `href` is `/app-icon.svg`
 - **AND** the app shell does not require a separate `/favicon.svg` asset for branding
-
-### Requirement: Change viewer back navigation
-The system SHALL provide a back link in the ChangeViewer that navigates to the Home page (`/`) when viewing an active change, and to the Changes page (`/changes`) when viewing an archived change.
-
-#### Scenario: Back link from an active change
-- **WHEN** the operator views an active change
-- **THEN** the ChangeViewer shows a back link pointing to the Home page (`/`)
-
-#### Scenario: Back link from an archived change
-- **WHEN** the operator views an archived change
-- **THEN** the ChangeViewer shows a back link pointing to the Changes page (`/changes`)
-
-### Requirement: Spec viewer back navigation
-The system SHALL provide a back link in the SpecViewer that navigates to the Specs page (`/specs`).
-
-#### Scenario: Back link from a spec
-- **WHEN** the operator views a spec
-- **THEN** the SpecViewer shows a back link pointing to the Specs page (`/specs`)
