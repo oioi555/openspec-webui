@@ -1,6 +1,6 @@
 <script lang="ts">
+  import { CheckCircle2, Circle } from '@lucide/svelte';
   import type { Task } from '../lib/api';
-  import Icon from './Icon.svelte';
   import TaskList from './TaskList.svelte';
 
   interface Props {
@@ -17,12 +17,12 @@
       <div class="flex items-start gap-2">
         <div class="mt-0.5">
           {#if task.completed}
-            <Icon name="check-circle" class="h-5 w-5 text-success-solid" />
+            <CheckCircle2 class="h-5 w-5 text-success-solid" />
           {:else}
-            <Icon name="circle" class="h-5 w-5 text-on-surface-muted" />
+            <Circle class="h-5 w-5 text-muted-foreground" />
           {/if}
         </div>
-        <span class="{task.completed ? 'text-on-surface-muted line-through' : 'text-on-surface'}">
+        <span class={task.completed ? 'text-muted-foreground line-through' : 'text-card-foreground'}>
           {task.text}
         </span>
       </div>

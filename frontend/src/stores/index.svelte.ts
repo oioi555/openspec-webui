@@ -2,6 +2,7 @@ import { tick } from 'svelte';
 import type { Project, Stats, SpecSummary, ChangeSummary } from '../lib/api';
 import { getProject, getStats, getSpecs, getChanges } from '../lib/api';
 import { wsClient, type WSMessage } from '../lib/websocket';
+import { tabStore } from './tabs.svelte.ts';
 
 type ToastType = 'info' | 'success' | 'error';
 
@@ -30,7 +31,6 @@ const state = $state({
   specs: [] as SpecSummary[],
   activeChanges: [] as ChangeSummary[],
   archivedChanges: [] as ChangeSummary[],
-  currentRoute: typeof window === 'undefined' ? '/' : window.location.pathname,
   searchQuery: '',
   toasts: [] as ToastItem[],
   specsRefreshTrigger: 0,
@@ -87,9 +87,9 @@ export const archivedChanges = createBox(
 );
 
 export const currentRoute = createBox(
-  () => state.currentRoute,
+  () => tabStore.currentPath,
   (value) => {
-    state.currentRoute = value;
+    tabStore.handlePath(value);
   }
 );
 
@@ -204,15 +204,5 @@ export function setupWebSocket() {
 }
 
 export function navigateTo(path: string) {
-  state.currentRoute = path;
-
-  if (typeof window !== 'undefined') {
-    window.history.pushState({}, '', path);
-  }
-}
-
-if (typeof window !== 'undefined') {
-  window.addEventListener('popstate', () => {
-    state.currentRoute = window.location.pathname;
-  });
+  tabStore.handlePath(path);
 }

@@ -1,7 +1,7 @@
 <script lang="ts">
+  import { FileText } from '@lucide/svelte';
   import { getSpec, type Spec } from '../lib/api';
-  import { navigateTo, specsRefreshTrigger } from '../stores/index.svelte.ts';
-  import Icon from './Icon.svelte';
+  import { specsRefreshTrigger } from '../stores/index.svelte.ts';
   import MarkdownRenderer from './MarkdownRenderer.svelte';
 
   interface Props {
@@ -61,24 +61,18 @@
 <div class="space-y-6">
   <!-- Header -->
   <div class="flex items-center gap-4">
-    <button
-      type="button"
-      aria-label="Back to specs list"
-      title="Back to specs list"
-      class="p-2 hover:bg-surface rounded-lg"
-      onclick={() => navigateTo('/specs')}
-    >
-      <Icon name="chevron-left" class="h-5 w-5 text-on-surface-muted" />
-    </button>
+    <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-success-bg text-success">
+      <FileText class="h-5 w-5" />
+    </div>
     <div>
-      <h1 class="text-2xl font-bold text-on-bg">{specName}</h1>
-      <p class="text-on-surface-muted">Specification</p>
+      <h1 class="text-2xl font-bold text-foreground">{specName}</h1>
+      <p class="text-muted-foreground">Specification</p>
     </div>
   </div>
 
   {#if loading}
     <div class="flex items-center justify-center h-64">
-      <div class="text-on-surface-muted">Loading...</div>
+      <div class="text-muted-foreground">Loading...</div>
     </div>
   {:else if error}
     <div class="rounded-lg border border-danger-border bg-danger-bg p-4">
@@ -91,16 +85,16 @@
         <nav class="flex space-x-4">
           <button
             class="px-4 py-2 border-b-2 font-medium text-sm transition-colors {activeTab === 'spec'
-              ? 'border-brand text-brand'
-              : 'border-transparent text-on-surface-muted hover:text-on-surface'}"
+              ? 'border-primary text-primary'
+              : 'border-transparent text-muted-foreground hover:text-foreground'}"
             onclick={() => (activeTab = 'spec')}
           >
             Specification
           </button>
           <button
             class="px-4 py-2 border-b-2 font-medium text-sm transition-colors {activeTab === 'design'
-              ? 'border-brand text-brand'
-              : 'border-transparent text-on-surface-muted hover:text-on-surface'}"
+              ? 'border-primary text-primary'
+              : 'border-transparent text-muted-foreground hover:text-foreground'}"
             onclick={() => (activeTab = 'design')}
           >
             Design
@@ -110,7 +104,7 @@
     {/if}
 
     <!-- Content -->
-    <div class="bg-surface rounded-lg shadow-lg border border-border p-6">
+    <div class="rounded-lg border border-border bg-card p-6 shadow-lg">
       {#if activeTab === 'spec'}
         <MarkdownRenderer content={spec.specContent} />
       {:else if spec.designContent}

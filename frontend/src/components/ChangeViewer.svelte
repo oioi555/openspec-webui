@@ -1,23 +1,23 @@
 <script lang="ts">
   import { untrack } from 'svelte';
+  import { SquarePen } from '@lucide/svelte';
   import { getChange, getChangeFileUrl, type Change } from '../lib/api';
-  import { navigateTo, changesRefreshTrigger, addToast, activeChanges } from '../stores/index.svelte.ts';
+  import { changesRefreshTrigger, addToast } from '../stores/index.svelte.ts';
   import { suggestionStore } from '../stores/suggestions.svelte.ts';
   import { commandPreferencesStore } from '../stores/commandPreferences.svelte.ts';
   import { getChangeCommands } from '../lib/commandShortcuts';
   import MarkdownRenderer from './MarkdownRenderer.svelte';
   import HtmlRenderer from './HtmlRenderer.svelte';
-  import Icon from './Icon.svelte';
   import TaskProgress from './TaskProgress.svelte';
-  import SuggestionPanel from './SuggestionPanel.svelte';
   import SuggestionPopover from './SuggestionPopover.svelte';
   import CommandShortcutBar from './CommandShortcutBar.svelte';
 
   interface Props {
     changeName: string;
+    onChangeLoaded?: (change: Change | null) => void;
   }
 
-  let { changeName }: Props = $props();
+  let { changeName, onChangeLoaded = () => {} }: Props = $props();
 
   let change = $state<Change | null>(null);
   let loading = $state(true);
@@ -30,7 +30,6 @@
   let activeFile = $derived(activeGroup?.files[activeFileIndex] ?? null);
   let showDeltasTab = $derived((change?.specDeltas.length ?? 0) > 0);
   let isDeltasActive = $derived(activeGroupIndex === (change?.fileGroups.length ?? 0));
-  let backLink = $derived(activeChanges.value.some((item) => item.name === changeName) ? '/' : '/changes');
   let suggestionModeActive = $derived(suggestionStore.isActive);
   let changeCommands = $derived(change ? getChangeCommands(change, commandPreferencesStore) : []);
 
@@ -49,6 +48,7 @@
 
     try {
       change = await getChange(changeName);
+      onChangeLoaded(change);
 
       if (preserveState && change) {
         const maxGroupIndex = change.fileGroups.length + (change.specDeltas.length > 0 ? 1 : 0) - 1;
@@ -67,6 +67,7 @@
       }
     } catch (e) {
       error = e instanceof Error ? e.message : 'Failed to load change';
+      onChangeLoaded(null);
     } finally {
       loading = false;
     }
@@ -134,6 +135,8 @@
 
   $effect(() => {
     return () => {
+      onChangeLoaded(null);
+
       if (suggestionStore.isActive) {
         suggestionStore.exitSuggestionMode();
       }
@@ -143,21 +146,12 @@
 
 <div class="space-y-6">
   <!-- Header -->
-  <div class="flex items-center gap-4">
-    <button
-      type="button"
-      aria-label="Back to changes list"
-      title="Back to changes list"
-      class="p-2 hover:bg-surface rounded-lg"
-      onclick={() => navigateTo(backLink)}
-    >
-      <Icon name="chevron-left" class="h-5 w-5 text-on-surface-muted" />
-    </button>
+  <div class="flex flex-wrap items-start gap-4">
     <div class="flex-1">
       <div class="flex items-center gap-3">
-        <h1 class="text-2xl font-bold text-on-bg">{changeName}</h1>
+        <h1 class="text-2xl font-bold text-foreground">{changeName}</h1>
         {#if change?.isArchived}
-          <span class="px-2 py-1 text-xs bg-input-bg text-on-surface-muted rounded">Archived</span>
+          <span class="rounded bg-muted px-2 py-1 text-xs text-muted-foreground">Archived</span>
         {/if}
       </div>
       {#if change}
@@ -165,25 +159,26 @@
           <div class="w-48">
             <TaskProgress progress={change.taskProgress} size="sm" />
           </div>
-          <span class="text-sm text-on-surface-muted">
+          <span class="text-sm text-muted-foreground">
             {change.taskProgress.done} of {change.taskProgress.total} tasks complete
           </span>
         </div>
       {/if}
     </div>
     <CommandShortcutBar commands={changeCommands} changeName={change?.name ?? null} />
+
     <!-- Suggest Changes button -->
     {#if !change?.isArchived}
       <button
         onclick={toggleSuggestionMode}
         class="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors
                {suggestionModeActive
-                 ? 'bg-brand text-on-brand'
-                 : 'bg-input-bg text-on-surface hover:bg-input-border'}"
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-secondary text-secondary-foreground hover:bg-accent'}"
       >
-        <Icon name="pencil-square" class="h-5 w-5" />
+        <SquarePen class="h-5 w-5" />
         <span class="text-sm font-medium">
-          {suggestionModeActive ? 'Exit Suggestions' : 'Suggest Changes'}
+          {suggestionModeActive ? 'Exit' : 'Suggest'}
         </span>
       </button>
     {/if}
@@ -191,7 +186,7 @@
 
   {#if loading}
     <div class="flex items-center justify-center h-64">
-      <div class="text-on-surface-muted">Loading...</div>
+      <div class="text-muted-foreground">Loading...</div>
     </div>
   {:else if error}
     <div class="rounded-lg border border-danger-border bg-danger-bg p-4">
@@ -202,15 +197,15 @@
     <div class="border-b border-border">
       <nav class="flex space-x-4">
         {#each change.fileGroups as group, i}
-          <button
-            class="px-4 py-2 border-b-2 font-medium text-sm transition-colors {activeGroupIndex === i && !isDeltasActive
-              ? 'border-brand text-brand'
-              : 'border-transparent text-on-surface-muted hover:text-on-surface'}"
-            onclick={() => selectGroup(i)}
-          >
+            <button
+              class="px-4 py-2 border-b-2 font-medium text-sm transition-colors {activeGroupIndex === i && !isDeltasActive
+              ? 'border-primary text-primary'
+              : 'border-transparent text-muted-foreground hover:text-foreground'}"
+              onclick={() => selectGroup(i)}
+            >
             {group.name}
             {#if group.files.length > 1}
-              <span class="ml-1 px-1.5 py-0.5 text-xs bg-input-bg rounded-full">
+              <span class="ml-1 rounded-full bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground">
                 {group.files.length}
               </span>
             {/if}
@@ -218,16 +213,14 @@
         {/each}
 
         {#if showDeltasTab}
-          <button
-            class="px-4 py-2 border-b-2 font-medium text-sm transition-colors {isDeltasActive
-              ? 'border-brand text-brand'
-              : 'border-transparent text-on-surface-muted hover:text-on-surface'}"
-            onclick={selectDeltas}
-          >
+            <button
+              class="px-4 py-2 border-b-2 font-medium text-sm transition-colors {isDeltasActive
+              ? 'border-primary text-primary'
+              : 'border-transparent text-muted-foreground hover:text-foreground'}"
+              onclick={selectDeltas}
+            >
             Spec Deltas
-            <span class="ml-1 px-1.5 py-0.5 text-xs bg-input-bg text-on-surface rounded-full">
-              {change.specDeltas.length}
-            </span>
+            <span class="badge-num">{change.specDeltas.length}</span>
           </button>
         {/if}
       </nav>
@@ -237,12 +230,12 @@
     {#if activeGroup && activeGroup.files.length > 1 && !isDeltasActive}
       <div class="flex space-x-2 px-2">
         {#each activeGroup.files as file, i}
-          <button
-            class="px-3 py-1.5 text-sm rounded-md transition-colors {activeFileIndex === i
-              ? 'bg-input-bg text-on-bg'
-              : 'text-on-surface-muted hover:text-on-surface hover:bg-surface'}"
-            onclick={() => (activeFileIndex = i)}
-          >
+            <button
+              class="px-3 py-1.5 text-sm rounded-md transition-colors {activeFileIndex === i
+              ? 'bg-secondary text-foreground'
+              : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'}"
+              onclick={() => (activeFileIndex = i)}
+            >
             {file.name}
             {#if file.type === 'html'}
               <span class="ml-1 text-xs text-html">HTML</span>
@@ -253,16 +246,13 @@
     {/if}
 
     <!-- Content area -->
-    <div
-      class="bg-surface rounded-lg shadow-lg border border-border p-6 transition-all duration-300"
-      class:suggestion-mode-content={suggestionModeActive}
-    >
+    <div class="rounded-lg border border-border bg-card p-6 shadow-lg">
       {#if isDeltasActive}
         <!-- Spec Deltas -->
         <div class="space-y-8">
           {#each change.specDeltas as delta}
             <div>
-              <h3 class="text-lg font-semibold text-on-bg mb-4 flex items-center gap-2">
+              <h3 class="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
                 <span class="rounded px-2 py-1 text-sm bg-success-bg text-success">{delta.capability}</span>
               </h3>
               <MarkdownRenderer content={delta.content} highlightDiff={true} suggestionModeEnabled={suggestionModeActive} />
@@ -286,27 +276,7 @@
 
     <!-- Suggestion Mode Components -->
     {#if suggestionModeActive}
-      <SuggestionPanel {changeName} {change} />
       <SuggestionPopover />
     {/if}
   {/if}
 </div>
-
-<style>
-  .suggestion-mode-content {
-    margin-right: clamp(
-      0px,
-      calc(
-        var(--suggestion-panel-width)
-        + var(--suggestion-panel-gap)
-        - var(--app-shell-padding)
-        - ((100vw - var(--app-shell-max-width)) / 2)
-      ),
-      calc(
-        var(--suggestion-panel-width)
-        + var(--suggestion-panel-gap)
-        - var(--app-shell-padding)
-      )
-    );
-  }
-</style>

@@ -14,29 +14,29 @@
     percentage === 100
       ? 'bg-success-solid'
       : percentage > 50
-        ? 'bg-brand'
-        : percentage > 0
-          ? 'bg-warning-solid'
-          : 'bg-input-border'
+        ? 'bg-primary'
+      : percentage > 0
+        ? 'bg-warning-solid'
+          : 'bg-muted'
   );
 </script>
 
 <div class="w-full">
   <div class="flex items-center gap-2">
     <div
-      class="flex-1 bg-input-bg rounded-full overflow-hidden {size === 'sm' ? 'h-2' : 'h-3'}"
+      class="flex-1 overflow-hidden rounded-full bg-secondary {size === 'sm' ? 'h-2' : 'h-3'}"
     >
       <div
         class="h-full rounded-full transition-all duration-300 {color}"
         style="width: {percentage}%"
       ></div>
     </div>
-    <span class="text-sm text-on-surface-muted whitespace-nowrap {size === 'sm' ? 'text-xs' : ''}">
+    <span class="whitespace-nowrap text-sm text-muted-foreground {size === 'sm' ? 'text-xs' : ''}">
       {progress.done}/{progress.total}
     </span>
   </div>
   {#if showLabel}
-    <div class="text-sm text-on-surface-muted mt-1">
+    <div class="mt-1 text-sm text-muted-foreground">
       {percentage}% complete
     </div>
   {/if}

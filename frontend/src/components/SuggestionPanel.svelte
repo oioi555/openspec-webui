@@ -1,9 +1,10 @@
 <script lang="ts">
+  import { FileUp, Pencil, SquarePen, Trash2, X } from '@lucide/svelte';
+  import * as Dialog from '$lib/components/ui/dialog';
   import { suggestionStore, type Suggestion } from '../stores/suggestions.svelte.ts';
   import { generatePrompt } from '../lib/promptGenerator';
   import { addToast } from '../stores/index.svelte.ts';
   import type { Change } from '../lib/api';
-  import Icon from './Icon.svelte';
 
   interface Props {
     changeName: string;
@@ -64,20 +65,16 @@
   }
 </script>
 
-<!-- Side panel -->
-<div
-  class="fixed top-0 right-0 h-full bg-surface border-l border-border shadow-xl z-40 flex flex-col"
-  style="width: var(--suggestion-panel-width);"
->
+<div class="flex h-full w-full flex-col">
   <!-- Header -->
   <div class="flex items-center justify-between p-4 border-b border-border">
-    <h2 class="text-lg font-semibold text-on-bg">Suggestions</h2>
+    <h2 class="text-lg font-semibold text-foreground">Suggestions</h2>
     <button
       onclick={handleExit}
-      class="p-1 hover:bg-surface rounded transition-colors"
+      class="rounded p-1 transition-colors hover:bg-accent"
       title="Exit suggestion mode"
     >
-      <Icon name="close" class="h-5 w-5 text-on-surface-muted" />
+      <X class="h-5 w-5 text-muted-foreground" />
     </button>
   </div>
 
@@ -91,39 +88,39 @@
   <!-- Suggestions list -->
   <div class="flex-1 overflow-y-auto p-4 space-y-3">
     {#if suggestions.length === 0}
-      <div class="text-center text-on-surface-muted py-8">
-        <Icon name="pencil-square" class="mx-auto mb-3 h-12 w-12 opacity-50" />
+      <div class="py-8 text-center text-muted-foreground">
+        <SquarePen class="mx-auto mb-3 h-12 w-12 opacity-50" />
         <p>No suggestions yet</p>
         <p class="text-xs mt-1">Click on a text block to add one</p>
       </div>
     {:else}
       {#each suggestions as suggestion, index}
-        <div class="bg-surface-alt/50 rounded-lg p-3 border border-border">
+        <div class="rounded-lg border border-border bg-secondary/50 p-3">
           <div class="flex items-start justify-between mb-2">
-            <span class="text-xs font-medium text-on-surface-muted">Suggestion {index + 1}</span>
+            <span class="text-xs font-medium text-muted-foreground">Suggestion {index + 1}</span>
             <div class="flex gap-1">
               <button
                 onclick={() => handleEdit(suggestion)}
-                class="p-1 hover:bg-surface rounded text-on-surface-muted hover:text-on-surface transition-colors"
+                class="rounded p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                 title="Edit suggestion"
               >
-                <Icon name="pencil" class="h-4 w-4" />
+                <Pencil class="h-4 w-4" />
               </button>
               <button
                 onclick={() => handleRemove(suggestion.id)}
-                class="rounded p-1 text-on-surface-muted transition-colors hover:bg-surface hover:text-danger"
+                class="rounded p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-danger"
                 title="Remove suggestion"
               >
-                <Icon name="trash" class="h-4 w-4" />
+                <Trash2 class="h-4 w-4" />
               </button>
             </div>
           </div>
-          <div class="text-xs text-on-surface-muted mb-1">Original:</div>
-          <div class="text-sm text-on-surface-muted bg-surface rounded p-2 mb-2 line-clamp-2">
+          <div class="mb-1 text-xs text-muted-foreground">Original:</div>
+          <div class="mb-2 rounded bg-card p-2 text-sm text-muted-foreground line-clamp-2">
             {truncateText(suggestion.originalText, 80)}
           </div>
-          <div class="text-xs text-on-surface-muted mb-1">Suggested:</div>
-          <div class="text-sm text-on-surface bg-surface rounded p-2 line-clamp-3">
+          <div class="mb-1 text-xs text-muted-foreground">Suggested:</div>
+          <div class="rounded bg-card p-2 text-sm text-card-foreground line-clamp-3">
             {truncateText(suggestion.suggestedChange, 120)}
           </div>
         </div>
@@ -136,60 +133,54 @@
       <button
         onclick={handleGeneratePrompt}
       disabled={suggestions.length === 0}
-      class="w-full py-2.5 bg-brand text-on-brand rounded-lg font-medium
-             hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed
+      class="w-full rounded-lg bg-primary py-2.5 font-medium text-primary-foreground
+             hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50
              transition-colors flex items-center justify-center gap-2"
     >
-      <Icon name="document-arrow" class="h-5 w-5" />
+      <FileUp class="h-5 w-5" />
       Generate Instructions
     </button>
-    <p class="text-xs text-on-surface-muted text-center mt-2">
+    <p class="mt-2 text-center text-xs text-muted-foreground">
       {suggestions.length} suggestion{suggestions.length === 1 ? '' : 's'}
     </p>
   </div>
 </div>
 
-<!-- Prompt Modal -->
-{#if showPromptModal}
-  <div class="fixed inset-0 bg-overlay z-50 flex items-center justify-center p-4">
-    <div class="bg-surface rounded-lg shadow-xl max-w-3xl w-full max-h-[80vh] flex flex-col">
-      <!-- Modal header -->
-      <div class="flex items-center justify-between p-4 border-b border-border">
-        <h3 class="text-lg font-semibold text-on-bg">Generated Instructions</h3>
-        <button
-          onclick={handleCloseModal}
-          class="p-1 hover:bg-surface rounded transition-colors"
-          title="Close modal"
-        >
-          <Icon name="close" class="h-5 w-5 text-on-surface-muted" />
-        </button>
-      </div>
-
-      <!-- Modal content -->
-      <div class="flex-1 overflow-y-auto p-4">
-        <pre class="text-sm text-on-surface whitespace-pre-wrap bg-surface-alt rounded-lg p-4 font-mono">{generatedPrompt}</pre>
-      </div>
-
-      <!-- Modal footer -->
-      <div class="flex justify-end gap-3 p-4 border-t border-border">
-        <button
-          onclick={handleCloseModal}
-          class="px-4 py-2 text-on-surface-muted hover:text-on-surface transition-colors"
-        >
-          Cancel
-        </button>
-        <button
-          onclick={handleCopyPrompt}
-          class="px-4 py-2 bg-brand text-on-brand rounded-lg font-medium
-                 hover:bg-brand-hover transition-colors flex items-center gap-2"
-        >
-          <Icon name="document-arrow" class="h-5 w-5" />
-          Copy to Clipboard
-        </button>
-      </div>
+<Dialog.Root open={showPromptModal} onOpenChange={(open) => !open && handleCloseModal()}>
+  <Dialog.Overlay />
+  <Dialog.Content class="max-w-3xl p-0">
+    <div class="flex items-center justify-between border-b border-border p-4">
+      <Dialog.Title>Generated Instructions</Dialog.Title>
+      <button
+        onclick={handleCloseModal}
+        class="rounded p-1 transition-colors hover:bg-accent"
+        title="Close modal"
+      >
+        <X class="h-5 w-5 text-muted-foreground" />
+      </button>
     </div>
-  </div>
-{/if}
+
+    <div class="max-h-[80vh] overflow-y-auto p-4">
+      <pre class="whitespace-pre-wrap rounded-lg bg-secondary p-4 font-mono text-sm text-card-foreground">{generatedPrompt}</pre>
+    </div>
+
+    <Dialog.Footer class="border-t border-border p-4">
+      <button
+        onclick={handleCloseModal}
+        class="px-4 py-2 text-muted-foreground transition-colors hover:text-foreground"
+      >
+        Cancel
+      </button>
+      <button
+        onclick={handleCopyPrompt}
+        class="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+      >
+        <FileUp class="h-5 w-5" />
+        Copy to Clipboard
+      </button>
+    </Dialog.Footer>
+  </Dialog.Content>
+</Dialog.Root>
 
 <style>
   .line-clamp-2 {

@@ -1,36 +1,31 @@
 # spec-browsing Specification
 
 ## Purpose
-TBD - created by archiving change capture-baseline-specs. Update Purpose after archive.
+Expose capability specs through the Explorer Pane and open spec content in the tabbed Main Viewer.
 ## Requirements
 ### Requirement: Catalog capability specs
-The system SHALL discover capability directories under `specs/`, sort them alphabetically, and expose whether each capability includes `design.md` alongside `spec.md`.
+The system SHALL discover capability directories under `specs/`, sort them alphabetically, and display them in the Explorer Pane's SPECS collapsible section. Each entry SHALL indicate whether the spec includes a design document.
 
-#### Scenario: List available capabilities
+#### Scenario: List available capabilities in Explorer
 - **WHEN** the workspace contains one or more spec capability directories
-- **THEN** the system returns them in alphabetical order
-- **AND** indicates for each capability whether design content is available
+- **THEN** the Explorer Pane's SPECS section lists them in alphabetical order
+- **AND** each entry shows the capability name
+- **AND** entries with design content are visually distinguished
 
-#### Scenario: Show an empty spec list
+#### Scenario: Show an empty spec list in Explorer
 - **WHEN** the workspace contains no spec capability directories
-- **THEN** the system returns an empty spec collection
-- **AND** the UI shows `No specifications found`
+- **THEN** the Explorer Pane's SPECS section shows `No specifications found`
 
 ### Requirement: Render spec and design content
-The system SHALL load a spec by capability name, SHALL render `spec.md` content in the detail view, and SHALL offer `Specification` and `Design` tabs when `design.md` is present.
+The system SHALL load a spec by capability name when the operator clicks it in the Explorer Pane, SHALL open a tab in the Main Viewer rendering `spec.md` content, and SHALL offer `Specification` and `Design` sub-tabs when `design.md` is present.
 
 #### Scenario: View a capability with design content
-- **WHEN** the operator opens a capability that has both `spec.md` and `design.md`
-- **THEN** the detail view renders the specification content by default
-- **AND** provides a `Design` tab for the design document
+- **WHEN** the operator clicks a capability that has both `spec.md` and `design.md` in the Explorer Pane
+- **THEN** a tab opens in the Main Viewer
+- **AND** the tab renders the specification content by default
+- **AND** provides a Design sub-tab for the design document
 
 #### Scenario: View a capability without design content
-- **WHEN** the operator opens a capability that only has `spec.md`
-- **THEN** the detail view renders the specification content
-- **AND** does not show a design tab
-
-#### Scenario: Surface an incomplete capability directory
-- **WHEN** a capability directory exists without `spec.md`
-- **THEN** the system still exposes the capability
-- **AND** returns an empty specification body for that capability
-
+- **WHEN** the operator clicks a capability that only has `spec.md`
+- **THEN** a tab opens rendering the specification content
+- **AND** no design sub-tab is shown

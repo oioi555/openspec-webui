@@ -7,14 +7,14 @@
   let { message, type = 'info' }: Props = $props();
 
   const colors = {
-    info: 'bg-info-solid',
-    success: 'bg-success-solid',
-    error: 'bg-danger-solid',
+    info: 'bg-primary text-primary-foreground',
+    success: 'bg-success-solid text-white',
+    error: 'bg-danger-solid text-white',
   };
 </script>
 
 <div
-  class="px-4 py-2 rounded-lg text-on-brand shadow-lg animate-fade-in {colors[type]}"
+  class="animate-fade-in rounded-lg px-4 py-2 shadow-lg {colors[type]}"
   role="alert"
 >
   {message}

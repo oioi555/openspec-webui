@@ -93,7 +93,7 @@
 {#if selectedBlockId && position}
   <div
     bind:this={popoverElement}
-    class="fixed z-50 bg-surface border border-input-border rounded-lg shadow-xl p-4 w-96"
+    class="fixed z-50 w-96 rounded-lg border border-input bg-card p-4 shadow-xl"
     style="left: {Math.max(16, Math.min(position.x - 192, window.innerWidth - 400))}px; top: {Math.min(position.y, window.innerHeight - 300)}px;"
     onkeydown={handleKeydown}
     role="dialog"
@@ -102,23 +102,23 @@
   >
     <!-- Original text preview -->
     <div class="mb-3">
-      <span id="suggestion-dialog-title" class="block text-xs font-medium text-on-surface-muted mb-1">Original text:</span>
-      <div class="text-sm text-on-surface bg-surface-alt/50 rounded p-2 max-h-24 overflow-y-auto">
+      <span id="suggestion-dialog-title" class="mb-1 block text-xs font-medium text-muted-foreground">Original text:</span>
+      <div class="max-h-24 overflow-y-auto rounded bg-secondary/50 p-2 text-sm text-card-foreground">
         {truncateText(originalText, 200)}
       </div>
     </div>
 
     <!-- Suggestion input -->
     <div class="mb-3">
-      <label for="suggestion-input" class="block text-xs font-medium text-on-surface-muted mb-1">
+      <label for="suggestion-input" class="mb-1 block text-xs font-medium text-muted-foreground">
         Your suggestion:
       </label>
       <textarea
         id="suggestion-input"
         bind:this={textareaElement}
         bind:value={suggestionText}
-        class="w-full h-24 bg-surface-alt border border-input-border rounded-md p-2 text-sm text-on-bg
-               focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent
+        class="h-24 w-full rounded-md border border-input bg-background p-2 text-sm text-foreground
+               focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring
                resize-none"
         placeholder="Describe your suggested change..."
       ></textarea>
@@ -128,15 +128,15 @@
     <div class="flex justify-end gap-2">
       <button
         onclick={handleCancel}
-        class="px-3 py-1.5 text-sm text-on-surface-muted hover:text-on-surface transition-colors"
+        class="px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         Cancel
       </button>
       <button
         onclick={handleAdd}
         disabled={!suggestionText.trim()}
-        class="px-3 py-1.5 text-sm bg-brand text-on-brand rounded-md
-               hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed
+        class="rounded-md bg-primary px-3 py-1.5 text-sm text-primary-foreground
+               hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50
                transition-colors"
       >
         {existingSuggestion ? 'Update' : 'Add'} Suggestion
@@ -144,9 +144,9 @@
     </div>
 
     <!-- Keyboard hint -->
-    <div class="mt-2 text-xs text-on-surface-muted text-center">
-      Press <kbd class="px-1 py-0.5 bg-input-bg rounded text-on-surface-muted">Cmd+Enter</kbd> to add,
-      <kbd class="px-1 py-0.5 bg-input-bg rounded text-on-surface-muted">Esc</kbd> to cancel
+    <div class="mt-2 text-center text-xs text-muted-foreground">
+      Press <kbd class="rounded bg-muted px-1 py-0.5 text-muted-foreground">Cmd+Enter</kbd> to add,
+      <kbd class="rounded bg-muted px-1 py-0.5 text-muted-foreground">Esc</kbd> to cancel
     </div>
   </div>
 {/if}

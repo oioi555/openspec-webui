@@ -1,9 +1,9 @@
 <script lang="ts">
+  import { Clipboard } from '@lucide/svelte';
   import type { WorkflowCommand } from '../lib/commandTypes';
   import { buildCommand } from '../lib/commandShortcuts';
   import { addToast } from '../stores/index.svelte.ts';
   import { commandPreferencesStore } from '../stores/commandPreferences.svelte.ts';
-  import Icon from './Icon.svelte';
 
   interface Props {
     commands?: WorkflowCommand[];
@@ -29,13 +29,13 @@
     {#each commands as command}
       <button
         type="button"
-        class="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors
+        class="flex items-center-safe gap-2 px-3 p-1.5 rounded-lg transition-colors
               bg-success-bg text-success hover:bg-success-border"
         title={`Copy ${buildCommand(command, commandPreferencesStore.aiTool, changeName ?? undefined)}`}
         onclick={() => copyCommand(command)}
       >
-        <Icon name="clipboard" class="h-5 w-5 text-success" />
-        <span class="text-sm font-medium">{command}</span>
+        <Clipboard class="h-4 w-4 text-success" />
+        <span class="text-sm">{command}</span>
       </button>
     {/each}
   </div>

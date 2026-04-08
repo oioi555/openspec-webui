@@ -4,16 +4,17 @@
 TBD - created by archiving change capture-baseline-specs. Update Purpose after archive.
 ## Requirements
 ### Requirement: Enable suggestion mode for active changes
-The system SHALL allow suggestion mode on non-archived change detail views, SHALL make rendered markdown blocks selectable while suggestion mode is active, and SHALL not expose suggestion mode controls for archived changes.
+The system SHALL allow suggestion mode on non-archived change detail views opened in tabs. When suggestion mode is active, the Suggestion Panel SHALL appear as a collapsible right sidebar adjacent to the Main Viewer. The system SHALL not expose suggestion mode controls for archived changes.
 
-#### Scenario: Enter suggestion mode on an active change
-- **WHEN** the operator opens an active change and toggles suggestion mode on
-- **THEN** the detail view switches into block-selectable suggestion mode
-- **AND** shows the suggestion side panel and popover workflow
+#### Scenario: Enter suggestion mode on an active change tab
+- **WHEN** the operator opens an active change in a tab and toggles suggestion mode on
+- **THEN** the right sidebar appears showing the suggestion panel
+- **AND** the rendered markdown in the tab becomes block-selectable
 
 #### Scenario: Hide suggestion mode for archived changes
 - **WHEN** the operator opens an archived change
 - **THEN** the UI does not show a suggestion mode toggle
+- **AND** the right sidebar does not appear
 
 ### Requirement: Persist and manage suggestions per change in the browser
 The system SHALL store suggestions per change in browser localStorage, SHALL reload saved suggestions when the operator re-enters suggestion mode for the same change, and SHALL support updating and removing saved suggestions.
@@ -38,17 +39,10 @@ When suggestion mode is active and change content hot-refreshes, the system SHAL
 #### Scenario: Resolve suggestions after content changes
 - **WHEN** a hot reload removes the original text associated with one or more saved suggestions
 - **THEN** the system drops those suggestions from the current change state
-- **AND** shows a success toast describing how many suggestions were resolved
 
 ### Requirement: Generate clipboard-ready implementation instructions
-The system SHALL generate a text instructions document from the current suggestions, SHALL include each suggestion's original text and suggested change, SHALL include a best-effort file path and line number when the original text can be located in markdown content or spec deltas, and SHALL support copying the generated instructions to the clipboard.
+The system SHALL generate a text instructions document from the current suggestions, SHALL include each suggestion's original text and suggested change, and SHALL support copying the generated instructions to the clipboard.
 
 #### Scenario: Generate instructions with resolved locations
 - **WHEN** the operator generates instructions for suggestions whose original text can be located in change markdown content
 - **THEN** the system includes the related file path and line number in the generated instructions
-
-#### Scenario: Generate instructions when no location can be resolved
-- **WHEN** the operator generates instructions for a suggestion whose original text cannot be located in supported content
-- **THEN** the system still includes the original text and suggested change in the generated instructions
-- **AND** omits the location details for that suggestion
-

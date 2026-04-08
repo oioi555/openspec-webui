@@ -1,40 +1,49 @@
 <script lang="ts">
-  import { activeChanges, project, navigateTo } from '../stores/index.svelte.ts';
+  import { activeChanges, project } from '../stores/index.svelte.ts';
   import { commandPreferencesStore } from '../stores/commandPreferences.svelte.ts';
   import { getWorkspaceCommands } from '../lib/commandShortcuts';
+  import { layoutStore } from '../stores/layout.svelte.ts';
+  import { tabStore } from '../stores/tabs.svelte.ts';
   import MarkdownRenderer from './MarkdownRenderer.svelte';
   import ActiveChangesList from './ActiveChangesList.svelte';
   import CommandShortcutBar from './CommandShortcutBar.svelte';
 
   let workspaceCommands = $derived(getWorkspaceCommands(activeChanges.value, commandPreferencesStore));
+
+  function openActiveChange(name: string) {
+    layoutStore.focusSection('active-changes');
+    tabStore.open(`/changes/${encodeURIComponent(name)}`);
+  }
 </script>
 
 <div class="space-y-6">
   <!-- Header -->
   <div>
-    <h1 class="text-2xl font-bold text-on-bg">Home</h1>
-    {#if project.value?.description}
-      <p class="text-on-surface-muted mt-1">{project.value.description}</p>
-    {/if}
+    <div>
+      <h1 class="text-2xl font-bold text-foreground">Home</h1>
+      {#if project.value?.description}
+        <p class="mt-1 text-muted-foreground">{project.value.description}</p>
+      {/if}
+    </div>
   </div>
-
+  
   <!-- Active Changes -->
-  <div class="bg-surface rounded-lg shadow-lg border border-border">
-    <div class="px-6 py-4 border-b border-border flex items-center justify-between">
-      <h2 class="text-lg font-semibold text-on-bg">
-        Active Changes
-        <span class="ml-2 px-1.5 py-0.5 text-xs bg-input-border text-on-surface rounded-full">{activeChanges.value.length}</span>
+  <div class="rounded-lg border border-border bg-card shadow-lg">
+    <div class="flex items-center justify-between border-b border-border px-6 py-4">
+      <h2 class="text-lg font-semibold text-foreground">
+        Active Changes <span class="badge-num">{activeChanges.value.length}</span>
       </h2>
+
       <CommandShortcutBar commands={workspaceCommands} />
     </div>
-    <ActiveChangesList changes={activeChanges.value} onSelect={(name) => navigateTo(`/changes/${name}`)} />
+    <ActiveChangesList changes={activeChanges.value} onSelect={openActiveChange} />
   </div>
 
   <!-- Project Info -->
   {#if project.value?.content}
-    <div class="bg-surface rounded-lg shadow-lg border border-border">
+    <div class="rounded-lg border border-border bg-card shadow-lg">
       <div class="px-6 py-4 border-b border-border">
-        <h2 class="text-lg font-semibold text-on-bg">Project Documentation</h2>
+        <h2 class="text-lg font-semibold text-foreground">Project Documentation</h2>
       </div>
       <div class="px-6 py-4">
         <MarkdownRenderer content={project.value.content} />

@@ -1,24 +1,32 @@
 # change-browsing Specification
 
 ## Purpose
-TBD - created by archiving change capture-baseline-specs. Update Purpose after archive.
+Expose active and archived changes through the Explorer Pane so operators can move from current work to historical reference within the three-pane layout.
+
 ## Requirements
 ### Requirement: List active and archived changes
-The system SHALL list active changes on the Home page alphabetically, SHALL list archived changes on the dedicated Changes page (`/changes`) newest-first by leading archive date when available, and SHALL expose per-change summary data including task progress, spec delta count, design presence, file counts, and archive status. Active changes SHALL be rendered by the shared `ActiveChangesList` component on the Home page only. The Changes page SHALL display only archived changes and SHALL be titled "Archived Changes".
+The system SHALL list active changes in the Explorer Pane's ACTIVE CHANGES collapsible section, sorted alphabetically. The system SHALL list archived changes in the Explorer Pane's ARCHIVE collapsible section, sorted newest-first by archive date. The ACTIVE CHANGES section SHALL be rendered before the ARCHIVE section so the workflow reads from active work to historical reference. Each entry SHALL display the change name and task progress. The Activity Bar SHALL align with these sections as `Home -> ACTIVE CHANGES` and `Changes -> ARCHIVE`.
 
-#### Scenario: Show active change summaries
+#### Scenario: Show active change summaries in Explorer
 - **WHEN** the workspace contains active changes
-- **THEN** the Home page lists them alphabetically using the `ActiveChangesList` component
-- **AND** each summary includes an icon, name, spec delta count, and task progress
-- **AND** the UI marks changes with design content using a design badge
+- **THEN** the Explorer Pane's ACTIVE CHANGES section lists them alphabetically
+- **AND** each entry shows the change name and task progress badge
 
-#### Scenario: Show archived change summaries
-- **WHEN** the workspace contains archived changes stored with `YYYY-MM-DD-` prefixes
-- **THEN** the Changes page (`/changes`) lists them newest-first
-- **AND** each summary includes the change name and archive date
-- **AND** the UI displays them as completed archived items
+#### Scenario: Show archived change summaries in Explorer
+- **WHEN** the workspace contains archived changes
+- **THEN** the Explorer Pane's ARCHIVE section lists them newest-first
+- **AND** each entry shows the change name
 
-#### Scenario: Empty archived changes page
-- **WHEN** the workspace contains no archived changes
-- **THEN** the Changes page shows `No archived changes`
+#### Scenario: Home focuses active changes
+- **WHEN** the operator opens Home from the Activity Bar
+- **THEN** the Explorer Pane expands the ACTIVE CHANGES section
+- **AND** the ARCHIVE section is collapsed
 
+#### Scenario: Changes focuses archive
+- **WHEN** the operator opens Changes from the Activity Bar
+- **THEN** the Explorer Pane expands the ARCHIVE section
+- **AND** the ACTIVE CHANGES section is collapsed
+
+#### Scenario: Empty section in Explorer
+- **WHEN** the workspace contains no active or archived changes
+- **THEN** the corresponding Explorer section shows a placeholder message

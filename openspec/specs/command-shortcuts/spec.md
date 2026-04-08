@@ -17,11 +17,11 @@ The system SHALL generate OpenSpec commands with `/opsx-<workflow>` when the AI 
 - **AND** does not append a task label or other extra argument
 
 ### Requirement: Show workspace command buttons on Dashboard and Changes
-The system SHALL render copy-command buttons inline within the Active Changes section header on the Dashboard and Changes views, SHALL always include the core workspace commands `propose` and `explore`, SHALL include `new` only when that expanded command is both available and enabled, SHALL include `bulk-archive` only when at least one active change is fully complete and that expanded command is both available and enabled, and SHALL include `continue` and `ff` only when at least one active change remains incomplete and those expanded commands are both available and enabled. The command buttons SHALL be rendered as a compact button row without a surrounding card, title, or description block.
+The system SHALL render copy-command buttons inline within the ACTIVE CHANGES section header of the `Home -> ACTIVE CHANGES` surface, whether that surface is shown in the persistent Explorer Pane or the temporary narrow-width Home drawer. The system SHALL always include the core workspace commands `propose` and `explore`, SHALL include `new` only when that expanded command is both available and enabled, SHALL include `bulk-archive` only when at least one active change is fully complete and that expanded command is both available and enabled, and SHALL include `continue` and `ff` only when at least one active change remains incomplete and those expanded commands are both available and enabled. The command buttons SHALL be rendered as a compact button row without a surrounding card, title, or description block.
 
-#### Scenario: Show the always-available workspace commands
-- **WHEN** the operator views the Dashboard or Changes page
-- **THEN** the UI shows copy buttons for `propose` and `explore` inline in the Active Changes section header
+#### Scenario: Show the always-available workspace commands on Home
+- **WHEN** the operator views the Home surface
+- **THEN** the UI shows copy buttons for `propose` and `explore` inline in the ACTIVE CHANGES section header
 
 #### Scenario: Show incomplete-work workspace commands
 - **WHEN** at least one active change still has incomplete tasks
@@ -35,6 +35,10 @@ The system SHALL render copy-command buttons inline within the Active Changes se
 - **WHEN** the operator activates a workspace command button
 - **THEN** the system copies only the command text
 - **AND** does not append a change name
+
+#### Scenario: Show workspace commands in narrow-width home drawer
+- **WHEN** the viewport width is less than 768px and the operator opens the Home drawer
+- **THEN** the ACTIVE CHANGES section header in that drawer shows the same workspace command buttons as the persistent Explorer Pane
 
 ### Requirement: Show change-scoped command buttons in ChangeViewer
 The system SHALL render change-scoped copy-command buttons inline within the ChangeViewer header alongside existing actions, SHALL show `apply` when the change still has incomplete tasks, SHALL show `archive` when the change has no incomplete tasks, SHALL show `continue` and `ff` for incomplete changes only when those commands are both available and enabled, and SHALL show `verify` and `sync` for complete changes only when those commands are both available and enabled. The command buttons SHALL be rendered as a compact button row without a surrounding card, title, or description block.

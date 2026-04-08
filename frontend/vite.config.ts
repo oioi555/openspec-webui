@@ -8,6 +8,11 @@ const debugSourcemap = process.env.OPENSPEC_WEBUI_SOURCEMAP === '1';
 export default defineConfig({
   plugins: [tailwindcss(), svelte()],
   root: path.resolve(__dirname, '.'),
+  resolve: {
+    alias: {
+      $lib: path.resolve(__dirname, './src/lib'),
+    },
+  },
   base: '/',
   build: {
     outDir: '../dist-frontend',
