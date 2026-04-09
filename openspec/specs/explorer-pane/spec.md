@@ -5,17 +5,39 @@ Define the Explorer Pane that organizes active changes, archives, and specs besi
 
 ## Requirements
 ### Requirement: Explorer Pane renders collapsible sections
-The system SHALL render an Explorer Pane between the Activity Bar and the Main Viewer. The Explorer Pane SHALL contain three collapsible sections in this order: ACTIVE CHANGES, ARCHIVE, and SPECS. Each section header SHALL display an icon, a title, and a count badge. Each section SHALL display a list of items without individual item icons, and all section headers SHALL remain visible together so the operator can scan the full list structure.
+The system SHALL render an Explorer Pane between the Activity Bar and the Main Viewer. The Explorer Pane SHALL use the `ExplorerSection` component from `$lib/components/ui/explorer-section/` for each of its three sections (ACTIVE CHANGES, ARCHIVE, SPECS). Each section SHALL pass its title, item count, collapse state, focused state, and header icon as props, and SHALL render section-specific content via slots. The ACTIVE CHANGES section SHALL use the `headerExtra` slot to render `CommandShortcutBar` when workspace commands are available. Explorer list items SHALL NOT render individual icons. No inline collapsible section header markup SHALL remain in `ExplorerPane.svelte` outside of the `ExplorerSection` component usage.
 
-#### Scenario: Explorer Pane shows three sections on load
-- **WHEN** the application loads with data
-- **THEN** the Explorer Pane shows three collapsible sections in order: ACTIVE CHANGES, ARCHIVE, SPECS
-- **AND** each section header shows an icon, a title, and a count badge with the number of items
-- **AND** list items display name and metadata without individual icons
+#### Scenario: Explorer Pane uses ExplorerSection for ACTIVE CHANGES
+- **WHEN** the Explorer Pane renders the ACTIVE CHANGES section
+- **THEN** it renders an ExplorerSection with `title="ACTIVE CHANGES"`, `count` from the active changes store, and `open` from the layout store
+- **AND** the section header icon is shown by the ExplorerSection component
+- **AND** the `headerExtra` slot includes the CommandShortcutBar when workspace commands exist
+- **AND** the default slot includes the active changes list or empty state
+- **AND** the list items themselves do not show individual icons
+
+#### Scenario: Explorer Pane uses ExplorerSection for ARCHIVE
+- **WHEN** the Explorer Pane renders the ARCHIVE section
+- **THEN** it renders an ExplorerSection with `title="ARCHIVE"`, `count` from the archived changes store
+- **AND** the section header icon is shown by the ExplorerSection component
+- **AND** the default slot includes the archived changes list or empty state
+
+#### Scenario: Explorer Pane uses ExplorerSection for SPECS
+- **WHEN** the Explorer Pane renders the SPECS section
+- **THEN** it renders an ExplorerSection with `title="SPECS"`, `count` from the specs store
+- **AND** the section header icon is shown by the ExplorerSection component
+- **AND** the default slot includes the specs list or empty state
 
 #### Scenario: Empty section displays placeholder
 - **WHEN** a section has no items
 - **THEN** the section body shows a placeholder message (e.g., `No active changes`)
+
+#### Scenario: No independent list item icons remain
+- **WHEN** `ExplorerPane.svelte` is inspected
+- **THEN** no `IconBox` or other decorative icon is rendered inside ExplorerPane list items
+
+#### Scenario: No inline section header markup in ExplorerPane
+- **WHEN** `ExplorerPane.svelte` is inspected
+- **THEN** no `<Collapsible.Root>` with inline header classes (`border-b border-border/70 bg-secondary/40`) exists outside of the `ExplorerSection` component
 
 ### Requirement: Explorer sections are collapsible
 The system SHALL allow each Explorer Pane section to be collapsed and expanded independently. The collapsed/expanded state SHALL be preserved during the current session.
@@ -30,7 +52,7 @@ The system SHALL allow each Explorer Pane section to be collapsed and expanded i
 - **THEN** the section expands to show its items
 
 ### Requirement: Activity Bar selection applies explorer focus presets
-The system SHALL synchronize Activity Bar selection with Explorer Pane expansion presets. Selecting Home from the Activity Bar SHALL expand ACTIVE CHANGES and collapse ARCHIVE and SPECS. Selecting Changes from the Activity Bar SHALL expand ARCHIVE and collapse ACTIVE CHANGES and SPECS. Selecting Specs from the Activity Bar SHALL expand SPECS and collapse ACTIVE CHANGES and ARCHIVE. Manual section toggles inside the Explorer Pane SHALL remain allowed until the next Activity Bar preset change.
+The system SHALL synchronize Activity Bar selection with Explorer Pane expansion presets. Selecting Home from the Activity Bar SHALL expand ACTIVE CHANGES and collapse ARCHIVE and SPECS. Selecting Archive from the Activity Bar SHALL expand ARCHIVE and collapse ACTIVE CHANGES and SPECS. Selecting Specs from the Activity Bar SHALL expand SPECS and collapse ACTIVE CHANGES and ARCHIVE. Manual section toggles inside the Explorer Pane SHALL remain allowed until the next Activity Bar preset change.
 
 #### Scenario: Home preset expands active changes browsing
 - **WHEN** the operator clicks the Home icon in the Activity Bar
@@ -38,8 +60,8 @@ The system SHALL synchronize Activity Bar selection with Explorer Pane expansion
 - **AND** the ARCHIVE section is collapsed
 - **AND** the SPECS section is collapsed
 
-#### Scenario: Changes preset expands archive browsing
-- **WHEN** the operator clicks the Changes icon in the Activity Bar
+#### Scenario: Archive preset expands archive browsing
+- **WHEN** the operator clicks the Archive icon in the Activity Bar
 - **THEN** the ARCHIVE section is expanded
 - **AND** the ACTIVE CHANGES section is collapsed
 - **AND** the SPECS section is collapsed

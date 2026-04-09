@@ -5,9 +5,10 @@
     progress: TaskProgress;
     size?: 'sm' | 'md';
     showLabel?: boolean;
+    showFraction?: boolean;
   }
 
-  let { progress, size = 'md', showLabel = false }: Props = $props();
+  let { progress, size = 'md', showLabel = false, showFraction = true }: Props = $props();
 
   let percentage = $derived(progress.percentage);
   let color = $derived(
@@ -31,9 +32,11 @@
         style="width: {percentage}%"
       ></div>
     </div>
-    <span class="whitespace-nowrap text-sm text-muted-foreground {size === 'sm' ? 'text-xs' : ''}">
-      {progress.done}/{progress.total}
-    </span>
+    {#if showFraction}
+      <span class="whitespace-nowrap text-sm text-muted-foreground {size === 'sm' ? 'text-xs' : ''}">
+        {progress.done}/{progress.total}
+      </span>
+    {/if}
   </div>
   {#if showLabel}
     <div class="mt-1 text-sm text-muted-foreground">

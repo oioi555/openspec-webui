@@ -1,7 +1,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: List active and archived changes
-The system SHALL list active changes in the Explorer Pane's ACTIVE CHANGES collapsible section, sorted alphabetically. The system SHALL list archived changes in the Explorer Pane's ARCHIVE collapsible section, sorted newest-first by archive date. The ACTIVE CHANGES section SHALL be rendered before the ARCHIVE section so the workflow reads from active work to historical reference. Each entry SHALL display the change name and task progress. The Activity Bar SHALL align with these sections as `Home → ACTIVE CHANGES` and `Changes → ARCHIVE`.
+The system SHALL list active changes in the Explorer Pane's ACTIVE CHANGES collapsible section, sorted alphabetically. The system SHALL list archived changes in the Explorer Pane's ARCHIVE collapsible section, sorted newest-first by archive date. The ACTIVE CHANGES section SHALL be rendered before the ARCHIVE section so the workflow reads from active work to historical reference. Each entry SHALL display the change name and task progress. The Activity Bar SHALL align with these sections as `Home → ACTIVE CHANGES` and `Archive → ARCHIVE`.
 
 #### Scenario: Show active change summaries in Explorer
 - **WHEN** the workspace contains active changes
@@ -18,8 +18,8 @@ The system SHALL list active changes in the Explorer Pane's ACTIVE CHANGES colla
 - **THEN** the Explorer Pane expands the ACTIVE CHANGES section
 - **AND** the ARCHIVE section is collapsed
 
-#### Scenario: Changes focuses archive
-- **WHEN** the operator opens Changes from the Activity Bar
+#### Scenario: Archive focuses archive
+- **WHEN** the operator opens Archive from the Activity Bar
 - **THEN** the Explorer Pane expands the ARCHIVE section
 - **AND** the ACTIVE CHANGES section is collapsed
 

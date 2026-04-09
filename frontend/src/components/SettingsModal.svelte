@@ -1,5 +1,7 @@
 <script lang="ts">
-  import { Command, ListChecks, Settings, X } from '@lucide/svelte';
+  import { Command, ListChecks, Settings } from '@lucide/svelte';
+  import { Callout } from '$lib/components/ui/callout';
+  import { DialogHeader as SharedDialogHeader } from '$lib/components/ui/dialog-header';
   import * as Dialog from '$lib/components/ui/dialog';
   import type { ExpandedCommand, AiTool } from '../lib/commandTypes';
   import { EXPANDED_COMMANDS, EXPANDED_COMMAND_LABELS } from '../lib/commandTypes';
@@ -66,24 +68,12 @@
 <Dialog.Root open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
   <Dialog.Overlay />
   <Dialog.Content class="max-w-4xl gap-0 p-0">
-    <div class="flex items-center justify-between gap-4 border-b border-border px-6 py-4">
-      <div class="flex items-center gap-3">
-        <Settings class="h-5 w-5 text-primary" />
-        <div>
-          <Dialog.Title class="text-lg font-semibold text-foreground">Settings</Dialog.Title>
-          <Dialog.Description class="text-sm text-muted-foreground">Theme and command preferences</Dialog.Description>
-        </div>
-      </div>
-
-      <button
-        type="button"
-        class="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-        aria-label="Close settings"
-        onclick={onClose}
-      >
-        <X class="h-4 w-4" />
-      </button>
-    </div>
+    <SharedDialogHeader
+      icon={Settings}
+      title="Settings"
+      description="Theme and command preferences"
+      onClose={onClose}
+    />
 
     <div class="flex h-[85vh] min-h-0 flex-col gap-6 overflow-hidden lg:grid lg:grid-cols-[14rem_minmax(0,1fr)]">
       <aside class="shrink-0 overflow-y-auto border-b border-border px-6 pb-4 pt-5 lg:min-h-0 lg:border-b-0 lg:border-r lg:px-5 lg:pb-5 lg:pt-5">
@@ -94,7 +84,7 @@
             type="button"
               class={`flex h-full w-full items-start gap-3 rounded-lg border px-4 py-3 text-left transition-colors ${activeSection === section.id
               ? 'border-primary bg-primary/10 text-foreground'
-              : 'border-transparent bg-secondary/50 text-card-foreground hover:border-border hover:bg-accent'}`}
+              : 'border-transparent bg-secondary/50 text-card-foreground hover:border-primary/20 hover:bg-primary/5 hover:text-foreground'}`}
             aria-current={activeSection === section.id ? 'page' : undefined}
             onclick={() => (activeSection = section.id)}
           >
@@ -196,9 +186,9 @@
               </label>
             </div>
 
-            <div class="rounded-lg border border-info-border bg-info-bg px-4 py-3 text-sm text-info">
+            <Callout variant="info">
               Preview: <code class="rounded bg-background px-1.5 py-0.5 text-xs text-primary">{previewCommand}</code>
-            </div>
+            </Callout>
           </section>
         {:else if activeSection === 'expanded-commands'}
           <section class="space-y-3">
@@ -220,12 +210,12 @@
             </div>
 
             {#if !availabilityReady}
-              <div class="rounded-lg border border-warning-border bg-warning-bg px-4 py-3 text-sm text-warning">
+              <Callout variant="warning">
                 Expanded command availability could not be loaded from the local OpenSpec CLI, so these controls are disabled.
                 {#if commandPreferencesStore.availability.error}
                   <div class="mt-1 text-xs text-warning">{commandPreferencesStore.availability.error}</div>
                 {/if}
-              </div>
+              </Callout>
             {/if}
 
             <div class="divide-y divide-border overflow-hidden rounded-lg border border-border bg-secondary/50">

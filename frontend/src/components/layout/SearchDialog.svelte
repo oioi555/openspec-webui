@@ -1,6 +1,8 @@
 <script lang="ts">
   import { tick } from 'svelte';
-  import { Search, X } from '@lucide/svelte';
+  import { Search } from '@lucide/svelte';
+  import { Badge } from '$lib/components/ui/badge';
+  import { DialogHeader as SharedDialogHeader } from '$lib/components/ui/dialog-header';
   import * as Dialog from '$lib/components/ui/dialog';
   import { search, type SearchResult } from '../../lib/api';
   import { searchQuery } from '../../stores/index.svelte.ts';
@@ -53,6 +55,18 @@
     onClose();
   }
 
+  function resultBadgeVariant(type: SearchResult['type']) {
+    if (type === 'spec') {
+      return 'success';
+    }
+
+    if (type === 'change') {
+      return 'outline';
+    }
+
+    return 'secondary';
+  }
+
   $effect(() => {
     if (!open) {
       clearSearch();
@@ -74,24 +88,13 @@
 <Dialog.Root open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
   <Dialog.Overlay />
   <Dialog.Content class="max-w-2xl gap-0 p-0">
-    <div class="flex items-center justify-between border-b border-border px-5 py-4">
-      <div class="flex items-center gap-3">
-        <Search class="h-5 w-5 text-primary" />
-        <div>
-          <Dialog.Title class="text-lg font-semibold text-foreground">Search</Dialog.Title>
-          <Dialog.Description class="text-sm text-muted-foreground">Type at least 2 characters to search specs, changes, and project docs.</Dialog.Description>
-        </div>
-      </div>
-
-      <button
-        type="button"
-        class="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-        aria-label="Close search"
-        onclick={onClose}
-      >
-        <X class="h-4 w-4" />
-      </button>
-    </div>
+    <SharedDialogHeader
+      icon={Search}
+      title="Search"
+      description="Type at least 2 characters to search specs, changes, and project docs."
+      onClose={onClose}
+      class="px-5 py-4"
+    />
 
     <div class="border-b border-border px-5 py-4">
       <input
@@ -113,17 +116,13 @@
         {#each searchResults as result}
           <button
             type="button"
-            class="flex w-full flex-col gap-2 rounded-lg px-3 py-3 text-left transition-colors hover:bg-accent"
+            class="flex w-full flex-col gap-2 rounded-lg px-3 py-3 text-left transition-colors hover:bg-secondary/70"
             onclick={() => openResult(result)}
           >
             <div class="flex items-center gap-2">
-              <span class={`rounded-full px-2 py-0.5 text-[11px] font-medium ${result.type === 'spec'
-                ? 'bg-success-bg text-success'
-                : result.type === 'change'
-                  ? 'bg-info-bg text-info'
-                  : 'bg-secondary text-secondary-foreground'}`}>
+              <Badge variant={resultBadgeVariant(result.type)} class="text-[11px] font-medium">
                 {result.type}
-              </span>
+              </Badge>
               <span class="font-medium text-foreground">{result.name}</span>
             </div>
             <div class="truncate text-sm text-muted-foreground">{result.excerpt}</div>

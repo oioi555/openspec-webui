@@ -1,5 +1,9 @@
 <script lang="ts">
   import { FileText } from '@lucide/svelte';
+  import { ErrorBanner } from '$lib/components/ui/error-banner';
+  import { IconBox } from '$lib/components/ui/icon-box';
+  import { LoadingState } from '$lib/components/ui/loading-state';
+  import { UnderlineTabs } from '$lib/components/ui/underline-tabs';
   import { getSpec, type Spec } from '../lib/api';
   import { specsRefreshTrigger } from '../stores/index.svelte.ts';
   import MarkdownRenderer from './MarkdownRenderer.svelte';
@@ -17,6 +21,12 @@
 
   let previousSpecName: string | null = null;
   let previousRefreshTrigger = -1;
+
+  function handleTabSelect(id: string) {
+    if (id === 'spec' || id === 'design') {
+      activeTab = id;
+    }
+  }
 
   async function loadSpec(preserveState = false) {
     if (!preserveState) {
@@ -61,46 +71,27 @@
 <div class="space-y-6">
   <!-- Header -->
   <div class="flex items-center gap-4">
-    <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-success-bg text-success">
-      <FileText class="h-5 w-5" />
-    </div>
     <div>
-      <h1 class="text-2xl font-bold text-foreground">{specName}</h1>
+      <h1 class="flex items-center gap-2 text-2xl font-bold text-foreground">
+        <IconBox icon={FileText} variant="success" />
+        {specName}
+      </h1>
       <p class="text-muted-foreground">Specification</p>
     </div>
   </div>
 
   {#if loading}
-    <div class="flex items-center justify-center h-64">
-      <div class="text-muted-foreground">Loading...</div>
-    </div>
+    <LoadingState />
   {:else if error}
-    <div class="rounded-lg border border-danger-border bg-danger-bg p-4">
-      <p class="text-danger">{error}</p>
-    </div>
+    <ErrorBanner {error} />
   {:else if spec}
     <!-- Tabs -->
     {#if spec.designContent}
-      <div class="border-b border-border">
-        <nav class="flex space-x-4">
-          <button
-            class="px-4 py-2 border-b-2 font-medium text-sm transition-colors {activeTab === 'spec'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-muted-foreground hover:text-foreground'}"
-            onclick={() => (activeTab = 'spec')}
-          >
-            Specification
-          </button>
-          <button
-            class="px-4 py-2 border-b-2 font-medium text-sm transition-colors {activeTab === 'design'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-muted-foreground hover:text-foreground'}"
-            onclick={() => (activeTab = 'design')}
-          >
-            Design
-          </button>
-        </nav>
-      </div>
+      <UnderlineTabs
+        tabs={[{ id: 'spec', label: 'Specification' }, { id: 'design', label: 'Design' }]}
+        activeId={activeTab}
+        onSelect={handleTabSelect}
+      />
     {/if}
 
     <!-- Content -->

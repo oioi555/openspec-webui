@@ -1,5 +1,7 @@
 <script lang="ts">
   import { tick } from 'svelte';
+  import { Button } from '$lib/components/ui/button';
+  import { truncateText } from '$lib/utils';
   import { suggestionStore, blockSuggestionMap } from '../stores/suggestions.svelte.ts';
 
   let textareaElement = $state<HTMLTextAreaElement | null>(null);
@@ -20,11 +22,6 @@
 
     const block = document.querySelector(`[data-block-id="${blockId}"]`);
     return block?.getAttribute('data-block-text') || block?.textContent?.trim() || '';
-  }
-
-  function truncateText(text: string, maxLength: number = 100): string {
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + '...';
   }
 
   function handleAdd() {
@@ -126,21 +123,17 @@
 
     <!-- Actions -->
     <div class="flex justify-end gap-2">
-      <button
-        onclick={handleCancel}
-        class="px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-      >
+      <Button variant="ghost" size="sm" onclick={handleCancel}>
         Cancel
-      </button>
-      <button
+      </Button>
+      <Button
+        variant="default"
+        size="sm"
         onclick={handleAdd}
         disabled={!suggestionText.trim()}
-        class="rounded-md bg-primary px-3 py-1.5 text-sm text-primary-foreground
-               hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50
-               transition-colors"
       >
         {existingSuggestion ? 'Update' : 'Add'} Suggestion
-      </button>
+      </Button>
     </div>
 
     <!-- Keyboard hint -->

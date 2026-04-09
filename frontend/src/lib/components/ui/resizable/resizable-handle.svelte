@@ -78,7 +78,7 @@
   role="separator"
   aria-orientation={direction}
   class={cn(
-    'relative shrink-0 touch-none select-none bg-border/70 transition-colors hover:bg-accent',
+    'relative shrink-0 touch-none select-none bg-border/70 transition-colors hover:bg-primary/30',
     direction === 'horizontal' ? 'w-px cursor-col-resize' : 'h-px cursor-row-resize',
     className,
   )}

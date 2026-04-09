@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Pin, PinOff, X } from '@lucide/svelte';
+  import { Button } from '$lib/components/ui/button';
   import * as ScrollArea from '$lib/components/ui/scroll-area';
   import * as Tabs from '$lib/components/ui/tabs';
   import { tabStore } from '../../stores/tabs.svelte.ts';
@@ -48,29 +49,31 @@
                 <Pin class="h-4 w-4" />
               </span>
             {:else}
-              <button
-                type="button"
-                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              <Button
+                variant="ghost"
+                size="icon"
+                class="size-8 text-muted-foreground"
                 aria-label={tab.pinned ? 'Unpin tab' : 'Pin tab'}
-                onclick={(event) => togglePin(event, tab.id, tab.pinned ?? false)}
+                onclick={(event: MouseEvent) => togglePin(event, tab.id, tab.pinned ?? false)}
               >
                 {#if tab.pinned}
                   <PinOff class="h-4 w-4" />
                 {:else}
                   <Pin class="h-4 w-4" />
                 {/if}
-              </button>
+              </Button>
             {/if}
 
             {#if !tab.pinned}
-              <button
-                type="button"
-                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              <Button
+                variant="ghost"
+                size="icon"
+                class="size-8 text-muted-foreground"
                 aria-label="Close tab"
-                onclick={(event) => closeTab(event, tab.id)}
+                onclick={(event: MouseEvent) => closeTab(event, tab.id)}
               >
                 <X class="h-4 w-4" />
-              </button>
+              </Button>
             {/if}
           </div>
         {/each}

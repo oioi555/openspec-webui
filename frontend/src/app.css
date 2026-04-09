@@ -252,10 +252,6 @@ body {
   min-height: 100vh;
 }
 
-.badge-num {
-    @apply ml-1 inline-flex items-center rounded-md bg-secondary px-1.5 py-0.5 text-xs font-bold text-secondary-foreground;
-}
-
 /* ────────────────────────────
    Markdown rendering styles
    ──────────────────────────── */

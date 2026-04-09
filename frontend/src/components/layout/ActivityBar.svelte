@@ -1,17 +1,10 @@
 <script lang="ts">
   import { Archive, ChevronsUpDown, FileText, House, Search, Settings } from '@lucide/svelte';
   import * as Tooltip from '$lib/components/ui/tooltip';
+  import { decodeName } from '$lib/utils';
   import { archivedChanges, project } from '../../stores/index.svelte.ts';
   import { layoutStore, type ActivityPreset } from '../../stores/layout.svelte.ts';
   import { tabStore } from '../../stores/tabs.svelte.ts';
-
-  function decodeName(value: string) {
-    try {
-      return decodeURIComponent(value);
-    } catch {
-      return value;
-    }
-  }
 
   function sectionFromPath(path: string): ActivityPreset {
     if (path === '/specs' || path.startsWith('/specs/')) {
@@ -19,12 +12,12 @@
     }
 
     if (path === '/changes') {
-      return 'changes';
+      return 'archive';
     }
 
     if (path.startsWith('/changes/')) {
       const changeName = decodeName(path.slice('/changes/'.length));
-      return archivedChanges.value.some((change) => change.name === changeName) ? 'changes' : 'home';
+      return archivedChanges.value.some((change) => change.name === changeName) ? 'archive' : 'home';
     }
 
     return 'home';
@@ -77,14 +70,14 @@
   function buttonClass(section: string) {
     return activeSection === section
       ? 'bg-primary text-primary-foreground shadow-sm'
-      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground';
+      : 'text-muted-foreground hover:bg-primary/10 hover:text-primary';
   }
 </script>
 
 <aside class="flex h-full w-12 shrink-0 flex-col items-center border-r border-border bg-secondary/70 py-2">
   <Tooltip.Root>
     <Tooltip.Trigger
-      class="flex h-10 w-10 items-center justify-center rounded-lg border border-border/60 bg-card text-card-foreground shadow-sm transition-colors hover:bg-accent"
+      class="flex h-10 w-10 items-center justify-center rounded-lg border border-border/60 bg-card text-card-foreground shadow-sm transition-colors hover:bg-secondary/80"
       aria-label="Open project selector"
       onclick={() => layoutStore.openOverlay('project-selector')}
     >
@@ -113,13 +106,13 @@
 
     <Tooltip.Root>
       <Tooltip.Trigger
-        class={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${buttonClass('changes')}`}
-        aria-label="Changes"
-        onclick={() => openPreset('changes')}
+        class={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${buttonClass('archive')}`}
+        aria-label="Archive"
+        onclick={() => openPreset('archive')}
       >
         <Archive class="h-5 w-5" />
       </Tooltip.Trigger>
-      <Tooltip.Content side="right">Changes</Tooltip.Content>
+      <Tooltip.Content side="right">Archive</Tooltip.Content>
     </Tooltip.Root>
 
     <Tooltip.Root>

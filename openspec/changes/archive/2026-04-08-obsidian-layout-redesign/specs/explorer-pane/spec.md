@@ -25,7 +25,7 @@ The system SHALL allow each Explorer Pane section to be collapsed and expanded i
 - **THEN** the section expands to show its items
 
 ### Requirement: Activity Bar selection applies explorer focus presets
-The system SHALL synchronize Activity Bar selection with Explorer Pane expansion presets. Selecting Home from the Activity Bar SHALL expand ACTIVE CHANGES and collapse ARCHIVE and SPECS. Selecting Changes from the Activity Bar SHALL expand ARCHIVE and collapse ACTIVE CHANGES and SPECS. Selecting Specs from the Activity Bar SHALL expand SPECS and collapse ACTIVE CHANGES and ARCHIVE. Manual section toggles inside the Explorer Pane SHALL remain allowed until the next Activity Bar preset change.
+The system SHALL synchronize Activity Bar selection with Explorer Pane expansion presets. Selecting Home from the Activity Bar SHALL expand ACTIVE CHANGES and collapse ARCHIVE and SPECS. Selecting Archive from the Activity Bar SHALL expand ARCHIVE and collapse ACTIVE CHANGES and SPECS. Selecting Specs from the Activity Bar SHALL expand SPECS and collapse ACTIVE CHANGES and ARCHIVE. Manual section toggles inside the Explorer Pane SHALL remain allowed until the next Activity Bar preset change.
 
 #### Scenario: Home preset expands active changes browsing
 - **WHEN** the operator clicks the Home icon in the Activity Bar
@@ -33,8 +33,8 @@ The system SHALL synchronize Activity Bar selection with Explorer Pane expansion
 - **AND** the ARCHIVE section is collapsed
 - **AND** the SPECS section is collapsed
 
-#### Scenario: Changes preset expands archive browsing
-- **WHEN** the operator clicks the Changes icon in the Activity Bar
+#### Scenario: Archive preset expands archive browsing
+- **WHEN** the operator clicks the Archive icon in the Activity Bar
 - **THEN** the ARCHIVE section is expanded
 - **AND** the ACTIVE CHANGES section is collapsed
 - **AND** the SPECS section is collapsed

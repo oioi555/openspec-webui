@@ -1,4 +1,4 @@
-export type ActivityPreset = 'home' | 'changes' | 'specs';
+export type ActivityPreset = 'home' | 'archive' | 'specs';
 export type ExplorerSection = 'active-changes' | 'archive' | 'specs';
 export type ResponsiveMode = 'wide' | 'medium' | 'narrow';
 export type LayoutOverlay = 'search' | 'settings' | 'project-selector' | null;
@@ -10,13 +10,13 @@ const MAX_EXPLORER_WIDTH = 600;
 
 const PRESET_SECTION_MAP: Record<ActivityPreset, ExplorerSection> = {
   home: 'active-changes',
-  changes: 'archive',
+  archive: 'archive',
   specs: 'specs',
 };
 
 const SECTION_PRESET_MAP: Record<ExplorerSection, ActivityPreset> = {
   'active-changes': 'home',
-  archive: 'changes',
+  archive: 'archive',
   specs: 'specs',
 };
 

@@ -1,6 +1,12 @@
 <script lang="ts">
   import { untrack } from 'svelte';
-  import { SquarePen } from '@lucide/svelte';
+  import { Archive, SquarePen } from '@lucide/svelte';
+  import { Badge } from '$lib/components/ui/badge';
+  import { Button } from '$lib/components/ui/button';
+  import { ErrorBanner } from '$lib/components/ui/error-banner';
+  import { IconBox } from '$lib/components/ui/icon-box';
+  import { LoadingState } from '$lib/components/ui/loading-state';
+  import { UnderlineTabs } from '$lib/components/ui/underline-tabs';
   import { getChange, getChangeFileUrl, type Change } from '../lib/api';
   import { changesRefreshTrigger, addToast } from '../stores/index.svelte.ts';
   import { suggestionStore } from '../stores/suggestions.svelte.ts';
@@ -32,6 +38,21 @@
   let isDeltasActive = $derived(activeGroupIndex === (change?.fileGroups.length ?? 0));
   let suggestionModeActive = $derived(suggestionStore.isActive);
   let changeCommands = $derived(change ? getChangeCommands(change, commandPreferencesStore) : []);
+  let primaryTabs = $derived(
+    change
+      ? [
+        ...change.fileGroups.map((group, index) => ({
+          id: `group-${index}`,
+          label: group.name,
+          badge: group.files.length > 1 ? group.files.length : undefined,
+        })),
+        ...(showDeltasTab
+          ? [{ id: 'spec-deltas', label: 'Spec Deltas', badge: change.specDeltas.length }]
+          : []),
+      ]
+      : []
+  );
+  let activePrimaryTabId = $derived(isDeltasActive ? 'spec-deltas' : `group-${activeGroupIndex}`);
 
   let previousChangeName: string | null = null;
   let previousRefreshTrigger = -1;
@@ -109,6 +130,20 @@
     activeFileIndex = 0;
   }
 
+  function handlePrimaryTabSelect(id: string) {
+    if (id === 'spec-deltas') {
+      selectDeltas();
+      return;
+    }
+
+    if (id.startsWith('group-')) {
+      const index = Number(id.slice('group-'.length));
+      if (!Number.isNaN(index)) {
+        selectGroup(index);
+      }
+    }
+  }
+
   function toggleSuggestionMode() {
     if (suggestionModeActive) {
       suggestionStore.exitSuggestionMode();
@@ -149,82 +184,53 @@
   <div class="flex flex-wrap items-start gap-4">
     <div class="flex-1">
       <div class="flex items-center gap-3">
+        {#if change?.isArchived}
+          <IconBox icon={Archive} variant="muted" />
+        {:else}
+          <IconBox icon={SquarePen} variant="info" />
+        {/if}
         <h1 class="text-2xl font-bold text-foreground">{changeName}</h1>
         {#if change?.isArchived}
-          <span class="rounded bg-muted px-2 py-1 text-xs text-muted-foreground">Archived</span>
+          <Badge variant="secondary">Archived</Badge>
         {/if}
       </div>
       {#if change}
         <div class="flex items-center gap-4 mt-2">
-          <div class="w-48">
-            <TaskProgress progress={change.taskProgress} size="sm" />
-          </div>
           <span class="text-sm text-muted-foreground">
             {change.taskProgress.done} of {change.taskProgress.total} tasks complete
           </span>
+          <div class="w-48">
+            <TaskProgress progress={change.taskProgress} size="sm" />
+          </div>
         </div>
       {/if}
     </div>
-    <CommandShortcutBar commands={changeCommands} changeName={change?.name ?? null} />
 
-    <!-- Suggest Changes button -->
-    {#if !change?.isArchived}
-      <button
-        onclick={toggleSuggestionMode}
-        class="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors
-               {suggestionModeActive
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-secondary text-secondary-foreground hover:bg-accent'}"
-      >
-        <SquarePen class="h-5 w-5" />
-        <span class="text-sm font-medium">
-          {suggestionModeActive ? 'Exit' : 'Suggest'}
-        </span>
-      </button>
-    {/if}
+    <div class="flex flex-col items-stretch gap-3 sm:items-end">
+      {#if changeCommands.length > 0}
+        <div class="flex max-w-full justify-end sm:max-w-md">
+          <CommandShortcutBar commands={changeCommands} changeName={change?.name ?? null} />
+        </div>
+      {/if}
+
+      {#if !change?.isArchived}
+        <div class="flex justify-end">
+          <Button variant={suggestionModeActive ? 'default' : 'secondary'} onclick={toggleSuggestionMode}>
+            <SquarePen class="h-5 w-5" />
+            <span>{suggestionModeActive ? 'Exit' : 'Suggest'}</span>
+          </Button>
+        </div>
+      {/if}
+    </div>
   </div>
 
   {#if loading}
-    <div class="flex items-center justify-center h-64">
-      <div class="text-muted-foreground">Loading...</div>
-    </div>
+    <LoadingState />
   {:else if error}
-    <div class="rounded-lg border border-danger-border bg-danger-bg p-4">
-      <p class="text-danger">{error}</p>
-    </div>
+    <ErrorBanner {error} />
   {:else if change}
     <!-- Primary tabs: Groups + Deltas -->
-    <div class="border-b border-border">
-      <nav class="flex space-x-4">
-        {#each change.fileGroups as group, i}
-            <button
-              class="px-4 py-2 border-b-2 font-medium text-sm transition-colors {activeGroupIndex === i && !isDeltasActive
-              ? 'border-primary text-primary'
-              : 'border-transparent text-muted-foreground hover:text-foreground'}"
-              onclick={() => selectGroup(i)}
-            >
-            {group.name}
-            {#if group.files.length > 1}
-              <span class="ml-1 rounded-full bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground">
-                {group.files.length}
-              </span>
-            {/if}
-          </button>
-        {/each}
-
-        {#if showDeltasTab}
-            <button
-              class="px-4 py-2 border-b-2 font-medium text-sm transition-colors {isDeltasActive
-              ? 'border-primary text-primary'
-              : 'border-transparent text-muted-foreground hover:text-foreground'}"
-              onclick={selectDeltas}
-            >
-            Spec Deltas
-            <span class="badge-num">{change.specDeltas.length}</span>
-          </button>
-        {/if}
-      </nav>
-    </div>
+    <UnderlineTabs tabs={primaryTabs} activeId={activePrimaryTabId} onSelect={handlePrimaryTabSelect} />
 
     <!-- Secondary tabs: Files within group (if multiple) -->
     {#if activeGroup && activeGroup.files.length > 1 && !isDeltasActive}
@@ -233,7 +239,7 @@
             <button
               class="px-3 py-1.5 text-sm rounded-md transition-colors {activeFileIndex === i
               ? 'bg-secondary text-foreground'
-              : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'}"
+              : 'text-muted-foreground hover:bg-secondary/70 hover:text-foreground'}"
               onclick={() => (activeFileIndex = i)}
             >
             {file.name}
@@ -253,7 +259,7 @@
           {#each change.specDeltas as delta}
             <div>
               <h3 class="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
-                <span class="rounded px-2 py-1 text-sm bg-success-bg text-success">{delta.capability}</span>
+                <Badge variant="success" class="px-2 py-1 text-sm">{delta.capability}</Badge>
               </h3>
               <MarkdownRenderer content={delta.content} highlightDiff={true} suggestionModeEnabled={suggestionModeActive} />
             </div>

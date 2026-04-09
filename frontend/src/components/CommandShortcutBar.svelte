@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Clipboard } from '@lucide/svelte';
+  import { CommandChip } from '$lib/components/ui/command-chip';
   import type { WorkflowCommand } from '../lib/commandTypes';
   import { buildCommand } from '../lib/commandShortcuts';
   import { addToast } from '../stores/index.svelte.ts';
@@ -12,8 +13,12 @@
 
   let { commands = [], changeName = null }: Props = $props();
 
+  function commandText(command: WorkflowCommand) {
+    return buildCommand(command, commandPreferencesStore.aiTool, changeName ?? undefined);
+  }
+
   async function copyCommand(command: WorkflowCommand) {
-    const text = buildCommand(command, commandPreferencesStore.aiTool, changeName ?? undefined);
+    const text = commandText(command);
 
     try {
       await navigator.clipboard.writeText(text);
@@ -25,18 +30,14 @@
 </script>
 
 {#if commands.length > 0}
-  <div class="flex flex-wrap gap-2">
+  <div class="flex max-w-full flex-wrap items-center gap-1.5">
     {#each commands as command}
-      <button
-        type="button"
-        class="flex items-center-safe gap-2 px-3 p-1.5 rounded-lg transition-colors
-              bg-success-bg text-success hover:bg-success-border"
-        title={`Copy ${buildCommand(command, commandPreferencesStore.aiTool, changeName ?? undefined)}`}
+      <CommandChip
+        label={command}
+        icon={Clipboard}
+        title={`Copy ${commandText(command)}`}
         onclick={() => copyCommand(command)}
-      >
-        <Clipboard class="h-4 w-4 text-success" />
-        <span class="text-sm">{command}</span>
-      </button>
+      />
     {/each}
   </div>
 {/if}
