@@ -24,3 +24,12 @@ export function decodeName(value: string) {
     return value;
   }
 }
+
+/**
+ * Format change name by removing the date prefix from archived changes.
+ * OpenSpec archives changes with names like "YYYY-MM-DD-change-name".
+ * This function removes the "YYYY-MM-DD-" prefix for display purposes.
+ */
+export function formatChangeName(name: string): string {
+  return name.replace(/^\d{4}-\d{2}-\d{2}-/, '');
+}

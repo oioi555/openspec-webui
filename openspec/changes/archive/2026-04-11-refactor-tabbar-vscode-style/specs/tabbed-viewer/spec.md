@@ -1,68 +1,7 @@
-# tabbed-viewer Specification
-
-## Purpose
-Define the tabbed Main Viewer that keeps dashboard, spec, and change content open side by side within a single workspace flow.
-
-## Requirements
-### Requirement: Tab management system
-The system SHALL provide a tab management store that maintains an ordered list of open tabs. Each tab SHALL have a unique ID, type (spec, change, or dashboard), display name, URL path, and optional pinned state. The store SHALL support operations: open tab, close tab, focus tab, reorder tabs, and pin/unpin tab. The Home tab (Dashboard) SHALL be pinned by default, SHALL always be present, and SHALL NOT be closable or unpinnable. The ChangeViewer and SpecViewer SHALL use the `UnderlineTabs` component from `$lib/components/ui/underline-tabs/` for their internal sub-tab navigation instead of inline underline tab implementations. The `UnderlineTabs` API SHALL support optional badge counts so ChangeViewer can render file group counts and spec delta counts without feature-specific badge markup.
-
-#### Scenario: Open a new tab
-- **WHEN** the operator opens a spec that is not currently in a tab
-- **THEN** a new tab is appended to the tab list
-- **AND** the new tab becomes the active tab
-- **AND** the tab content is rendered in the Main Viewer
-
-#### Scenario: Focus an existing tab
-- **WHEN** the operator clicks on an already-open tab
-- **THEN** that tab becomes the active tab
-- **AND** the Main Viewer shows its content
-- **AND** no new tab is created
-
-#### Scenario: Close a tab
-- **WHEN** the operator closes a tab that is not the only tab
-- **THEN** the tab is removed from the tab list
-- **AND** the adjacent tab becomes active
-
-#### Scenario: Close the last remaining tab falls back to Home
-- **WHEN** the operator closes the only remaining non-pinned tab
-- **THEN** the Home tab becomes active
-
-#### Scenario: Home tab is pinned and cannot be closed
-- **WHEN** the application loads
-- **THEN** the Home tab is present and pinned
-- **AND** the close button is not displayed on the Home tab
-
-#### Scenario: Attempting to close the Home tab
-- **WHEN** the operator attempts to close the Home tab
-- **THEN** the Home tab remains open and pinned
-
-#### Scenario: Direct URL load still keeps Home tab available
-- **WHEN** the browser loads `/specs/authentication` or `/changes/login-feature` directly
-- **THEN** a tab for the requested route is opened and made active
-- **AND** the Home tab is still present and pinned in the tab bar
-
-#### Scenario: Attempting to unpin the Home tab
-- **WHEN** the operator attempts to unpin the Home tab
-- **THEN** the Home tab remains pinned
-- **AND** the Home tab remains open
-
-#### Scenario: SpecViewer uses UnderlineTabs component
-- **WHEN** the operator views a spec that has both `spec.md` and `design.md`
-- **THEN** the sub-tab navigation is rendered using the `UnderlineTabs` component
-- **AND** switching between Specification and Design tabs works correctly
-
-#### Scenario: ChangeViewer uses UnderlineTabs component with badge counts
-- **WHEN** the operator views a change detail with file groups and spec deltas
-- **THEN** the primary tab navigation is rendered using the `UnderlineTabs` component
-- **AND** file group counts and spec delta counts are passed via the `badge` field instead of inline badge spans in `ChangeViewer.svelte`
-
-#### Scenario: No inline underline tab classes remain in feature components
-- **WHEN** `SpecViewer.svelte` or `ChangeViewer.svelte` is inspected
-- **THEN** no feature-local underline tab button markup remains for those primary tab navigations
+## MODIFIED Requirements
 
 ### Requirement: Tab bar renders open tabs
-The system SHALL render a tab bar at the top of the Main Viewer showing all open tabs. The tab bar SHALL have a height of 48px (`h-12`) and apply `pl-2` so the first tab keeps a left-edge alignment with the Explorer panel's top project-selector row. This left-edge alignment is intentional because the ActivityBar's top icon is the project button while the Explorer panel's top row is the project selector, so the tab bar should follow that row's leading edge rather than the ActivityBar icon center. Each tab SHALL display a file-type icon and its name. The tab style SHALL use a rounded-top tab shape (`rounded-t-md border border-b-0`) for the active tab. The active tab SHALL have a border on top and sides (`border-border`) and a background matching the content area (`bg-background`), with `-mb-px` to visually connect with the content below. Non-active tabs SHALL have no border and `bg-transparent` background. Non-active tabs SHALL show a muted background on hover (`bg-muted/50`). Each tab SHALL display a file-type icon: dashboard → `House` icon in `text-muted-foreground`, spec → `FileText` icon in `text-primary`, change (active) → `SquarePen` icon in `text-info`, change (archived) → `Archive` icon in `text-muted-foreground`. The icon for change tabs SHALL be dynamically determined by checking if the change exists in the `archivedChanges` store. Archived change tabs SHALL remove a leading `YYYY-MM-DD-` prefix from the visible tab label while preserving the full change name in routing and data lookup. Non-pinned tabs SHALL display a close button — always visible for the active tab, on hover only for non-active tabs. Pinned tabs SHALL display a clickable pin icon instead of a close button. Tab width SHALL have a minimum of 60px (`min-w-15`) with `shrink-0` to prevent infinite shrinking. Active tabs SHALL have a maximum width of 384px (`max-w-96`), while non-active tabs SHALL have a maximum width of 256px (`max-w-64`). Tabs SHALL be horizontally scrollable when they overflow the available width. The tab bar SHALL auto-scroll to the active tab when it changes using `scrollIntoView({ behavior: 'smooth', inline: 'center' })`. Mouse wheel scrolling SHALL be converted from vertical to horizontal scroll on the tab bar.
+The system SHALL render a tab bar at the top of the Main Viewer showing all open tabs. The tab bar SHALL have a height of 48px (`h-12`) and apply `pl-2` so the first tab keeps a left-edge alignment with the Explorer panel's top project-selector row. This left-edge alignment is intentional because the ActivityBar's top icon is the project button while the Explorer panel's top row is the project selector, so the tab bar should follow that row's leading edge rather than the ActivityBar icon center. Each tab SHALL display a file-type icon and its name. The tab style SHALL use a rounded-top tab shape (`rounded-t-md border border-b-0`) for the active tab. The active tab SHALL have a border on top and sides (`border-border`) and a background matching the content area (`bg-background`), with `-mb-px` to visually connect with the content below. Non-active tabs SHALL have no border and `bg-transparent` background. Non-active tabs SHALL show a muted background on hover (`bg-muted/50`). Each tab SHALL display a file-type icon: dashboard → `House` icon in `text-muted-foreground`, spec → `FileText` icon in `text-primary`, change (active) → `SquarePen` icon in `text-info`, change (archived) → `Archive` icon in `text-muted-foreground`. The icon for change tabs SHALL be dynamically determined by checking if the change exists in the `archivedChanges` store. Archived change tabs SHALL remove a leading `YYYY-MM-DD-` prefix from the visible tab label while preserving the full change name in routing and data lookup. Non-pinned tabs SHALL display a close button — always visible for the active tab, on hover only for non-active tabs. Pinned tabs SHALL display a clickable pin icon instead of a close button. Tab width SHALL have a minimum of 60px (`min-w-15`) with `shrink-0` to prevent infinite shrinking. Active tabs SHALL have a maximum width of 384px (`max-w-96`), while non-active tabs SHALL have a maximum width of 256px (`max-w-64`). Tabs SHALL be horizontally scrollable when they overflow the available width. Tabs SHALL auto-scroll to center the active tab when it changes. Tabs SHALL be reorderable via drag and drop.
 
 #### Scenario: Tab bar shows all open tabs with icons
 - **WHEN** three tabs are open (dashboard, spec, change)
@@ -156,6 +95,8 @@ The system SHALL allow the operator to pin a tab via the context menu or unpin v
 - **THEN** the tab is unpinned and moves back to the unpinned group
 - **AND** the pin icon is replaced by the close button
 
+## ADDED Requirements
+
 ### Requirement: Tab context menu
 The system SHALL provide a context menu on each tab when the operator right-clicks. The context menu SHALL contain the following items: Pin/Unpin (toggles based on current state), Close, Close Others, Close All, a separator, Copy Name, and Copy Path. The context menu SHALL use a custom ContextMenu component following the project's dropdown-menu pattern. The context menu position SHALL be clamped to the viewport to prevent overflow.
 
@@ -191,15 +132,3 @@ The system SHALL provide a context menu on each tab when the operator right-clic
 - **WHEN** the operator right-clicks the Home tab
 - **THEN** the "Close", "Close Others", and "Pin/Unpin" items are disabled
 - **AND** the "Copy Name", "Copy Path", and "Close All" items remain enabled
-
-### Requirement: URL synchronization with tabs
-The system SHALL update the browser URL to match the active tab's path. When a URL is directly navigated to, the system SHALL open the corresponding tab if not already open.
-
-#### Scenario: URL updates when tab changes
-- **WHEN** the operator switches to a tab for spec `authentication`
-- **THEN** the browser URL updates to `/specs/authentication`
-
-#### Scenario: Direct URL opens corresponding tab
-- **WHEN** the browser loads `/changes/login-feature` directly
-- **THEN** a tab for that change is opened and made active
-- **AND** the Home tab is still present and pinned in the tab bar

@@ -267,6 +267,32 @@ function createTabsStore() {
       return activateTab(nextIndex, 'push');
     },
 
+    closeOthers(tabIdOrPath: string) {
+      const targetIndex = getTabIndex(tabIdOrPath);
+      if (targetIndex < 0) {
+        return null;
+      }
+
+      const targetTab = state.tabs[targetIndex];
+      state.tabs = normalizeTabOrder(
+        state.tabs.filter((tab) => tab.pinned || tab.id === targetTab.id)
+      );
+      return activateTab(
+        state.tabs.findIndex((tab) => tab.id === targetTab.id),
+        'push'
+      );
+    },
+
+    closeAll() {
+      state.tabs = normalizeTabOrder(
+        state.tabs.filter((tab) => tab.pinned)
+      );
+      if (state.tabs.length === 0) {
+        return ensureFallbackTab('push');
+      }
+      return activateTab(0, 'push');
+    },
+
     reorder(fromIndex: number, toIndex: number) {
       if (fromIndex === toIndex || fromIndex < 0 || fromIndex >= state.tabs.length) {
         return;
