@@ -77,12 +77,31 @@ async function parseCapability(
     // design.md is optional, so ENOENT is not an error
   }
 
+  // Get the latest modification time from spec.md and design.md
+  let lastModified: string | null = null;
+  try {
+    const specStat = await stat(specPath);
+    let latestMtime = specStat.mtime;
+    try {
+      const designStat = await stat(designPath);
+      if (designStat.mtime > latestMtime) {
+        latestMtime = designStat.mtime;
+      }
+    } catch {
+      // design.md doesn't exist, that's fine
+    }
+    lastModified = latestMtime.toISOString();
+  } catch {
+    // spec.md doesn't exist
+  }
+
   return {
     data: {
       name,
       path: capabilityPath,
       specContent,
       designContent,
+      lastModified,
     },
     errors,
     warnings,

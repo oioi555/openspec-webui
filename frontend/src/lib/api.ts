@@ -14,12 +14,14 @@ export interface Spec {
   path: string;
   specContent: string;
   designContent: string | null;
+  lastModified: string | null;
 }
 
 export interface SpecSummary {
   name: string;
   path: string;
   hasDesign: boolean;
+  lastModified: string | null;
 }
 
 export interface TaskProgress {
@@ -49,6 +51,7 @@ export interface ChangeSummary {
   path: string;
   isArchived: boolean;
   archivedDate: string | null;
+  lastModified: string | null;
   taskProgress: TaskProgress;
   specDeltaCount: number;
   hasProposal: boolean;
@@ -82,6 +85,7 @@ export interface Change {
   path: string;
   isArchived: boolean;
   archivedDate: string | null;
+  lastModified: string | null;
   proposal: string | null;
   tasks: Task[];
   tasksRaw: string | null;

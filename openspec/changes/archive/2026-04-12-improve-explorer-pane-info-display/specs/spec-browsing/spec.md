@@ -1,20 +1,4 @@
-# spec-browsing Specification
-
-## Purpose
-Expose capability specs through the Explorer Pane and open spec content in the tabbed Main Viewer.
-## Requirements
-### Requirement: Catalog capability specs
-The system SHALL discover capability directories under `specs/`, sort them alphabetically, and display them in the Explorer Pane's SPECS collapsible section. Each entry SHALL indicate whether the spec includes a design document.
-
-#### Scenario: List available capabilities in Explorer
-- **WHEN** the workspace contains one or more spec capability directories
-- **THEN** the Explorer Pane's SPECS section lists them in alphabetical order
-- **AND** each entry shows the capability name
-- **AND** entries with design content are visually distinguished
-
-#### Scenario: Show an empty spec list in Explorer
-- **WHEN** the workspace contains no spec capability directories
-- **THEN** the Explorer Pane's SPECS section shows `No specifications found`
+## ADDED Requirements
 
 ### Requirement: Active change display uses compact format with progress
 The system SHALL display active changes with a compact second line showing the last modification date with Calendar icon, spec delta count with FileText icon, and task progress (done/total) with CheckSquare icon. The progress bar SHALL be displayed with a narrow width alongside the icon indicators.
@@ -43,6 +27,8 @@ The system SHALL display each spec entry with a Calendar icon and the last modif
 #### Scenario: Spec shows last modified date with calendar icon
 - **WHEN** the Explorer Pane renders a spec with lastModified "2026-04-08"
 - **THEN** the second line shows a Calendar icon followed by "2026-04-08"
+
+## MODIFIED Requirements
 
 ### Requirement: Render spec and design content
 The system SHALL load a spec by capability name when the operator clicks it in the Explorer Pane, SHALL open a tab in the Main Viewer rendering `spec.md` content, and SHALL offer `Specification` and `Design` sub-tabs when `design.md` is present. The SpecViewer header subtitle SHALL display the spec's last modification date using the same compact metadata style as other views: a Calendar icon followed by the formatted date when available, or "Specification" as fallback.

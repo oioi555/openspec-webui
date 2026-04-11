@@ -12,6 +12,7 @@ export interface Spec {
   path: string;
   specContent: string;
   designContent: string | null;
+  lastModified: string | null;
 }
 
 export interface Task {
@@ -54,6 +55,7 @@ export interface Change {
   taskProgress: TaskProgress;
   design: string | null;
   specDeltas: SpecDelta[];
+  lastModified: string | null;
   // Generic files collection
   files: ChangeFile[];
   fileGroups: FileGroup[];

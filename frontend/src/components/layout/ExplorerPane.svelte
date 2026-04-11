@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Archive, ChevronLeft, ChevronsUpDown, FileText, SquarePen, X } from '@lucide/svelte';
+  import { Archive, Calendar, CheckSquare, ChevronLeft, ChevronsUpDown, FileText, SquarePen, X } from '@lucide/svelte';
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
   import { EmptyState } from '$lib/components/ui/empty-state';
@@ -12,6 +12,7 @@
   import { tabStore } from '../../stores/tabs.svelte.ts';
   import CommandShortcutBar from '../CommandShortcutBar.svelte';
   import { Progress } from '$lib/components/ui/progress';
+  import { formatChangeName, formatDate } from '../../lib/utils';
 
   interface Props {
     temporary?: boolean;
@@ -117,8 +118,14 @@
                 <div class="min-w-0 flex-1">
                   <div class="truncate text-sm font-medium" title={change.name}>{change.name}</div>
                   <div class="mt-1 flex items-center justify-between text-xs text-muted-foreground">
-                    <span>{change.specDeltaCount} delta{change.specDeltaCount === 1 ? '' : 's'} · {change.taskProgress.done}/{change.taskProgress.total} tasks</span>
-                    <div class="w-20 shrink-0">
+                    <div class="flex items-center gap-2">
+                      {#if change.lastModified}
+                        <span class="flex items-center gap-0.5"><Calendar class="h-3 w-3" />{formatDate(change.lastModified)}</span>
+                      {/if}
+                      <span class="flex items-center gap-0.5"><FileText class="h-3 w-3" />{change.specDeltaCount}</span>
+                      <span class="flex items-center gap-0.5"><CheckSquare class="h-3 w-3" />{change.taskProgress.done}/{change.taskProgress.total}</span>
+                    </div>
+                    <div class="w-14 shrink-0">
                       <Progress value={change.taskProgress.percentage} />
                     </div>
                   </div>
@@ -154,12 +161,13 @@
                 onclick={() => openTab(`/changes/${encodeURIComponent(change.name)}`, 'archive')}
               >
                 <div class="min-w-0 flex-1">
-                  <div class="truncate text-sm font-medium" title={change.name}>{change.name}</div>
-                  <div class="mt-1 flex items-center justify-between text-xs text-muted-foreground">
-                    <span>{change.specDeltaCount} delta{change.specDeltaCount === 1 ? '' : 's'} · {change.taskProgress.done}/{change.taskProgress.total} tasks</span>
-                    <div class="w-20 shrink-0">
-                      <Progress value={change.taskProgress.percentage} />
-                    </div>
+                  <div class="truncate text-sm font-medium" title={change.name}>{formatChangeName(change.name)}</div>
+                  <div class="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                    {#if change.archivedDate}
+                      <span class="flex items-center gap-0.5"><Calendar class="h-3 w-3" />{change.archivedDate}</span>
+                    {/if}
+                    <span class="flex items-center gap-0.5"><FileText class="h-3 w-3" />{change.specDeltaCount}</span>
+                    <span class="flex items-center gap-0.5"><CheckSquare class="h-3 w-3" />{change.taskProgress.done}/{change.taskProgress.total}</span>
                   </div>
                 </div>
               </button>
@@ -194,8 +202,10 @@
               >
                 <div class="min-w-0 flex-1">
                   <div class="truncate text-sm font-medium">{spec.name}</div>
-                  <div class="mt-1 text-xs text-muted-foreground">
-                    {spec.hasDesign ? 'spec + design' : 'spec only'}
+                  <div class="mt-1 flex items-center gap-0.5 text-xs text-muted-foreground">
+                    {#if spec.lastModified}
+                      <Calendar class="h-3 w-3" />{formatDate(spec.lastModified)}
+                    {/if}
                   </div>
                 </div>
 

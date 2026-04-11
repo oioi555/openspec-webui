@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Bookmark, BookOpen, House, SquarePen } from '@lucide/svelte';
+  import { Bookmark, BookOpen, Calendar, CheckSquare, FileText, House, SquarePen } from '@lucide/svelte';
   import { Badge } from '$lib/components/ui/badge';
   import { EmptyState } from '$lib/components/ui/empty-state';
   import { IconBox } from '$lib/components/ui/icon-box';
@@ -11,6 +11,7 @@
   import MarkdownRenderer from './MarkdownRenderer.svelte';
   import { Progress } from '$lib/components/ui/progress';
   import CommandShortcutBar from './CommandShortcutBar.svelte';
+  import { formatDate } from '../lib/utils';
 
   let workspaceCommands = $derived(getWorkspaceCommands(activeChanges.value, commandPreferencesStore));
 
@@ -59,10 +60,11 @@
               <div>
                 <div class="font-medium text-foreground">{change.name}</div>
                 <div class="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
-                  <span>{change.specDeltaCount} spec delta{change.specDeltaCount !== 1 ? 's' : ''}</span>
-                  {#if change.hasDesign}
-                    <Badge variant="outline" class="text-xs font-medium lowercase">design</Badge>
+                  {#if change.lastModified}
+                    <span class="flex items-center gap-0.5"><Calendar class="h-3.5 w-3.5" />{formatDate(change.lastModified)}</span>
                   {/if}
+                  <span class="flex items-center gap-0.5"><FileText class="h-3.5 w-3.5" />{change.specDeltaCount}</span>
+                  <span class="flex items-center gap-0.5"><CheckSquare class="h-3.5 w-3.5" />{change.taskProgress.done}/{change.taskProgress.total}</span>
                 </div>
               </div>
               <div class="w-32">

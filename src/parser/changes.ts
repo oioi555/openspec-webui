@@ -52,6 +52,39 @@ async function discoverChangeFiles(
 }
 
 /**
+ * Recursively collect markdown/html file paths under a directory.
+ */
+async function discoverContentFilePaths(
+  basePath: string,
+  relativePath: string = ''
+): Promise<string[]> {
+  const paths: string[] = [];
+  const currentPath = join(basePath, relativePath);
+
+  try {
+    const entries = await readdir(currentPath, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const entryRelPath = relativePath ? join(relativePath, entry.name) : entry.name;
+
+      if (entry.isDirectory()) {
+        const subPaths = await discoverContentFilePaths(basePath, entryRelPath);
+        paths.push(...subPaths);
+      } else if (entry.isFile()) {
+        const lowerName = entry.name.toLowerCase();
+        if (lowerName.endsWith('.md') || lowerName.endsWith('.html')) {
+          paths.push(join(currentPath, entry.name));
+        }
+      }
+    }
+  } catch {
+    // Directory is optional or unreadable
+  }
+
+  return paths;
+}
+
+/**
  * Capitalize first letter of a string
  */
 function capitalizeFirst(str: string): string {
@@ -266,6 +299,7 @@ async function parseChange(
 
   // Parse spec deltas
   const specDeltas = await parseSpecDeltas(join(changePath, 'specs'));
+  const specDeltaPaths = await discoverContentFilePaths(join(changePath, 'specs'));
 
   return {
     data: {
@@ -279,12 +313,36 @@ async function parseChange(
       taskProgress,
       design,
       specDeltas: specDeltas.data,
+      lastModified: await computeLastModifiedAsync(files, specDeltaPaths),
       files,
       fileGroups,
     },
     errors,
     warnings,
   };
+}
+
+/**
+ * Compute lastModified by stat-ing change files and spec delta files for their mtime
+ */
+async function computeLastModifiedAsync(
+  files: ChangeFile[],
+  extraPaths: string[] = []
+): Promise<string | null> {
+  let latest: Date | null = null;
+  const paths = [...files.map((file) => file.absolutePath), ...extraPaths];
+
+  for (const path of paths) {
+    try {
+      const s = await stat(path);
+      if (!latest || s.mtime > latest) {
+        latest = s.mtime;
+      }
+    } catch {
+      // skip unreadable files
+    }
+  }
+  return latest ? latest.toISOString() : null;
 }
 
 /**

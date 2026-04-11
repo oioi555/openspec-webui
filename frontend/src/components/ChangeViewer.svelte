@@ -1,6 +1,6 @@
 <script lang="ts">
   import { untrack } from 'svelte';
-  import { Archive, SquarePen } from '@lucide/svelte';
+  import { Archive, Calendar, CheckSquare, FileText, SquarePen } from '@lucide/svelte';
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
   import { ErrorBanner } from '$lib/components/ui/error-banner';
@@ -18,6 +18,7 @@
   import { Progress } from '$lib/components/ui/progress';
   import SuggestionPopover from './SuggestionPopover.svelte';
   import CommandShortcutBar from './CommandShortcutBar.svelte';
+  import { formatChangeName, formatDate } from '../lib/utils';
 
   interface Props {
     changeName: string;
@@ -190,17 +191,23 @@
         {:else}
           <IconBox icon={SquarePen} variant="info" />
         {/if}
-        <h1 class="text-2xl font-bold text-foreground">{changeName}</h1>
+        <h1 class="text-2xl font-bold text-foreground">
+          {change?.isArchived ? formatChangeName(changeName) : changeName}
+        </h1>
         {#if change?.isArchived}
           <Badge variant="secondary">Archived</Badge>
         {/if}
       </div>
       {#if change}
-        <div class="flex items-center gap-4 mt-2">
-          <span class="text-sm text-muted-foreground">
-            {change.taskProgress.done} of {change.taskProgress.total} tasks complete
-          </span>
-          <div class="w-48">
+        <div class="flex items-center gap-3 mt-2 text-muted-foreground">
+          {#if change.isArchived && change.archivedDate}
+            <span class="flex items-center gap-1"><Calendar class="h-3.5 w-3.5" />{change.archivedDate}</span>
+          {:else if change.lastModified}
+            <span class="flex items-center gap-1"><Calendar class="h-3.5 w-3.5" />{formatDate(change.lastModified)}</span>
+          {/if}
+          <span class="flex items-center gap-1"><FileText class="h-3.5 w-3.5" />{change.specDeltas.length}</span>
+          <span class="flex items-center gap-1"><CheckSquare class="h-3.5 w-3.5" />{change.taskProgress.done}/{change.taskProgress.total}</span>
+          <div class="w-32">
             <Progress value={change.taskProgress.percentage} />
           </div>
         </div>

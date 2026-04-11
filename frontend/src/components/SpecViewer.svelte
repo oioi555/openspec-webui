@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { FileText } from '@lucide/svelte';
+  import { FileText, Calendar} from '@lucide/svelte';
   import { ErrorBanner } from '$lib/components/ui/error-banner';
   import { IconBox } from '$lib/components/ui/icon-box';
   import { LoadingState } from '$lib/components/ui/loading-state';
@@ -7,7 +7,7 @@
   import { getSpec, type Spec } from '../lib/api';
   import { specsRefreshTrigger } from '../stores/index.svelte.ts';
   import MarkdownRenderer from './MarkdownRenderer.svelte';
-
+  import { formatDate } from '../lib/utils';
   interface Props {
     specName: string;
   }
@@ -73,10 +73,16 @@
   <div class="flex items-center gap-4">
     <div>
       <h1 class="flex items-center gap-2 text-2xl font-bold text-foreground">
-        <IconBox icon={FileText} variant="success" />
+        <IconBox icon={FileText} variant="info" />
         {specName}
       </h1>
-      <p class="text-muted-foreground">Specification</p>
+      <p class="text-muted-foreground">
+        {#if spec?.lastModified}
+          <span class="flex items-center gap-1"><Calendar class="h-3.5 w-3.5" />{formatDate(spec.lastModified)}</span>
+        {:else}
+          Specification
+        {/if}
+      </p>
     </div>
   </div>
 

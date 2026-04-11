@@ -33,3 +33,18 @@ export function decodeName(value: string) {
 export function formatChangeName(name: string): string {
   return name.replace(/^\d{4}-\d{2}-\d{2}-/, '');
 }
+
+/**
+ * Format an ISO date string to YYYY-MM-DD.
+ * Returns empty string if the input is null/undefined or invalid.
+ */
+export function formatDate(iso: string | null | undefined): string {
+  if (!iso) return '';
+
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  return date.toISOString().slice(0, 10);
+}

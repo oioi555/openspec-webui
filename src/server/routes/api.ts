@@ -48,6 +48,7 @@ export async function registerApiRoutes(
         name: s.name,
         path: s.path,
         hasDesign: s.designContent !== null,
+        lastModified: s.lastModified,
       })),
     };
   });
@@ -168,6 +169,7 @@ function summarizeChange(change: OpenSpecData['changes']['active'][0]) {
     path: change.path,
     isArchived: change.isArchived,
     archivedDate: change.archivedDate,
+    lastModified: change.lastModified,
     taskProgress: change.taskProgress,
     specDeltaCount: change.specDeltas.length,
     hasProposal: change.proposal !== null,

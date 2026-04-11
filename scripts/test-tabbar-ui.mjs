@@ -168,6 +168,57 @@ async function clickExplorerItem(cdp, sectionLabel, index = 0) {
   return name;
 }
 
+async function getExplorerItemDetails(cdp, sectionLabel, index = 0) {
+  const expression = pageExpression(() => {
+    const normalizeText = (value) => value?.replace(/\s+/g, ' ').trim() ?? '';
+    const explorer = [...document.querySelectorAll('aside')].find((node) => node.textContent?.includes('Workspace'));
+    if (!explorer) {
+      return null;
+    }
+
+    const sections = [...explorer.querySelectorAll('[data-state]')];
+    const section = sections.find((node) => node.querySelector('button')?.textContent?.includes('__LABEL__'));
+    if (!section) {
+      return null;
+    }
+
+    const body = section.querySelector('.divide-y');
+    if (!body) {
+      return null;
+    }
+
+    const items = [...body.querySelectorAll('button')];
+    const target = items[__INDEX__];
+    if (!(target instanceof HTMLElement)) {
+      return null;
+    }
+
+    const label = target.querySelector('.font-medium, .truncate');
+    const content = target.querySelector('.min-w-0.flex-1');
+    const contentChildren = content ? [...content.children] : [];
+    const metadata = contentChildren.find((node, childIndex) => childIndex > 0 && node instanceof HTMLElement) ?? null;
+    const progress = target.querySelector('[data-slot="progress"]');
+
+    return {
+      visibleLabel: normalizeText(label?.textContent),
+      title: label?.getAttribute('title') ?? null,
+      metadataText: normalizeText(metadata?.textContent),
+      metadataItems: metadata ? [...metadata.querySelectorAll('span')].map((node) => normalizeText(node.textContent)) : [],
+      hasProgress: Boolean(progress),
+      progressContainerClass: progress?.parentElement?.className ?? null,
+    };
+  })
+    .replace('__LABEL__', escapeForPage(sectionLabel))
+    .replace('__INDEX__', String(index));
+
+  const details = await cdp.evaluate(expression);
+  if (!details) {
+    throw new Error(`Could not inspect explorer item from section ${sectionLabel}`);
+  }
+
+  return details;
+}
+
 async function waitFor(cdp, predicateExpression, label, timeoutMs = 8000, intervalMs = 200) {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
@@ -214,6 +265,14 @@ async function getState(cdp) {
   return cdp.evaluate(getStateExpression());
 }
 
+async function getViewerSubtitle(cdp) {
+  return cdp.evaluate(pageExpression(() => {
+    const heading = document.querySelector('h1');
+    const subtitle = heading?.parentElement?.querySelector('p');
+    return subtitle?.textContent?.replace(/\s+/g, ' ').trim() ?? null;
+  }));
+}
+
 function assert(condition, message) {
   if (!condition) {
     throw new Error(message);
@@ -222,6 +281,10 @@ function assert(condition, message) {
 
 function formatArchivedChangeName(name) {
   return name.replace(/^\d{4}-\d{2}-\d{2}-/, '');
+}
+
+function assertCompactDate(value, message) {
+  assert(/^\d{4}-\d{2}-\d{2}$/.test(value), message);
 }
 
 async function main() {
@@ -239,7 +302,7 @@ async function main() {
         sectionCollapsed: {
           'active-changes': false,
           archive: false,
-          specs: true,
+          specs: false,
         },
       }));
 
@@ -260,20 +323,61 @@ async function main() {
     assert(state.tabListClass.includes('pl-2'), 'Tab list should keep pl-2 for left-edge alignment');
     assert(typeof state.firstTabInset === 'number' && state.firstTabInset >= 6 && state.firstTabInset <= 10, `Expected first tab inset near 8px, received ${state.firstTabInset}`);
 
+    const activeRow = await getExplorerItemDetails(cdp, 'Active Changes', 0);
+    assert(activeRow.visibleLabel.length > 0, 'Expected an active change row');
+    assert(activeRow.metadataItems.length === 3, `Active change row should expose three compact metadata items, received ${activeRow.metadataItems.length}`);
+    assertCompactDate(activeRow.metadataItems[0], 'Active change row should show compact date metadata');
+    assert(/^\d+$/.test(activeRow.metadataItems[1]), 'Active change row should show compact spec delta count');
+    assert(/^\d+\/\d+$/.test(activeRow.metadataItems[2]), 'Active change row should show compact task progress');
+    assert(activeRow.hasProgress, 'Active change row should show a progress bar');
+    assert(activeRow.progressContainerClass?.includes('w-14'), 'Active change row should keep the compact progress width');
+    assert(!activeRow.metadataText.includes('Updated'), 'Active change row should not use the old Updated label');
+
     await clickSelector(cdp, '[aria-label="Archive"]');
 
-    const archivedChangeName = await clickExplorerItem(cdp, 'Archive', 0);
+    const archivedRow = await getExplorerItemDetails(cdp, 'Archive', 0);
+    const archivedChangeName = archivedRow.title ?? archivedRow.visibleLabel;
+    assert(/^\d{4}-\d{2}-\d{2}-/.test(archivedChangeName), 'Archived change row tooltip should preserve the full archived name');
+    assert(archivedRow.visibleLabel === formatArchivedChangeName(archivedChangeName), 'Archived change row label should hide the date prefix');
+    assert(archivedRow.metadataItems.length === 3, `Archived change row should expose three compact metadata items, received ${archivedRow.metadataItems.length}`);
+    assertCompactDate(archivedRow.metadataItems[0], 'Archived change row should show archived date metadata');
+    assert(/^\d+$/.test(archivedRow.metadataItems[1]), 'Archived change row should show compact spec delta count');
+    assert(/^\d+\/\d+$/.test(archivedRow.metadataItems[2]), 'Archived change row should show compact task progress');
+    assert(!archivedRow.hasProgress, 'Archived change row should not render a progress bar');
+    assert(!archivedRow.metadataText.includes('Updated'), 'Archived change row should not use the old Updated label');
+
+    await clickExplorerItem(cdp, 'Archive', 0);
     state = await getState(cdp);
 
     assert(state.path === `/changes/${encodeURIComponent(archivedChangeName)}`, 'Archived change route should keep the full archived name');
     assert(state.activeTab === formatArchivedChangeName(archivedChangeName), 'Archived change tab label should hide the date prefix');
+
+    await clickSelector(cdp, '[aria-label="Specs"]');
+
+    const specRow = await getExplorerItemDetails(cdp, 'Specs', 0);
+    assert(specRow.visibleLabel.length > 0, 'Expected a spec row');
+    assertCompactDate(specRow.metadataText, 'Spec row should show compact date metadata');
+    assert(!specRow.metadataText.includes('Updated'), 'Spec row should not use the old Updated label');
+
+    const specName = await clickExplorerItem(cdp, 'Specs', 0);
+    state = await getState(cdp);
+    assert(state.path === `/specs/${encodeURIComponent(specName)}`, 'Spec route should use the visible spec name');
+
+    const subtitle = await getViewerSubtitle(cdp);
+    assertCompactDate(subtitle ?? '', 'Spec viewer subtitle should show compact calendar/date metadata');
+    assert(subtitle === specRow.metadataText, 'Spec viewer subtitle should match the explorer metadata date');
+    assert(!subtitle?.includes('Updated'), 'Spec viewer subtitle should not use the old Updated label');
 
     console.log(JSON.stringify({
       ok: true,
       checks: [
         'home-tab-pinned',
         'tabbar-left-edge-inset',
+        'active-change-compact-metadata',
         'archived-change-label-format',
+        'archived-change-compact-metadata',
+        'spec-row-date-metadata',
+        'spec-viewer-compact-subtitle',
       ],
     }, null, 2));
   } finally {
