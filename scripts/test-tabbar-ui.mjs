@@ -242,7 +242,7 @@ function getStateExpression() {
         text,
         selected: node.getAttribute('aria-selected') === 'true',
         closeVisible: Boolean(node.querySelector('button[aria-label="Close tab"]')),
-        pinVisible: Boolean(node.querySelector('button[aria-label="Pin tab"], button[aria-label="Unpin tab"]')),
+        pinVisible: Boolean(node.querySelector('button[aria-label="Pin tab"], button[aria-label="Unpin tab"], button[aria-label="Pinned Dashboard tab"]')),
       };
     });
 
@@ -255,7 +255,7 @@ function getStateExpression() {
         ? Math.round(firstTab.getBoundingClientRect().left - tabList.getBoundingClientRect().left)
         : null,
       activeTab: tabs.find((tab) => tab.selected)?.text ?? null,
-      homeTab: tabs.find((tab) => tab.text === 'Home') ?? null,
+      homeTab: tabs.find((tab) => tab.text === 'Dashboard') ?? null,
       tabNames: tabs.map((tab) => tab.text).filter(Boolean),
     };
   });
@@ -318,8 +318,8 @@ async function main() {
     );
 
     let state = await getState(cdp);
-    assert(state.homeTab?.pinVisible === true, 'Home tab should stay pinned');
-    assert(state.homeTab?.closeVisible === false, 'Home tab should not show a close button');
+    assert(state.homeTab?.pinVisible === true, 'Dashboard tab should stay pinned');
+    assert(state.homeTab?.closeVisible === false, 'Dashboard tab should not show a close button');
     assert(state.tabListClass.includes('pl-2'), 'Tab list should keep pl-2 for left-edge alignment');
     assert(typeof state.firstTabInset === 'number' && state.firstTabInset >= 6 && state.firstTabInset <= 10, `Expected first tab inset near 8px, received ${state.firstTabInset}`);
 

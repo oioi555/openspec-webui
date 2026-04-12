@@ -1,9 +1,5 @@
-# activity-bar Specification
+## MODIFIED Requirements
 
-## Purpose
-Define the persistent Activity Bar that anchors primary navigation and quick actions in the redesigned three-pane layout.
-
-## Requirements
 ### Requirement: Activity Bar renders persistent vertical control strip
 The system SHALL render a vertical Activity Bar as the leftmost pane of the application layout, fixed at 48px width. The Activity Bar SHALL remain visible even when the Explorer Pane is collapsed. The top area SHALL provide a current project control, and the bar SHALL display icon buttons in this order: Dashboard, Archive, Specs, Search, and Settings. The Dashboard control SHALL keep using the house icon as the visual symbol for the primary landing surface. Each icon SHALL use the `@lucide/svelte` library. The `decodeName` utility function used in the Activity Bar SHALL be imported from `$lib/utils` instead of being defined locally.
 

@@ -10,7 +10,7 @@
   // --- File-type icon mapping ---
   const TAB_ICONS: Record<TabType, { icon: typeof House; color: string }> = {
     dashboard: { icon: House, color: 'text-muted-foreground' },
-    spec: { icon: FileText, color: 'text-primary' },
+    spec: { icon: FileText, color: 'text-success' },
     change: { icon: SquarePen, color: 'text-info' },
   };
 
@@ -149,8 +149,14 @@
                 type="button"
                 class="ml-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground hover:text-foreground"
                 tabindex={-1}
-                aria-label="Unpin tab"
-                onclick={(e) => { e.stopPropagation(); togglePin(tab.id, true); }}
+                aria-label={isHome ? `Pinned ${tab.name} tab` : 'Unpin tab'}
+                disabled={isHome}
+                onclick={(e) => {
+                  e.stopPropagation();
+                  if (!isHome) {
+                    togglePin(tab.id, true);
+                  }
+                }}
               >
                 <Pin class="h-3.5 w-3.5" />
               </button>

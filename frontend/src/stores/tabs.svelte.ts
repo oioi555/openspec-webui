@@ -13,7 +13,7 @@ type HistoryMode = 'push' | 'replace' | 'none';
 const HOME_TAB: Tab = {
   id: 'dashboard:home',
   type: 'dashboard',
-  name: 'Home',
+  name: 'Dashboard',
   path: '/',
   pinned: true,
 };
@@ -26,12 +26,15 @@ function normalizePath(path: string) {
   const trimmed = (path || '/').trim();
   const [pathname] = trimmed.split(/[?#]/, 1);
   const withLeadingSlash = pathname.startsWith('/') ? pathname : `/${pathname}`;
+  const normalizedSectionPath = withLeadingSlash === '/specs' || withLeadingSlash === '/changes'
+    ? HOME_TAB.path
+    : withLeadingSlash;
 
-  if (withLeadingSlash.length > 1 && withLeadingSlash.endsWith('/')) {
-    return withLeadingSlash.slice(0, -1);
+  if (normalizedSectionPath.length > 1 && normalizedSectionPath.endsWith('/')) {
+    return normalizedSectionPath.slice(0, -1);
   }
 
-  return withLeadingSlash || '/';
+  return normalizedSectionPath || '/';
 }
 
 function getCurrentBrowserPath() {
@@ -57,16 +60,6 @@ function createTabForPath(path: string): Tab {
     return { ...HOME_TAB };
   }
 
-  if (normalizedPath === '/specs') {
-    return {
-      id: 'spec:list',
-      type: 'spec',
-      name: 'Specs',
-      path: normalizedPath,
-      pinned: false,
-    };
-  }
-
   if (normalizedPath.startsWith('/specs/')) {
     const name = decodeSegment(normalizedPath.slice('/specs/'.length));
     return {
@@ -74,16 +67,6 @@ function createTabForPath(path: string): Tab {
       type: 'spec',
       name,
       path: `/specs/${encodeURIComponent(name)}`,
-      pinned: false,
-    };
-  }
-
-  if (normalizedPath === '/changes') {
-    return {
-      id: 'change:list',
-      type: 'change',
-      name: 'Changes',
-      path: normalizedPath,
       pinned: false,
     };
   }

@@ -73,7 +73,7 @@
   <div class="flex items-center gap-4">
     <div>
       <h1 class="flex items-center gap-2 text-2xl font-bold text-foreground">
-        <IconBox icon={FileText} variant="info" />
+        <IconBox icon={FileText} variant="success" />
         {specName}
       </h1>
       <p class="text-muted-foreground">

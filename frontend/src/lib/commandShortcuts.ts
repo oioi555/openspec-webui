@@ -7,6 +7,11 @@ export interface CommandPreferencesSnapshot {
   availability: CommandAvailability;
 }
 
+export interface ChangeCommandContext {
+  isArchived: boolean;
+  taskProgress: TaskProgress;
+}
+
 export function buildCommand(
   workflow: WorkflowCommand,
   aiTool: AiTool,
@@ -68,7 +73,7 @@ export function getWorkspaceCommands(
 }
 
 export function getChangeCommands(
-  change: Change,
+  change: Change | ChangeSummary | ChangeCommandContext,
   preferences: CommandPreferencesSnapshot
 ): WorkflowCommand[] {
   if (change.isArchived) {

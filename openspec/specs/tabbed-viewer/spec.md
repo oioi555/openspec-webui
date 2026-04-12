@@ -5,7 +5,7 @@ Define the tabbed Main Viewer that keeps dashboard, spec, and change content ope
 
 ## Requirements
 ### Requirement: Tab management system
-The system SHALL provide a tab management store that maintains an ordered list of open tabs. Each tab SHALL have a unique ID, type (spec, change, or dashboard), display name, URL path, and optional pinned state. The store SHALL support operations: open tab, close tab, focus tab, reorder tabs, and pin/unpin tab. The Home tab (Dashboard) SHALL be pinned by default, SHALL always be present, and SHALL NOT be closable or unpinnable. The ChangeViewer and SpecViewer SHALL use the `UnderlineTabs` component from `$lib/components/ui/underline-tabs/` for their internal sub-tab navigation instead of inline underline tab implementations. The `UnderlineTabs` API SHALL support optional badge counts so ChangeViewer can render file group counts and spec delta counts without feature-specific badge markup.
+The system SHALL provide a tab management store that maintains an ordered list of open tabs. Each tab SHALL have a unique ID, type (spec, change, or dashboard), display name, URL path, and optional pinned state. The store SHALL support operations: open tab, close tab, focus tab, reorder tabs, and pin/unpin tab. The Dashboard tab SHALL be pinned by default, SHALL always be present, and SHALL NOT be closable or unpinnable. The tab store SHALL materialize tabs for the Dashboard route (`/`) and detail routes such as `/specs/<name>` and `/changes/<name>`. The system SHALL NOT create standalone list tabs for `/specs` or `/changes`; section browsing for Specs and Archive SHALL be handled by the Explorer Pane while the Main Viewer remains on the Dashboard or detail tabs. The ChangeViewer and SpecViewer SHALL use the `UnderlineTabs` component from `$lib/components/ui/underline-tabs/` for their internal sub-tab navigation instead of inline underline tab implementations. The `UnderlineTabs` API SHALL support optional badge counts so ChangeViewer can render file group counts and spec delta counts without feature-specific badge markup.
 
 #### Scenario: Open a new tab
 - **WHEN** the operator opens a spec that is not currently in a tab
@@ -24,28 +24,33 @@ The system SHALL provide a tab management store that maintains an ordered list o
 - **THEN** the tab is removed from the tab list
 - **AND** the adjacent tab becomes active
 
-#### Scenario: Close the last remaining tab falls back to Home
+#### Scenario: Close the last remaining tab falls back to Dashboard
 - **WHEN** the operator closes the only remaining non-pinned tab
-- **THEN** the Home tab becomes active
+- **THEN** the Dashboard tab becomes active
 
-#### Scenario: Home tab is pinned and cannot be closed
+#### Scenario: Dashboard tab is pinned and cannot be closed
 - **WHEN** the application loads
-- **THEN** the Home tab is present and pinned
-- **AND** the close button is not displayed on the Home tab
+- **THEN** the Dashboard tab is present and pinned
+- **AND** the close button is not displayed on the Dashboard tab
 
-#### Scenario: Attempting to close the Home tab
-- **WHEN** the operator attempts to close the Home tab
-- **THEN** the Home tab remains open and pinned
+#### Scenario: Attempting to close the Dashboard tab
+- **WHEN** the operator attempts to close the Dashboard tab
+- **THEN** the Dashboard tab remains open and pinned
 
-#### Scenario: Direct URL load still keeps Home tab available
+#### Scenario: Direct URL load still keeps Dashboard tab available
 - **WHEN** the browser loads `/specs/authentication` or `/changes/login-feature` directly
 - **THEN** a tab for the requested route is opened and made active
-- **AND** the Home tab is still present and pinned in the tab bar
+- **AND** the Dashboard tab is still present and pinned in the tab bar
 
-#### Scenario: Attempting to unpin the Home tab
-- **WHEN** the operator attempts to unpin the Home tab
-- **THEN** the Home tab remains pinned
-- **AND** the Home tab remains open
+#### Scenario: Section list routes resolve to Dashboard
+- **WHEN** the browser loads `/specs` or `/changes` directly
+- **THEN** the system resolves the route to the Dashboard tab
+- **AND** the system does not create a standalone Specs or Changes list tab
+
+#### Scenario: Attempting to unpin the Dashboard tab
+- **WHEN** the operator attempts to unpin the Dashboard tab
+- **THEN** the Dashboard tab remains pinned
+- **AND** the Dashboard tab remains open
 
 #### Scenario: SpecViewer uses UnderlineTabs component
 - **WHEN** the operator views a spec that has both `spec.md` and `design.md`
@@ -193,13 +198,18 @@ The system SHALL provide a context menu on each tab when the operator right-clic
 - **AND** the "Copy Name", "Copy Path", and "Close All" items remain enabled
 
 ### Requirement: URL synchronization with tabs
-The system SHALL update the browser URL to match the active tab's path. When a URL is directly navigated to, the system SHALL open the corresponding tab if not already open.
+The system SHALL update the browser URL to match the active tab's path. When a URL is directly navigated to, the system SHALL open the corresponding detail tab if not already open. Direct navigation to `/specs` or `/changes` SHALL resolve to the Dashboard route (`/`) instead of opening dedicated list pages.
 
 #### Scenario: URL updates when tab changes
 - **WHEN** the operator switches to a tab for spec `authentication`
 - **THEN** the browser URL updates to `/specs/authentication`
 
-#### Scenario: Direct URL opens corresponding tab
+#### Scenario: Direct URL opens corresponding detail tab
 - **WHEN** the browser loads `/changes/login-feature` directly
 - **THEN** a tab for that change is opened and made active
-- **AND** the Home tab is still present and pinned in the tab bar
+- **AND** the Dashboard tab is still present and pinned in the tab bar
+
+#### Scenario: Direct section URL resolves to Dashboard
+- **WHEN** the browser loads `/specs` or `/changes`
+- **THEN** the browser URL is normalized to `/`
+- **AND** the Main Viewer stays on the Dashboard tab

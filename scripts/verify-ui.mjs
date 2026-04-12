@@ -224,12 +224,12 @@ function getStateExpression() {
 
       return {
         name,
-        pinnedHome: Boolean(group?.querySelector('[aria-label="Pinned Home tab"]')),
+        pinnedHome: Boolean(group?.querySelector('[aria-label="Pinned Dashboard tab"]')),
         closeVisible: Boolean(group?.querySelector('button[aria-label="Close tab"]')),
         pinToggleVisible: Boolean(group?.querySelector('button[aria-label="Pin tab"], button[aria-label="Unpin tab"]')),
       };
     });
-    const homeTab = tabs.find((tab) => tab.name === 'Home') ?? null;
+    const homeTab = tabs.find((tab) => tab.name === 'Dashboard') ?? null;
 
     const sectionState = (label) => {
       if (!explorer) {
@@ -245,7 +245,7 @@ function getStateExpression() {
       path: location.pathname,
       tabNames,
       activeTab,
-      homeTabCount: tabs.filter((tab) => tab.name === 'Home').length,
+      homeTabCount: tabs.filter((tab) => tab.name === 'Dashboard').length,
       homeTabPinned: homeTab?.pinnedHome ?? false,
       homeTabCloseVisible: homeTab?.closeVisible ?? false,
       homeTabPinToggleVisible: homeTab?.pinToggleVisible ?? false,
@@ -384,22 +384,22 @@ async function main() {
     await installPageHarness(cdp);
 
     let state = await getState(cdp);
-    assert(state.path === '/', 'Home route should load by default');
-    assert(state.activeTab === 'Home', 'Home tab should be active by default');
-    assert(state.homeTabCount === 1, 'Home tab should be present exactly once');
-    assert(state.homeTabPinned && !state.homeTabCloseVisible, 'Home tab should be pinned and not closable');
-    assert(!state.homeTabPinToggleVisible, 'Home tab should not expose pin or unpin actions');
+    assert(state.path === '/', 'Dashboard route should load by default');
+    assert(state.activeTab === 'Dashboard', 'Dashboard tab should be active by default');
+    assert(state.homeTabCount === 1, 'Dashboard tab should be present exactly once');
+    assert(state.homeTabPinned && !state.homeTabCloseVisible, 'Dashboard tab should be pinned and not closable');
+    assert(!state.homeTabPinToggleVisible, 'Dashboard tab should not expose pin or unpin actions');
     assert(state.activeChangesState === 'open', 'Active Changes section should be open by default');
-    assert(state.archiveState === 'closed' && state.specsState === 'closed', 'Archive and Specs should be collapsed on Home');
+    assert(state.archiveState === 'closed' && state.specsState === 'closed', 'Archive and Specs should be collapsed on Dashboard');
     assert(state.explorerPanelStyle?.includes('320px'), 'Explorer should honor remembered width');
     results.push('home-default');
 
-    await clickSelector(cdp, '[aria-label="Home"]');
+    await clickSelector(cdp, '[aria-label="Dashboard"]');
     state = await getState(cdp);
     assert(!state.explorerVisible && !state.expandExplorerVisible, 'Explorer should collapse fully without a standalone expand button');
-    await clickSelector(cdp, '[aria-label="Home"]');
+    await clickSelector(cdp, '[aria-label="Dashboard"]');
     state = await getState(cdp);
-    assert(state.explorerVisible && state.activeTab === 'Home' && state.explorerPanelStyle?.includes('320px'), 'Home should restore explorer width when re-clicked');
+    assert(state.explorerVisible && state.activeTab === 'Dashboard' && state.explorerPanelStyle?.includes('320px'), 'Dashboard should restore explorer width when re-clicked');
     results.push('explorer-collapse-restore');
 
     await clickSelector(cdp, '[title="Copy /opsx-propose"]');
@@ -408,24 +408,24 @@ async function main() {
     results.push('command-shortcut-copy');
 
     const initialTabNames = [...state.tabNames];
-    await clickSelector(cdp, '[aria-label="Changes"]');
+    await clickSelector(cdp, '[aria-label="Archive"]');
     state = await getState(cdp);
-    assert(state.activeTab === 'Home' && JSON.stringify(state.tabNames) === JSON.stringify(initialTabNames), 'Changes should not open or focus tabs');
-    assert(state.archiveState === 'open' && state.activeChangesState === 'closed' && state.specsState === 'closed', 'Changes preset should focus archive without changing tabs');
-    await clickSelector(cdp, '[aria-label="Changes"]');
+    assert(state.activeTab === 'Dashboard' && JSON.stringify(state.tabNames) === JSON.stringify(initialTabNames), 'Archive should not open or focus tabs');
+    assert(state.archiveState === 'open' && state.activeChangesState === 'closed' && state.specsState === 'closed', 'Archive preset should focus archive without changing tabs');
+    await clickSelector(cdp, '[aria-label="Archive"]');
     state = await getState(cdp);
-    assert(!state.explorerVisible && !state.expandExplorerVisible, 'Re-clicking the active Changes button should collapse the explorer');
-    await clickSelector(cdp, '[aria-label="Changes"]');
+    assert(!state.explorerVisible && !state.expandExplorerVisible, 'Re-clicking the active Archive button should collapse the explorer');
+    await clickSelector(cdp, '[aria-label="Archive"]');
     state = await getState(cdp);
-    assert(state.explorerVisible && state.archiveState === 'open', 'Clicking the active Changes button while collapsed should restore the explorer');
-    assert(state.activeTab === 'Home' && JSON.stringify(state.tabNames) === JSON.stringify(initialTabNames), 'Restoring Changes should still avoid tab changes');
+    assert(state.explorerVisible && state.archiveState === 'open', 'Clicking the active Archive button while collapsed should restore the explorer');
+    assert(state.activeTab === 'Dashboard' && JSON.stringify(state.tabNames) === JSON.stringify(initialTabNames), 'Restoring Archive should still avoid tab changes');
     await clickSelector(cdp, '[aria-label="Specs"]');
     state = await getState(cdp);
-    assert(state.activeTab === 'Home' && JSON.stringify(state.tabNames) === JSON.stringify(initialTabNames), 'Specs should not open or focus tabs');
+    assert(state.activeTab === 'Dashboard' && JSON.stringify(state.tabNames) === JSON.stringify(initialTabNames), 'Specs should not open or focus tabs');
     assert(state.specsState === 'open' && state.activeChangesState === 'closed' && state.archiveState === 'closed', 'Specs preset should focus specs section without changing tabs');
     results.push('activity-bar-presets');
 
-    await clickSelector(cdp, '[aria-label="Home"]');
+    await clickSelector(cdp, '[aria-label="Dashboard"]');
 
     const activeChangeName = await clickExplorerItem(cdp, 'Active Changes');
     state = await getState(cdp);
@@ -451,11 +451,11 @@ async function main() {
     results.push('spec-browse');
 
     const tabNamesBeforeHomeFocus = [...state.tabNames];
-    await clickSelector(cdp, '[aria-label="Home"]');
+    await clickSelector(cdp, '[aria-label="Dashboard"]');
     state = await getState(cdp);
-    assert(state.path === '/' && state.activeTab === 'Home', 'Home activity button should focus the existing Home tab');
-    assert(state.homeTabCount === 1 && JSON.stringify(state.tabNames) === JSON.stringify(tabNamesBeforeHomeFocus), 'Home activity button should reuse the existing Home tab');
-    assert(state.activeChangesState === 'open' && state.archiveState === 'closed' && state.specsState === 'closed', 'Home activity button should restore the Home explorer preset');
+    assert(state.path === '/' && state.activeTab === 'Dashboard', 'Dashboard activity button should focus the existing Dashboard tab');
+    assert(state.homeTabCount === 1 && JSON.stringify(state.tabNames) === JSON.stringify(tabNamesBeforeHomeFocus), 'Dashboard activity button should reuse the existing Dashboard tab');
+    assert(state.activeChangesState === 'open' && state.archiveState === 'closed' && state.specsState === 'closed', 'Dashboard activity button should restore the Dashboard explorer preset');
     results.push('home-focus-existing-tab');
 
     await clickByText(cdp, '[role="tab"]', specName);
@@ -463,7 +463,7 @@ async function main() {
     assert(state.path === `/specs/${encodeURIComponent(specName)}`, 'Clicking existing spec tab should focus it');
     await clickActiveTabAction(cdp, 'Pin tab');
     state = await getState(cdp);
-    assert(state.tabNames[0] === 'Home' && state.tabNames[1] === specName, 'Pinned tab should move into the left pinned group after Home');
+    assert(state.tabNames[0] === 'Dashboard' && state.tabNames[1] === specName, 'Pinned tab should move into the left pinned group after Dashboard');
     await clickActiveTabAction(cdp, 'Unpin tab');
     await clickActiveTabAction(cdp, 'Close tab');
     state = await getState(cdp);
@@ -474,7 +474,7 @@ async function main() {
     await installPageHarness(cdp);
     state = await getState(cdp);
     assert(state.path === `/specs/${encodeURIComponent(specName)}` && state.tabNames.includes(specName), 'Direct URL access should open corresponding tab');
-    assert(state.tabNames.includes('Home') && state.homeTabPinned && !state.homeTabCloseVisible && !state.homeTabPinToggleVisible, 'Direct URL access should keep the pinned Home tab present');
+    assert(state.tabNames.includes('Dashboard') && state.homeTabPinned && !state.homeTabCloseVisible && !state.homeTabPinToggleVisible, 'Direct URL access should keep the pinned Dashboard tab present');
     await cdp.navigate(APP_URL);
     await installPageHarness(cdp);
     results.push('direct-url-tab-open');
@@ -516,21 +516,21 @@ async function main() {
     await cdp.setViewport(700, 900);
     state = await getState(cdp);
     assert(!state.explorerVisible, 'Persistent explorer should hide in narrow mode');
-    await clickSelector(cdp, '[aria-label="Home"]');
+    await clickSelector(cdp, '[aria-label="Dashboard"]');
     state = await getState(cdp);
-    assert(state.drawerCloseVisible && state.activeChangesState === 'open', 'Home should open narrow explorer drawer with Active Changes focused');
-    assert(await cdp.evaluate(pageExpression(() => !!document.querySelector('[title="Copy /opsx-propose"]'))), 'Narrow Home drawer should include workspace command shortcuts');
+    assert(state.drawerCloseVisible && state.activeChangesState === 'open', 'Dashboard should open narrow explorer drawer with Active Changes focused');
+    assert(await cdp.evaluate(pageExpression(() => !!document.querySelector('[title="Copy /opsx-propose"]'))), 'Narrow Dashboard drawer should include workspace command shortcuts');
     await clickSelector(cdp, '[aria-label="Close explorer"]');
-    await clickSelector(cdp, '[aria-label="Changes"]');
+    await clickSelector(cdp, '[aria-label="Archive"]');
     state = await getState(cdp);
-    assert(state.drawerCloseVisible && state.archiveState === 'open', 'Changes should open narrow explorer drawer with Archive focused');
+    assert(state.drawerCloseVisible && state.archiveState === 'open', 'Archive should open narrow explorer drawer with Archive focused');
     await clickSelector(cdp, '[aria-label="Close explorer"]');
     await clickSelector(cdp, '[aria-label="Specs"]');
     state = await getState(cdp);
     assert(state.drawerCloseVisible && state.specsState === 'open', 'Specs should open narrow explorer drawer with Specs focused');
     await clickSelector(cdp, '[aria-label="Close explorer"]');
     await cdp.setViewport(1400, 900);
-    await clickSelector(cdp, '[aria-label="Home"]');
+    await clickSelector(cdp, '[aria-label="Dashboard"]');
     results.push('responsive-drawer');
 
     const originalProjectDoc = await readFile(PROJECT_DOC_PATH, 'utf8');

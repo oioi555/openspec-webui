@@ -96,12 +96,12 @@
     <Tooltip.Root>
       <Tooltip.Trigger
         class={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${buttonClass('home')}`}
-        aria-label="Home"
+        aria-label="Dashboard"
         onclick={() => openPreset('home')}
       >
         <House class="h-5 w-5" />
       </Tooltip.Trigger>
-      <Tooltip.Content side="right">Home</Tooltip.Content>
+      <Tooltip.Content side="right">Dashboard</Tooltip.Content>
     </Tooltip.Root>
 
     <Tooltip.Root>
