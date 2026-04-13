@@ -77,7 +77,7 @@
 <aside class="flex h-full w-12 shrink-0 flex-col items-center border-r border-border bg-secondary/70 py-2">
   <Tooltip.Root>
     <Tooltip.Trigger
-      class="flex h-10 w-10 items-center justify-center rounded-lg border border-border/60 bg-card text-card-foreground shadow-sm transition-colors hover:bg-secondary/80"
+      class={`flex h-10 w-10 items-center justify-center rounded-lg border border-border/60 bg-card text-card-foreground shadow-sm transition-colors hover:bg-secondary/80 ${layoutStore.overlay === 'project-selector' ? 'ring-2 ring-primary ring-offset-1 ring-offset-background' : ''}`}
       aria-label="Open project selector"
       onclick={() => layoutStore.openOverlay('project-selector')}
     >
@@ -86,7 +86,7 @@
     </Tooltip.Trigger>
     <Tooltip.Content side="right">
       <div class="flex items-center gap-2">
-        <span>{project.value?.name ?? 'OpenSpec WebUI'}</span>
+        <span>{project.value?.name ?? 'Switch Project'}</span>
         <ChevronsUpDown class="h-3.5 w-3.5" />
       </div>
     </Tooltip.Content>

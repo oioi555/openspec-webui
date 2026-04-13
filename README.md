@@ -2,7 +2,7 @@
 
 <img src="./frontend/public/app-icon.svg" alt="OpenSpec WebUI app icon" width="48" height="48" />
 
-Browser UI for OpenSpec-compatible directories.
+Browser UI for OpenSpec projects with server-side project selection.
 
 This repository started from the MIT-licensed `MusicAdam/openspec-viewer` project and is being reshaped into a more general local-first UI for browsing specs, changes, and review workflows.
 
@@ -26,15 +26,21 @@ npm run dev
 ```
 
 - App URL: `http://127.0.0.1:3001`
-- Default project path: `./openspec`
+- Default bootstrap project in wrapper scripts: this repository root
 - Server code is watched and restarted automatically
 - Frontend source changes rebuild `dist-frontend` automatically
 - After frontend edits, refresh the browser manually
 
-Open another project:
+Bootstrap another project:
 
 ```bash
 npm run dev -- /path/to/project
+```
+
+or:
+
+```bash
+OPENSPEC_INITIAL_PROJECT=/path/to/project npm run dev
 ```
 
 ### 2. Debug
@@ -50,7 +56,7 @@ npm run debug
 - Node inspector: `ws://127.0.0.1:9229`
 - Frontend assets are rebuilt with sourcemaps
 
-Open another project:
+Bootstrap another project:
 
 ```bash
 npm run debug -- /path/to/project
@@ -67,9 +73,9 @@ npm run release
 
 - Builds server + frontend production assets
 - Starts the built app on `http://127.0.0.1:3001`
-- Default project path: `./openspec`
+- Default bootstrap project in wrapper scripts: this repository root
 
-Open another project:
+Bootstrap another project:
 
 ```bash
 npm run release -- /path/to/project
@@ -85,23 +91,26 @@ npm run release -- /path/to/project
 | `npm run build` | Build production assets without starting the app |
 | `npm start` | Start the already-built app |
 
-## Path behavior
+## Project bootstrap and selection
 
-- `npm run dev`, `npm run debug`, and `npm run release` use `./openspec` when no path is given
-- If you pass a path, that path is treated as the target OpenSpec project root
-- The standalone CLI keeps its original behavior: `openspec-webui [path]` defaults to the current directory
+- `openspec-webui` no longer accepts a positional project path
+- Use `OPENSPEC_INITIAL_PROJECT=/path/to/repo openspec-webui` to pre-load an initial project at startup
+- Wrapper scripts (`npm run dev`, `npm run debug`, `npm run release`, `npm start`, `npm run dev:server`) map their first positional argument to `OPENSPEC_INITIAL_PROJECT`
+- If wrapper scripts are started without a project argument and `OPENSPEC_INITIAL_PROJECT` is unset, they bootstrap this repository root for local development ergonomics
+- After startup, add/switch/remove projects from the Project Selector UI
+- Project registry state is persisted in `${XDG_CONFIG_HOME:-~/.config}/openspec-webui/projects.json`
 
 ## CLI usage
 
 ```bash
-openspec-webui [path] [options]
+openspec-webui [options]
 ```
 
 ### Examples
 
 ```bash
-openspec-webui .
-openspec-webui ./my-project
+openspec-webui
+OPENSPEC_INITIAL_PROJECT=./my-project openspec-webui
 openspec-webui --port 8080
 openspec-webui --no-open
 ```

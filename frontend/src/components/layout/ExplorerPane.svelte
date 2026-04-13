@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Archive, Calendar, CheckSquare, ChevronLeft, ChevronsUpDown, FileText, SquarePen, X } from '@lucide/svelte';
+  import { Archive, Calendar, CheckSquare, ChevronLeft, ChevronsUpDown, FileText, Folder, FolderOpen, SquarePen, X } from '@lucide/svelte';
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
   import { EmptyState } from '$lib/components/ui/empty-state';
@@ -46,14 +46,14 @@
 </script>
 
 <aside class="flex h-full min-h-0 flex-col bg-card">
-  <div class="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+  <div class="flex h-12 items-center justify-between gap-3 border-b border-border px-4 py-3">
     <div class="min-w-0">
-      <div class="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Workspace</div>
       <button
         type="button"
         class="flex max-w-full items-center gap-2 truncate text-sm font-semibold text-foreground transition-colors hover:text-primary"
         onclick={() => layoutStore.openOverlay('project-selector')}
       >
+        <FolderOpen class="h-4 w-4 shrink-0 text-muted-foreground" />
         <span class="truncate">{project.value?.name ?? 'OpenSpec WebUI'}</span>
         <ChevronsUpDown class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
       </button>

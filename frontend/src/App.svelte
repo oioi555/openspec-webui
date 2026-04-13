@@ -9,13 +9,24 @@
   import { Toaster } from '$lib/components/ui/sonner';
 
   $effect(() => {
-    themeStore.initialize();
+    let disposed = false;
+    let unsubscribe = () => {};
 
-    void initializeData();
+    themeStore.initialize();
     void commandPreferencesStore.initialize();
-    const unsubscribe = setupWebSocket();
+
+    void (async () => {
+      await initializeData();
+
+      if (disposed) {
+        return;
+      }
+
+      unsubscribe = setupWebSocket();
+    })();
 
     return () => {
+      disposed = true;
       unsubscribe();
       themeStore.destroy();
     };

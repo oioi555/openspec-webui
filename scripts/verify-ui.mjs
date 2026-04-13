@@ -4,7 +4,6 @@ import { readFile, writeFile } from 'fs/promises';
 
 const APP_URL = 'http://127.0.0.1:3003/';
 const DEVTOOLS_LIST_URL = 'http://127.0.0.1:9222/json/list';
-const PROJECT_DOC_PATH = new URL('../openspec/project.md', import.meta.url);
 const LIVE_REFRESH_SENTINEL = `- LIVE REFRESH SENTINEL ${Date.now()}`;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -116,6 +115,23 @@ async function getPageWebSocketUrl() {
   return page.webSocketDebuggerUrl;
 }
 
+async function getActiveProjectDocPath() {
+  const response = await fetch(new URL('/api/projects', APP_URL));
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch active project list: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const activeProject = data.projects?.find((project) => project.id === data.activeProjectId) ?? null;
+
+  if (!activeProject?.path) {
+    throw new Error('No active project available for live-refresh verification');
+  }
+
+  return new URL(`./openspec/project.md`, `file://${activeProject.path.replace(/\/$/, '')}/`);
+}
+
 function pageExpression(source) {
   return `(${source})()`;
 }
@@ -216,6 +232,7 @@ async function waitFor(cdp, predicateExpression, label, timeoutMs = 8000, interv
 function getStateExpression() {
   return pageExpression(() => {
     const explorer = [...document.querySelectorAll('aside')].find((node) => node.textContent?.includes('Workspace'));
+    const projectSelectorButton = document.querySelector('[aria-label="Open project selector"]');
     const tabNames = [...document.querySelectorAll('[role="tab"]')].map((node) => node.textContent?.trim()).filter(Boolean);
     const activeTab = document.querySelector('[role="tab"][aria-selected="true"]')?.textContent?.trim() ?? null;
     const tabs = [...document.querySelectorAll('[role="tab"]')].map((node) => {
@@ -262,12 +279,34 @@ function getStateExpression() {
       expandExplorerVisible: Boolean(document.querySelector('[aria-label="Expand explorer"]')),
       searchDialogVisible: Boolean(document.querySelector('input[placeholder="Search workspace..."]')),
       projectDocIncludesSentinel: document.body.textContent?.includes('__SENTINEL__') ?? false,
+      explorerProjectName: explorer?.querySelector('button')?.textContent?.trim() ?? null,
+      selectorTooltip: document.querySelector('[role="tooltip"]')?.textContent?.trim() ?? null,
+      selectorAriaLabel: projectSelectorButton?.getAttribute('aria-label') ?? null,
     };
   }).replace('__SENTINEL__', LIVE_REFRESH_SENTINEL.replaceAll('\\', '\\\\').replaceAll("'", "\\'"));
 }
 
 async function getState(cdp) {
   return cdp.evaluate(getStateExpression());
+}
+
+async function focusSelectorButton(cdp) {
+  const ok = await cdp.evaluate(pageExpression(() => {
+    const button = document.querySelector('[aria-label="Open project selector"]');
+    if (!(button instanceof HTMLElement)) {
+      return false;
+    }
+
+    button.dispatchEvent(new FocusEvent('focus', { bubbles: true }));
+    button.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+    return true;
+  }));
+
+  if (!ok) {
+    throw new Error('Project selector button not found');
+  }
+
+  await sleep(200);
 }
 
 async function clickExplorerItem(cdp, sectionLabel, index = 0) {
@@ -390,6 +429,11 @@ async function main() {
     assert(state.activeChangesState === 'open', 'Active Changes section should be open by default');
     assert(state.archiveState === 'closed' && state.specsState === 'closed', 'Archive and Specs should be collapsed on Dashboard');
     assert(state.explorerPanelStyle?.includes('320px'), 'Explorer should honor remembered width');
+    assert(state.explorerProjectName && state.explorerProjectName !== 'OpenSpec WebUI', 'Explorer header should reflect the active project name');
+    assert(state.selectorAriaLabel === 'Open project selector', 'ActivityBar project control should expose the project selector action');
+    await focusSelectorButton(cdp);
+    state = await getState(cdp);
+    assert(state.selectorTooltip?.includes(state.explorerProjectName), 'ActivityBar tooltip should reflect the active project name');
     results.push('home-default');
 
     await clickSelector(cdp, '[aria-label="Dashboard"]');
@@ -523,9 +567,10 @@ async function main() {
     await clickSelector(cdp, '[aria-label="Dashboard"]');
     results.push('responsive-drawer');
 
-    const originalProjectDoc = await readFile(PROJECT_DOC_PATH, 'utf8');
+    const projectDocPath = await getActiveProjectDocPath();
+    const originalProjectDoc = await readFile(projectDocPath, 'utf8');
     try {
-      await writeFile(PROJECT_DOC_PATH, `${originalProjectDoc.trimEnd()}\n${LIVE_REFRESH_SENTINEL}\n`, 'utf8');
+      await writeFile(projectDocPath, `${originalProjectDoc.trimEnd()}\n${LIVE_REFRESH_SENTINEL}\n`, 'utf8');
       await waitFor(
         cdp,
         pageExpression(() => document.body.textContent?.includes('__SENTINEL__') ?? false).replace('__SENTINEL__', LIVE_REFRESH_SENTINEL.replaceAll('\\', '\\\\').replaceAll("'", "\\'")),
@@ -534,7 +579,7 @@ async function main() {
         250,
       );
     } finally {
-      await writeFile(PROJECT_DOC_PATH, originalProjectDoc, 'utf8');
+      await writeFile(projectDocPath, originalProjectDoc, 'utf8');
     }
 
     await waitFor(

@@ -1,23 +1,7 @@
-# live-refresh Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change capture-baseline-specs. Update Purpose after archive.
-## Requirements
 ### Requirement: Watch relevant OpenSpec files and directories
 The system SHALL watch only the active OpenSpec project directory for markdown file changes, SHALL ignore dotfiles and `node_modules`, SHALL classify relevant updates as affecting `project`, `specs`, or `changes`, and SHALL replace the watcher when the active project changes.
-
-#### Scenario: Ignore unsupported file changes
-- **WHEN** a file event occurs for a non-markdown file
-- **THEN** the watcher ignores the event
-
-#### Scenario: Classify a spec file change
-- **WHEN** a file event occurs under `specs/<capability>/`
-- **THEN** the system classifies the update as affecting `specs`
-- **AND** uses the capability directory name as the affected entity ID
-
-#### Scenario: Classify a change directory event
-- **WHEN** a directory is added or removed under `changes/` or `changes/archive/`
-- **THEN** the system classifies the update as affecting `changes`
 
 #### Scenario: Replace the watcher on project switch
 - **WHEN** the active project changes
@@ -26,15 +10,6 @@ The system SHALL watch only the active OpenSpec project directory for markdown f
 
 ### Requirement: Reparse and broadcast refresh events
 On every relevant watcher event for the active project, the system SHALL reparse the full active workspace, SHALL retain the fresh in-memory data set when parsing succeeds, and SHALL broadcast a `data:refresh` websocket message that identifies the affected entity and entity ID. When the active project changes, the system SHALL broadcast a `project:switched` websocket message containing the new active project id, or `null` when no active project remains. When a websocket client connects or reconnects, the system SHALL send a `connection:init` websocket message containing the current active project id.
-
-#### Scenario: Broadcast a change refresh after a markdown edit
-- **WHEN** a markdown file changes inside a change directory
-- **THEN** the system reparses the workspace
-- **AND** broadcasts a `data:refresh` event for the `changes` entity
-
-#### Scenario: Keep prior data on failed reparses
-- **WHEN** a watcher-triggered reparse fails
-- **THEN** the system does not replace the previously loaded in-memory data
 
 #### Scenario: Broadcast project switch
 - **WHEN** the active project changes
@@ -50,20 +25,6 @@ On every relevant watcher event for the active project, the system SHALL reparse
 
 ### Requirement: Hot-refresh the browser without losing context
 The browser client SHALL refetch active-project data over HTTP after a `project:switched` message, SHALL reset project-scoped state such as open tabs and search context, SHALL refresh command availability for the new active project, SHALL reconcile its state against `connection:init` after websocket connect or reconnect, and SHALL continue using `data:refresh` for in-project file updates.
-
-#### Scenario: Refresh a spec detail view in place
-- **WHEN** a websocket refresh targets specs while a spec detail view is open
-- **THEN** the client reloads the spec data
-- **AND** keeps the current detail view active without showing the initial loading state again
-
-#### Scenario: Refresh a change detail view in place
-- **WHEN** a websocket refresh targets changes while a change detail view is open
-- **THEN** the client reloads the change data
-- **AND** preserves the selected change tab and file selection when those indices still exist
-
-#### Scenario: Show an update notification
-- **WHEN** a websocket refresh targets a specific entity instead of `all`
-- **THEN** the client shows a toast identifying the updated entity or item
 
 #### Scenario: Reset project-scoped UI after a project switch
 - **WHEN** the browser client receives a `project:switched` websocket message

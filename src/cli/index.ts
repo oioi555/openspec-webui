@@ -1,7 +1,5 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
-import { resolve } from 'path';
-import { stat } from 'fs/promises';
 import open from 'open';
 import { createServer } from '../server/index.js';
 
@@ -9,33 +7,28 @@ const program = new Command();
 
 program
   .name('openspec-webui')
-  .description('Interactive browser UI for OpenSpec-compatible directories')
+  .description('Interactive browser UI for OpenSpec projects with server-side project selection')
   .version('0.2.0')
-  .argument('[path]', 'Path to an OpenSpec-compatible directory', '.')
   .option('-p, --port <number>', 'Port to run server on', '3001')
   .option('--no-open', 'Do not open browser automatically')
-  .action(async (path: string, options: { port: string; open: boolean }) => {
-    const openspecPath = resolve(process.cwd(), path);
+  .addHelpText(
+    'after',
+    '\nBootstrap an initial project with OPENSPEC_INITIAL_PROJECT=/path/to/repo openspec-webui\nProject selection is otherwise managed from the running UI.\n'
+  )
+  .action(async (options: { port: string; open: boolean }) => {
     const port = parseInt(options.port, 10);
-
-    // Validate path
-    try {
-      const stats = await stat(openspecPath);
-      if (!stats.isDirectory()) {
-        console.error(`Error: ${openspecPath} is not a directory`);
-        process.exit(1);
-      }
-    } catch (error) {
-      console.error(`Error: ${openspecPath} does not exist`);
-      process.exit(1);
-    }
+    const initialProjectPath = process.env.OPENSPEC_INITIAL_PROJECT?.trim();
 
     console.log('Starting OpenSpec WebUI...');
-    console.log(`Path: ${openspecPath}`);
+    console.log(
+      initialProjectPath
+        ? `Initial project bootstrap: ${initialProjectPath}`
+        : 'Initial project bootstrap: none'
+    );
 
     try {
       const server = await createServer({
-        openspecPath,
+        initialProjectPath,
         port,
       });
 

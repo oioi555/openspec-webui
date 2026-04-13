@@ -5,15 +5,16 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { existsSync } from 'fs';
 
-import { parseOpenSpec, type OpenSpecData } from '../parser/index.js';
-import { createFileWatcher, type FileChangeEvent } from '../watcher/file-watcher.js';
+import type { OpenSpecData } from '../parser/index.js';
+import type { FileChangeEvent } from '../watcher/file-watcher.js';
 import { WebSocketManager } from './websocket/handler.js';
 import { registerApiRoutes } from './routes/api.js';
+import { createProjectRegistry } from './project-registry.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export interface ServerOptions {
-  openspecPath: string;
+  initialProjectPath?: string;
   port: number;
   host?: string;
 }
@@ -27,24 +28,36 @@ export interface Server {
  * Create and start the OpenSpec WebUI server
  */
 export async function createServer(options: ServerOptions): Promise<Server> {
-  const { openspecPath, port, host = '127.0.0.1' } = options;
+  const { port, host = '127.0.0.1' } = options;
 
-  // Initialize data
-  let data: OpenSpecData | null = null;
   const wsManager = new WebSocketManager();
+  const projectRegistry = createProjectRegistry({
+    onActiveFileChange: async (event, data) => {
+      console.log(`File ${event.type}: ${event.path}`);
 
-  // Parse initial data
-  const result = await parseOpenSpec(openspecPath);
-  if (result.data) {
-    data = result.data;
-    console.log(`Loaded OpenSpec: ${data.project.name}`);
-    console.log(`  ${data.specs.length} specs, ${data.changes.active.length} active changes`);
-  } else {
-    console.error('Failed to parse OpenSpec directory:', result.errors);
+      if (data) {
+        wsManager.broadcastFileChange(event, getRefreshData(event, data));
+      }
+    },
+  });
+
+  await projectRegistry.initialize();
+
+  const startupProject = resolveStartupProject(options);
+
+  if (startupProject.path) {
+    try {
+      await projectRegistry.addProject(startupProject.path);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(`Ignoring invalid OPENSPEC_INITIAL_PROJECT (${startupProject.path}): ${message}`);
+    }
   }
 
-  if (result.warnings.length > 0) {
-    console.warn('Warnings:', result.warnings);
+  const activeData = projectRegistry.getActiveData();
+  if (activeData) {
+    console.log(`Loaded OpenSpec: ${activeData.project.name}`);
+    console.log(`  ${activeData.specs.length} specs, ${activeData.changes.active.length} active changes`);
   }
 
   // Create Fastify instance
@@ -58,16 +71,25 @@ export async function createServer(options: ServerOptions): Promise<Server> {
   // WebSocket endpoint
   fastify.register(async (fastify) => {
     fastify.get('/ws', { websocket: true }, (socket, req) => {
-      wsManager.addClient(socket);
+      wsManager.addClient(socket, [
+        {
+          type: 'connection:init',
+          activeProjectId: projectRegistry.getActiveProject()?.id ?? null,
+        },
+      ]);
     });
   });
 
   // Register API routes
-  await registerApiRoutes(
-    fastify,
-    () => data,
-    () => openspecPath
-  );
+  await registerApiRoutes(fastify, {
+    registry: projectRegistry,
+    onProjectSwitched: async (projectId) => {
+      wsManager.broadcast({
+        type: 'project:switched',
+        activeProjectId: projectId,
+      });
+    },
+  });
 
   // Serve static frontend files
   const frontendPath = join(__dirname, '..', '..', 'dist-frontend');
@@ -96,39 +118,42 @@ export async function createServer(options: ServerOptions): Promise<Server> {
     });
   }
 
-  // Set up file watcher
-  const watcher = createFileWatcher(openspecPath, async (event: FileChangeEvent) => {
-    console.log(`File ${event.type}: ${event.path}`);
-
-    // Re-parse affected data
-    const result = await parseOpenSpec(openspecPath);
-    if (result.data) {
-      data = result.data;
-      // Broadcast update to all clients
-      wsManager.broadcastFileChange(event, getRefreshData(event, data));
-    }
-  });
-
   // Start server
+  let url: string;
   try {
-    await fastify.listen({ port, host });
+    url = await fastify.listen({ port, host });
   } catch (err: unknown) {
     if (err instanceof Error && 'code' in err && err.code === 'EADDRINUSE') {
       throw new Error(`Port ${port} is already in use. Please use a different port with --port <port>`);
     }
     throw err;
   }
-  const url = `http://${host}:${port}`;
 
   console.log(`OpenSpec WebUI running at ${url}`);
 
   return {
     url,
     close: async () => {
-      await watcher.close();
+      await projectRegistry.close();
       await fastify.close();
     },
   };
+}
+
+function resolveStartupProject(
+  options: ServerOptions
+): { path: string | null; source: 'initialProjectPath' | 'env' | null } {
+  const initialProjectPath = options.initialProjectPath?.trim();
+  if (initialProjectPath) {
+    return { path: initialProjectPath, source: 'initialProjectPath' };
+  }
+
+  const envInitialProject = process.env.OPENSPEC_INITIAL_PROJECT?.trim();
+  if (envInitialProject) {
+    return { path: envInitialProject, source: 'env' };
+  }
+
+  return { path: null, source: null };
 }
 
 /**

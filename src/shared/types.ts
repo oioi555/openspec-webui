@@ -123,13 +123,44 @@ export interface SearchResponse {
 
 // WebSocket Event Types
 
-export interface WSMessage {
-  type: 'data:refresh' | 'file:changed' | 'error';
-  entity?: 'project' | 'specs' | 'changes' | 'all';
+export type WSEntity = 'project' | 'specs' | 'changes' | 'all';
+
+export interface WSDataRefreshMessage {
+  type: 'data:refresh';
+  entity: WSEntity;
   entityId?: string;
   data?: unknown;
-  message?: string;
 }
+
+export interface WSFileChangedMessage {
+  type: 'file:changed';
+  entity?: WSEntity;
+  entityId?: string;
+  data?: unknown;
+}
+
+export interface WSErrorMessage {
+  type: 'error';
+  message: string;
+  data?: unknown;
+}
+
+export interface WSProjectSwitchedMessage {
+  type: 'project:switched';
+  activeProjectId: string | null;
+}
+
+export interface WSConnectionInitMessage {
+  type: 'connection:init';
+  activeProjectId: string | null;
+}
+
+export type WSMessage =
+  | WSDataRefreshMessage
+  | WSFileChangedMessage
+  | WSErrorMessage
+  | WSProjectSwitchedMessage
+  | WSConnectionInitMessage;
 
 // Parser result types
 

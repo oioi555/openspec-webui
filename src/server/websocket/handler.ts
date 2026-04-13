@@ -11,7 +11,7 @@ export class WebSocketManager {
   /**
    * Register a new client connection
    */
-  addClient(ws: WebSocket) {
+  addClient(ws: WebSocket, initialMessages: readonly WSMessage[]) {
     this.clients.add(ws);
 
     ws.on('close', () => {
@@ -23,11 +23,9 @@ export class WebSocketManager {
       this.clients.delete(ws);
     });
 
-    // Send initial connection confirmation
-    this.sendToClient(ws, {
-      type: 'data:refresh',
-      entity: 'all',
-    });
+    for (const message of initialMessages) {
+      this.sendToClient(ws, message);
+    }
   }
 
   /**

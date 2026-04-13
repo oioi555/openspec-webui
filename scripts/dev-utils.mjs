@@ -2,7 +2,7 @@
 
 import { existsSync } from 'fs';
 import { spawn } from 'child_process';
-import { dirname, join } from 'path';
+import { dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -71,32 +71,61 @@ export function waitForExit(child, label) {
   });
 }
 
-export function withDefaultProjectPath(args) {
-  let hasPositionalPath = false;
+export function extractWrapperProjectArg(args) {
+  const forwardedArgs = [];
+  let projectArg;
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
 
     if (optionValueFlags.has(arg)) {
+      forwardedArgs.push(arg);
       index += 1;
+      if (index < args.length) {
+        forwardedArgs.push(args[index]);
+      }
       continue;
     }
 
     if (arg.startsWith('--port=')) {
+      forwardedArgs.push(arg);
       continue;
     }
 
-    if (!arg.startsWith('-')) {
-      hasPositionalPath = true;
-      break;
+    if (!arg.startsWith('-') && projectArg === undefined) {
+      projectArg = arg;
+      continue;
     }
+
+    forwardedArgs.push(arg);
   }
 
-  if (hasPositionalPath) {
-    return args;
+  return {
+    forwardedArgs,
+    projectArg,
+  };
+}
+
+export function buildBootstrapEnv(projectArg, extraEnv = {}) {
+  const env = {
+    ...process.env,
+    ...extraEnv,
+  };
+
+  const configuredInitialProject = env.OPENSPEC_INITIAL_PROJECT?.trim();
+
+  if (projectArg !== undefined) {
+    env.OPENSPEC_INITIAL_PROJECT = resolve(repoRoot, projectArg);
+    return env;
   }
 
-  return ['./openspec', ...args];
+  if (!configuredInitialProject) {
+    env.OPENSPEC_INITIAL_PROJECT = repoRoot;
+  } else {
+    env.OPENSPEC_INITIAL_PROJECT = configuredInitialProject;
+  }
+
+  return env;
 }
 
 export function withFlag(args, flag) {

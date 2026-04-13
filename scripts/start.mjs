@@ -2,7 +2,7 @@
 
 import { existsSync } from 'fs';
 import { join } from 'path';
-import { repoRoot, spawnInRepo, waitForExit, withDefaultProjectPath } from './dev-utils.mjs';
+import { buildBootstrapEnv, extractWrapperProjectArg, repoRoot, spawnInRepo, waitForExit } from './dev-utils.mjs';
 
 const builtServerEntry = join(repoRoot, 'dist', 'cli', 'index.js');
 const builtFrontendDir = join(repoRoot, 'dist-frontend');
@@ -12,7 +12,10 @@ if (!existsSync(builtServerEntry) || !existsSync(builtFrontendDir)) {
   process.exit(1);
 }
 
-const runtimeArgs = withDefaultProjectPath(process.argv.slice(2));
-const child = spawnInRepo(process.execPath, ['dist/cli/index.js', ...runtimeArgs]);
+const { forwardedArgs, projectArg } = extractWrapperProjectArg(process.argv.slice(2));
+const runtimeEnv = buildBootstrapEnv(projectArg);
+const child = spawnInRepo(process.execPath, ['dist/cli/index.js', ...forwardedArgs], {
+  env: runtimeEnv,
+});
 const result = await waitForExit(child, 'node');
 process.exit(result.code);

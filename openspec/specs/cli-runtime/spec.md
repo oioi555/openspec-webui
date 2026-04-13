@@ -4,22 +4,28 @@
 TBD - created by archiving change capture-baseline-specs. Update Purpose after archive.
 ## Requirements
 ### Requirement: Start a local workspace session
-The system SHALL accept an OpenSpec-compatible directory path and port from the CLI, default the path to the current working directory, default the port to `3001`, bind to `127.0.0.1` unless configured otherwise, and reject paths that do not exist or are not directories.
+The system SHALL start the WebUI without requiring a positional workspace path argument, SHALL default the port to `3001`, SHALL bind to `127.0.0.1` unless configured otherwise, and SHALL bootstrap an initial project from the `OPENSPEC_INITIAL_PROJECT` environment variable when it is set to a valid OpenSpec project path. Wrapper scripts MAY translate their own convenience arguments into `OPENSPEC_INITIAL_PROJECT`, but the standalone CLI contract SHALL remain argument-free for project selection.
 
 #### Scenario: Start with defaults
 - **WHEN** the operator runs `openspec-webui` without a path or port option
-- **THEN** the system starts against the current working directory
+- **THEN** the system starts without validating the current working directory as a workspace
 - **AND** the local server listens on port `3001`
 
-#### Scenario: Reject a missing workspace path
-- **WHEN** the operator supplies a path that does not exist
-- **THEN** the system reports that the path does not exist
-- **AND** exits with a non-zero status
+#### Scenario: Start with OPENSPEC_INITIAL_PROJECT
+- **WHEN** the operator starts the UI with `OPENSPEC_INITIAL_PROJECT=/home/user/my-repo`
+- **AND** the path points to a valid OpenSpec project
+- **THEN** the system starts normally
+- **AND** bootstraps that project into the registry as the active project
 
-#### Scenario: Reject a non-directory path
-- **WHEN** the operator supplies a path that resolves to a file instead of a directory
-- **THEN** the system reports that the path is not a directory
-- **AND** exits with a non-zero status
+#### Scenario: Ignore an invalid OPENSPEC_INITIAL_PROJECT
+- **WHEN** the operator starts the UI with `OPENSPEC_INITIAL_PROJECT` set to an invalid path
+- **THEN** the system reports a warning
+- **AND** continues starting the server without exiting
+
+#### Scenario: Wrapper script maps a project argument to bootstrap env
+- **WHEN** the operator runs a wrapper such as `npm run dev -- /path/to/project`
+- **THEN** the wrapper passes `/path/to/project` via `OPENSPEC_INITIAL_PROJECT`
+- **AND** does not pass a positional workspace path argument to `openspec-webui`
 
 #### Scenario: Reject an occupied port
 - **WHEN** the operator starts the UI on a port that is already in use
@@ -77,4 +83,3 @@ The system SHALL provide a `themeStore` Svelte writable store that holds the cur
 - **WHEN** the user changes the theme mode via the store
 - **THEN** the new mode is saved to localStorage
 - **AND** the `<html>` element's `data-theme` attribute is updated
-

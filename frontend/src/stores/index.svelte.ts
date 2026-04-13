@@ -1,7 +1,18 @@
 import { tick } from 'svelte';
 import type { Project, Stats, SpecSummary, ChangeSummary } from '../lib/api';
-import { getProject, getStats, getSpecs, getChanges } from '../lib/api';
+import {
+  getApiErrorMessage,
+  getProject,
+  getStats,
+  getSpecs,
+  getChanges,
+  isNoActiveProjectError,
+} from '../lib/api';
 import { wsClient, type WSMessage } from '../lib/websocket';
+import { commandPreferencesStore } from './commandPreferences.svelte.ts';
+import { layoutStore } from './layout.svelte.ts';
+import { projectStore } from './projects.svelte.ts';
+import { handleProjectContextMessage } from './projectSync';
 import { tabStore } from './tabs.svelte.ts';
 import { toast } from 'svelte-sonner';
 
@@ -106,11 +117,51 @@ export const changesRefreshTrigger = createBox(
   }
 );
 
+function clearLoadedWorkspaceState() {
+  state.project = null;
+  state.stats = null;
+  state.specs = [];
+  state.activeChanges = [];
+  state.archivedChanges = [];
+}
+
+export function clearProjectScopedSearchState() {
+  state.searchQuery = '';
+}
+
+function applyNoActiveProjectState() {
+  clearLoadedWorkspaceState();
+  state.error = null;
+}
+
+async function reinitializeProjectScopedState(messageType: 'project:switched' | 'connection:init', announcedActiveProjectId: string | null) {
+  await handleProjectContextMessage({
+    messageType,
+    announcedActiveProjectId,
+    currentActiveProjectId: projectStore.activeProjectId,
+    overlay: layoutStore.overlay,
+    closeOverlay: () => layoutStore.closeOverlay(),
+    clearProjectScopedSearchState,
+    resetTabsToDashboard: () => {
+      tabStore.closeAll();
+    },
+    initializeData,
+    refreshCommandAvailability: () => commandPreferencesStore.refreshAvailability(),
+  });
+}
+
 export async function initializeData() {
   state.isLoading = true;
   state.error = null;
 
   try {
+    const projectsData = await projectStore.loadProjects();
+
+    if (!projectsData.activeProjectId) {
+      applyNoActiveProjectState();
+      return;
+    }
+
     const [projectData, statsData, specsData, changesData] = await Promise.all([
       getProject(),
       getStats(),
@@ -124,7 +175,18 @@ export async function initializeData() {
     state.activeChanges = changesData.active;
     state.archivedChanges = changesData.archived;
   } catch (cause) {
-    state.error = cause instanceof Error ? cause.message : 'Failed to load data';
+    if (isNoActiveProjectError(cause)) {
+      try {
+        await projectStore.loadProjects();
+      } catch {
+        // Ignore follow-up sync errors and keep the local empty state.
+      }
+
+      applyNoActiveProjectState();
+      return;
+    }
+
+    state.error = getApiErrorMessage(cause, 'Failed to load data');
   } finally {
     state.isLoading = false;
   }
@@ -138,37 +200,59 @@ export function setupWebSocket() {
   wsClient.connect();
 
   const unsubscribe = wsClient.subscribe(async (message: WSMessage) => {
-    if (message.type !== 'data:refresh') {
-      return;
+    switch (message.type) {
+      case 'data:refresh': {
+        const entity = message.entity;
+        const scrollY = window.scrollY;
+
+        try {
+          if (entity === 'all' || entity === 'project') {
+            state.project = await getProject();
+          }
+
+          if (entity === 'all' || entity === 'specs') {
+            state.specs = await getSpecs();
+            state.specsRefreshTrigger += 1;
+          }
+
+          if (entity === 'all' || entity === 'changes') {
+            const changesData = await getChanges();
+            state.activeChanges = changesData.active;
+            state.archivedChanges = changesData.archived;
+            state.changesRefreshTrigger += 1;
+          }
+
+          state.stats = await getStats();
+
+          if (entity !== 'all') {
+            toast(`Updated: ${message.entityId || entity}`);
+          }
+
+          await tick();
+          window.scrollTo(0, scrollY);
+        } catch (cause) {
+          if (isNoActiveProjectError(cause)) {
+            await reinitializeProjectScopedState('project:switched', null);
+            return;
+          }
+
+          toast.error(getApiErrorMessage(cause, 'Failed to refresh workspace data'));
+        }
+
+        return;
+      }
+      case 'connection:init': {
+        await reinitializeProjectScopedState('connection:init', message.activeProjectId);
+        return;
+      }
+      case 'project:switched': {
+        await reinitializeProjectScopedState('project:switched', message.activeProjectId);
+        return;
+      }
+      case 'file:changed':
+      case 'error':
+        return;
     }
-
-    const entity = message.entity;
-    const scrollY = window.scrollY;
-
-    if (entity === 'all' || entity === 'project') {
-      state.project = await getProject();
-    }
-
-    if (entity === 'all' || entity === 'specs') {
-      state.specs = await getSpecs();
-      state.specsRefreshTrigger += 1;
-    }
-
-    if (entity === 'all' || entity === 'changes') {
-      const changesData = await getChanges();
-      state.activeChanges = changesData.active;
-      state.archivedChanges = changesData.archived;
-      state.changesRefreshTrigger += 1;
-    }
-
-    state.stats = await getStats();
-
-    if (entity !== 'all') {
-      toast(`Updated: ${message.entityId || entity}`);
-    }
-
-    await tick();
-    window.scrollTo(0, scrollY);
   });
 
   return () => {

@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 
 import { execFileSync } from 'child_process';
-import { listMissingLocalBins } from './dev-utils.mjs';
+import { listMissingLocalBins, repoRoot } from './dev-utils.mjs';
 
 const requiredBins = ['tsx', 'tsc', 'vite', 'svelte-check'];
 const missingBins = listMissingLocalBins(requiredBins);
 
 console.log(`Node.js: ${process.version}`);
-console.log('Default project path: ./openspec');
+console.log(`Wrapper bootstrap project: ${process.env.OPENSPEC_INITIAL_PROJECT?.trim() || repoRoot}`);
+console.log('Project bootstrap override: npm run dev -- /path/to/project or OPENSPEC_INITIAL_PROJECT=/path/to/project');
 console.log('App URL: http://127.0.0.1:3001');
 console.log('Debug inspector: ws://127.0.0.1:9229');
 

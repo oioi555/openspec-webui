@@ -1,16 +1,18 @@
 #!/usr/bin/env node
 
 import {
+  buildBootstrapEnv,
   ensureLocalBins,
+  extractWrapperProjectArg,
   resolveLocalBin,
   spawnInRepo,
   waitForExit,
-  withDefaultProjectPath,
 } from './dev-utils.mjs';
 
 ensureLocalBins(['tsc', 'vite']);
 
-const runtimeArgs = withDefaultProjectPath(process.argv.slice(2));
+const { forwardedArgs, projectArg } = extractWrapperProjectArg(process.argv.slice(2));
+const runtimeEnv = buildBootstrapEnv(projectArg);
 
 console.log('Building release assets...');
 
@@ -26,6 +28,8 @@ for (const [label, command, args] of [
 }
 
 console.log('Starting release build...');
-const child = spawnInRepo(process.execPath, ['dist/cli/index.js', ...runtimeArgs]);
+const child = spawnInRepo(process.execPath, ['dist/cli/index.js', ...forwardedArgs], {
+  env: runtimeEnv,
+});
 const result = await waitForExit(child, 'node');
 process.exit(result.code);

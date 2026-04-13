@@ -1,18 +1,20 @@
 #!/usr/bin/env node
 
 import {
+  buildBootstrapEnv,
   ensureLocalBins,
+  extractWrapperProjectArg,
   resolveLocalBin,
   spawnInRepo,
   waitForExit,
-  withDefaultProjectPath,
   withFlag,
 } from './dev-utils.mjs';
 
 ensureLocalBins(['tsx', 'vite']);
 
-const forwardedArgs = process.argv.slice(2);
-const serverArgs = withFlag(withDefaultProjectPath(forwardedArgs), '--no-open');
+const { forwardedArgs, projectArg } = extractWrapperProjectArg(process.argv.slice(2));
+const serverArgs = withFlag(forwardedArgs, '--no-open');
+const serverEnv = buildBootstrapEnv(projectArg);
 
 console.log('Building frontend once before starting dev watchers...');
 const initialFrontendBuild = spawnInRepo(resolveLocalBin('vite'), ['build', '--config', 'frontend/vite.config.ts']);
@@ -32,7 +34,9 @@ const children = [
   },
   {
     label: 'dev server',
-    child: spawnInRepo(process.execPath, ['--watch', '--import', 'tsx', 'src/cli/index.ts', ...serverArgs]),
+    child: spawnInRepo(process.execPath, ['--watch', '--import', 'tsx', 'src/cli/index.ts', ...serverArgs], {
+      env: serverEnv,
+    }),
   },
 ];
 

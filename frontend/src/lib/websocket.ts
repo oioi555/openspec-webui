@@ -1,12 +1,7 @@
-export type MessageHandler = (message: WSMessage) => void;
+import type { WSMessage } from '../../../src/shared/types.ts';
 
-export interface WSMessage {
-  type: 'data:refresh' | 'file:changed' | 'error';
-  entity?: 'project' | 'specs' | 'changes' | 'all';
-  entityId?: string;
-  data?: unknown;
-  message?: string;
-}
+export type MessageHandler = (message: WSMessage) => void;
+export type { WSMessage } from '../../../src/shared/types.ts';
 
 export class WebSocketClient {
   private ws: WebSocket | null = null;
@@ -34,7 +29,7 @@ export class WebSocketClient {
 
     this.ws.onmessage = (event) => {
       try {
-        const message: WSMessage = JSON.parse(event.data);
+        const message = JSON.parse(event.data as string) as WSMessage;
         this.handlers.forEach((handler) => handler(message));
       } catch (error) {
         console.error('Failed to parse WebSocket message:', error);

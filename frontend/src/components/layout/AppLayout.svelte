@@ -3,11 +3,14 @@
   import * as Resizable from '$lib/components/ui/resizable';
   import * as Sheet from '$lib/components/ui/sheet';
   import { layoutStore } from '../../stores/layout.svelte.ts';
+  import { projectStore } from '../../stores/projects.svelte.ts';
   import SettingsModal from '../SettingsModal.svelte';
   import ActivityBar from './ActivityBar.svelte';
   import ExplorerPane from './ExplorerPane.svelte';
   import MainViewer from './MainViewer.svelte';
   import SearchDialog from './SearchDialog.svelte';
+  import ProjectSelector from './ProjectSelector.svelte';
+  import EmptyProjectState from '../EmptyProjectState.svelte';
 
   let dragStartWidth = $state(layoutStore.rememberedExplorerWidth);
 
@@ -36,7 +39,11 @@
 <div class="flex h-full min-h-0 min-w-0 overflow-hidden bg-background text-foreground">
   <ActivityBar />
 
-  {#if layoutStore.responsiveMode === 'narrow'}
+  {#if !projectStore.activeProjectId}
+    <div class="min-h-0 min-w-0 flex-1 overflow-hidden">
+      <EmptyProjectState />
+    </div>
+  {:else if layoutStore.responsiveMode === 'narrow'}
     <div class="min-h-0 min-w-0 flex-1 overflow-hidden">
       <MainViewer />
     </div>
@@ -82,14 +89,7 @@
   <Dialog.Root open={layoutStore.overlay === 'project-selector'} onOpenChange={(open) => !open && closeOverlay()}>
     <Dialog.Overlay />
     <Dialog.Content class="max-w-md">
-      <Dialog.Header>
-        <Dialog.Title>Project Selector</Dialog.Title>
-        <Dialog.Description>This placeholder keeps the Activity Bar project control interactive until a real selector is wired in.</Dialog.Description>
-      </Dialog.Header>
-
-      <div class="rounded-lg border border-border bg-secondary/50 p-4 text-sm text-muted-foreground">
-        Project switching is not implemented in this shell pass.
-      </div>
+      <ProjectSelector />
     </Dialog.Content>
   </Dialog.Root>
 </div>
