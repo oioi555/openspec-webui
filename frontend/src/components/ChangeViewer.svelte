@@ -1,12 +1,19 @@
 <script lang="ts">
   import { untrack } from 'svelte';
-  import { Archive, Calendar, CheckSquare, FileText, SquarePen } from '@lucide/svelte';
+  import { Archive, Calendar, CheckSquare, Clipboard, FileText, Quote, SquarePen } from '@lucide/svelte';
   import { Badge } from '$lib/components/ui/badge';
   import { ErrorBanner } from '$lib/components/ui/error-banner';
   import { IconBox } from '$lib/components/ui/icon-box';
   import { LoadingState } from '$lib/components/ui/loading-state';
   import { UnderlineTabs } from '$lib/components/ui/underline-tabs';
+  import * as ContextMenu from '$lib/components/ui/context-menu';
+  import { toast } from 'svelte-sonner';
   import { getChange, type Change } from '../lib/api';
+  import {
+    buildCopySelectionResult,
+    buildQuotedCopySelectionResult,
+    getChangeViewerContextLabel,
+  } from '../lib/contextCopy';
   import { changesRefreshTrigger } from '../stores/index.svelte.ts';
   import { commandPreferencesStore } from '../stores/commandPreferences.svelte.ts';
   import { getChangeCommands } from '../lib/commandShortcuts';
@@ -51,6 +58,46 @@
 
   let previousChangeName: string | null = null;
   let previousRefreshTrigger = -1;
+  let hasSelection = $state(false);
+
+  async function copyToClipboard(text: string, label: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(`${label} copied`);
+    } catch {
+      toast.error('Failed to copy');
+    }
+  }
+
+  function handleCopy() {
+    const result = buildCopySelectionResult(window.getSelection()?.toString());
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+
+    copyToClipboard(result.text, 'Text');
+  }
+
+  function handleQuoteCopy(contextLabel: string) {
+    const result = buildQuotedCopySelectionResult({
+      sourceName: changeName,
+      contextLabel,
+      selection: window.getSelection()?.toString(),
+    });
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+
+    copyToClipboard(result.text, 'Quoted text');
+  }
+
+  function handleMenuOpenChange(open: boolean) {
+    if (open) {
+      hasSelection = (window.getSelection()?.toString().length ?? 0) > 0;
+    }
+  }
 
   async function loadChange(preserveState = false) {
     if (!preserveState) {
@@ -197,23 +244,61 @@
         <!-- Spec Deltas -->
         <div class="space-y-8">
           {#each change.specDeltas as delta}
-            <div class="h-full rounded-xl border border-border/70 bg-background/70 p-0 text-left shadow-sm">
-              <div class="px-5 py-4 text-left">
-                <h3 class="flex items-center gap-2 text-2xl font-bold text-foreground">
-                  <IconBox icon={FileText} variant="success" />
-                  {delta.capability}
-                </h3>
+            <ContextMenu.Root onOpenChange={handleMenuOpenChange}>
+              <div class="h-full rounded-xl border border-border/70 bg-background/70 p-0 text-left shadow-sm">
+                <div class="px-5 py-4 text-left">
+                  <h3 class="flex items-center gap-2 text-2xl font-bold text-foreground">
+                    <IconBox icon={FileText} variant="success" />
+                    {delta.capability}
+                  </h3>
+                </div>
+                <div class="border-t border-border/60 px-5 py-4">
+                  <MarkdownRenderer content={delta.content} highlightDiff={true} />
+                </div>
               </div>
-              <div class="border-t border-border/60 px-5 py-4">
-                <MarkdownRenderer content={delta.content} highlightDiff={true} />
-              </div>
-            </div>
+              <ContextMenu.Content>
+                <ContextMenu.Item disabled={!hasSelection} onSelect={handleCopy}>
+                  <Clipboard class="h-4 w-4" />
+                  Copy
+                </ContextMenu.Item>
+                <ContextMenu.Item
+                  disabled={!hasSelection}
+                  onSelect={() =>
+                    handleQuoteCopy(
+                      getChangeViewerContextLabel({ deltaCapability: delta.capability }),
+                    )}
+                >
+                  <Quote class="h-4 w-4" />
+                  Quote Copy
+                </ContextMenu.Item>
+              </ContextMenu.Content>
+            </ContextMenu.Root>
           {/each}
         </div>
       {:else if activeFile}
-        {#if activeFile.content}
-          <MarkdownRenderer content={activeFile.content} />
-        {/if}
+        <ContextMenu.Root onOpenChange={handleMenuOpenChange}>
+          <div>
+            {#if activeFile.content}
+              <MarkdownRenderer content={activeFile.content} />
+            {/if}
+          </div>
+          <ContextMenu.Content>
+            <ContextMenu.Item disabled={!hasSelection} onSelect={handleCopy}>
+              <Clipboard class="h-4 w-4" />
+              Copy
+            </ContextMenu.Item>
+            <ContextMenu.Item
+              disabled={!hasSelection}
+              onSelect={() =>
+                handleQuoteCopy(
+                  getChangeViewerContextLabel({ activeFileName: activeFile?.name }),
+                )}
+            >
+              <Quote class="h-4 w-4" />
+              Quote Copy
+            </ContextMenu.Item>
+          </ContextMenu.Content>
+        </ContextMenu.Root>
       {/if}
     </div>
   {/if}

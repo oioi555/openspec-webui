@@ -1,11 +1,18 @@
 <script lang="ts">
-  import { FileText, Calendar, Search } from '@lucide/svelte';
+  import { FileText, Calendar, Search, Clipboard, Quote } from '@lucide/svelte';
   import { ErrorBanner } from '$lib/components/ui/error-banner';
   import { IconBox } from '$lib/components/ui/icon-box';
   import { LoadingState } from '$lib/components/ui/loading-state';
   import { UnderlineTabs } from '$lib/components/ui/underline-tabs';
   import { Button } from '$lib/components/ui/button';
+  import * as ContextMenu from '$lib/components/ui/context-menu';
+  import { toast } from 'svelte-sonner';
   import { getSpec, type Spec } from '../lib/api';
+  import {
+    buildCopySelectionResult,
+    buildQuotedCopySelectionResult,
+    getSpecViewerContextLabel,
+  } from '../lib/contextCopy';
   import { specsRefreshTrigger } from '../stores/index.svelte.ts';
   import { layoutStore } from '../stores/layout.svelte.ts';
   import MarkdownRenderer from './MarkdownRenderer.svelte';
@@ -23,6 +30,46 @@
 
   let previousSpecName: string | null = null;
   let previousRefreshTrigger = -1;
+  let hasSelection = $state(false);
+
+  async function copyToClipboard(text: string, label: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(`${label} copied`);
+    } catch {
+      toast.error('Failed to copy');
+    }
+  }
+
+  function handleCopy() {
+    const result = buildCopySelectionResult(window.getSelection()?.toString());
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+
+    copyToClipboard(result.text, 'Text');
+  }
+
+  function handleQuoteCopy() {
+    const result = buildQuotedCopySelectionResult({
+      sourceName: specName,
+      contextLabel: getSpecViewerContextLabel(activeTab),
+      selection: window.getSelection()?.toString(),
+    });
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+
+    copyToClipboard(result.text, 'Quoted text');
+  }
+
+  function handleMenuOpenChange(open: boolean) {
+    if (open) {
+      hasSelection = (window.getSelection()?.toString().length ?? 0) > 0;
+    }
+  }
 
   function handleTabSelect(id: string) {
     if (id === 'spec' || id === 'design') {
@@ -116,12 +163,24 @@
     {/if}
 
     <!-- Content -->
-    <div class="rounded-lg border border-border bg-card p-6 shadow-lg">
-      {#if activeTab === 'spec'}
-        <MarkdownRenderer content={spec.specContent} />
-      {:else if spec.designContent}
-        <MarkdownRenderer content={spec.designContent} />
-      {/if}
-    </div>
+    <ContextMenu.Root onOpenChange={handleMenuOpenChange}>
+      <div class="rounded-lg border border-border bg-card p-6 shadow-lg">
+        {#if activeTab === 'spec'}
+          <MarkdownRenderer content={spec.specContent} />
+        {:else if spec.designContent}
+          <MarkdownRenderer content={spec.designContent} />
+        {/if}
+      </div>
+      <ContextMenu.Content>
+        <ContextMenu.Item disabled={!hasSelection} onSelect={handleCopy}>
+          <Clipboard class="h-4 w-4" />
+          Copy
+        </ContextMenu.Item>
+        <ContextMenu.Item disabled={!hasSelection} onSelect={handleQuoteCopy}>
+          <Quote class="h-4 w-4" />
+          Quote Copy
+        </ContextMenu.Item>
+      </ContextMenu.Content>
+    </ContextMenu.Root>
   {/if}
 </div>
