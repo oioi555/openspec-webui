@@ -145,9 +145,15 @@ export interface WSErrorMessage {
   data?: unknown;
 }
 
-export interface WSProjectSwitchedMessage {
-  type: 'project:switched';
+export interface WSProjectBindMessage {
+  type: 'project:bind';
+  projectId: string | null;
+}
+
+export interface WSProjectBoundMessage {
+  type: 'project:bound';
   activeProjectId: string | null;
+  data?: unknown;
 }
 
 export interface WSConnectionInitMessage {
@@ -155,12 +161,18 @@ export interface WSConnectionInitMessage {
   activeProjectId: string | null;
 }
 
-export type WSMessage =
+export type WSIncomingMessage = WSProjectBindMessage;
+
+export type WSOutgoingMessage =
   | WSDataRefreshMessage
   | WSFileChangedMessage
   | WSErrorMessage
-  | WSProjectSwitchedMessage
+  | WSProjectBoundMessage
   | WSConnectionInitMessage;
+
+export type WSMessage =
+  | WSIncomingMessage
+  | WSOutgoingMessage;
 
 // Parser result types
 

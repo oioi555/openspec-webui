@@ -6,6 +6,8 @@ import { join, resolve } from 'node:path';
 
 import { createServer } from './index.js';
 
+const WS_OPEN = 1;
+
 const tempDirs: string[] = [];
 const originalEnv = {
   XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME,
@@ -116,6 +118,45 @@ async function apiJson(baseUrl: string, path: string, init?: RequestInit) {
   return { response, body };
 }
 
+function formatMessage(message: unknown): string {
+  return JSON.stringify(message);
+}
+
+async function waitForWebSocketOpen(ws: WebSocket): Promise<void> {
+  if (ws.readyState === WS_OPEN) {
+    return;
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    const handleOpen = () => {
+      cleanup();
+      resolve();
+    };
+    const handleError = () => {
+      cleanup();
+      reject(new Error('WebSocket failed to open'));
+    };
+    const cleanup = () => {
+      ws.removeEventListener('open', handleOpen);
+      ws.removeEventListener('error', handleError);
+    };
+
+    ws.addEventListener('open', handleOpen, { once: true });
+    ws.addEventListener('error', handleError, { once: true });
+  });
+}
+
+async function openWsClient(baseUrl: string) {
+  const ws = new WebSocket(baseUrl.replace('http', 'ws') + '/ws');
+  const recorder = createWsRecorder(ws);
+  await waitForWebSocketOpen(ws);
+  return { ws, recorder };
+}
+
+function sendWsJson(ws: WebSocket, payload: unknown) {
+  ws.send(JSON.stringify(payload));
+}
+
 async function readRegistry(configHome: string) {
   const raw = await readFile(join(configHome, 'openspec-webui', 'projects.json'), 'utf8');
   return JSON.parse(raw) as {
@@ -127,13 +168,24 @@ async function readRegistry(configHome: string) {
 
 function createWsRecorder(ws: WebSocket) {
   const queue: unknown[] = [];
-  const waiters: Array<(message: unknown) => void> = [];
+  const waiters: Array<{
+    mode: 'next' | 'none';
+    resolve: (message: unknown) => void;
+    reject: (error: Error) => void;
+    timer: ReturnType<typeof setTimeout>;
+  }> = [];
 
   ws.addEventListener('message', (event) => {
     const message = JSON.parse(String(event.data));
     const waiter = waiters.shift();
     if (waiter) {
-      waiter(message);
+      clearTimeout(waiter.timer);
+      if (waiter.mode === 'none') {
+        waiter.reject(new Error(`Unexpected WebSocket message: ${formatMessage(message)}`));
+        return;
+      }
+
+      waiter.resolve(message);
       return;
     }
 
@@ -141,19 +193,78 @@ function createWsRecorder(ws: WebSocket) {
   });
 
   return {
-    async nextMessage(): Promise<unknown> {
+    async nextMessage(timeoutMs = 2_000): Promise<unknown> {
       if (queue.length > 0) {
         return queue.shift();
       }
 
-      return new Promise((resolve) => {
-        waiters.push(resolve);
+      return new Promise((resolve, reject) => {
+        const waiter = {
+          mode: 'next' as const,
+          resolve,
+          reject,
+          timer: setTimeout(() => {
+            const index = waiters.indexOf(waiter);
+            if (index >= 0) {
+              waiters.splice(index, 1);
+            }
+            reject(new Error(`Timed out waiting for WebSocket message after ${timeoutMs}ms`));
+          }, timeoutMs),
+        };
+
+        waiters.push(waiter);
+      });
+    },
+    async expectNoMessage(timeoutMs = 250): Promise<void> {
+      if (queue.length > 0) {
+        assert.fail(`Unexpected WebSocket message: ${formatMessage(queue[0])}`);
+      }
+
+      await new Promise<void>((resolve, reject) => {
+        const waiter = {
+          mode: 'none' as const,
+          resolve: () => {
+            resolve();
+          },
+          reject,
+          timer: setTimeout(() => {
+            const index = waiters.indexOf(waiter);
+            if (index >= 0) {
+              waiters.splice(index, 1);
+            }
+            resolve();
+          }, timeoutMs),
+        };
+
+        waiters.push(waiter);
       });
     },
   };
 }
 
-test('server integration covers /api/projects CRUD, duplicate-path 200, active-project routing, websocket events, and stale availability invalidation', async () => {
+function assertProjectBoundMessage(
+  message: unknown,
+  expectedProjectId: string | null,
+  expectedProjectName?: string
+) {
+  const payload = message as {
+    type: string;
+    activeProjectId: string | null;
+    data?: { project?: { name?: string } } | null;
+  };
+
+  assert.equal(payload.type, 'project:bound');
+  assert.equal(payload.activeProjectId, expectedProjectId);
+
+  if (expectedProjectId === null) {
+    assert.equal(payload.data ?? null, null);
+    return;
+  }
+
+  assert.equal(payload.data?.project?.name, expectedProjectName);
+}
+
+test('server integration covers explicit websocket binding, scoped API routing, CRUD, and default-project activation without rebinding clients', async () => {
   const configHome = await createTempDir('openspec-webui-server-config-');
   process.env.XDG_CONFIG_HOME = configHome;
   const alphaRoot = await createProjectFixture('alpha-project');
@@ -164,11 +275,10 @@ test('server integration covers /api/projects CRUD, duplicate-path 200, active-p
   });
 
   const runtime = await startServer();
-  const ws = new WebSocket(runtime.baseUrl.replace('http', 'ws') + '/ws');
-  const recorder = createWsRecorder(ws);
+  const alphaClient = await openWsClient(runtime.baseUrl);
 
   try {
-    const initMessage = await recorder.nextMessage();
+    const initMessage = await alphaClient.recorder.nextMessage();
     assert.deepEqual(initMessage, { type: 'connection:init', activeProjectId: null });
 
     let result = await apiJson(runtime.baseUrl, '/api/project');
@@ -184,7 +294,14 @@ test('server integration covers /api/projects CRUD, duplicate-path 200, active-p
     assert.equal(result.body.project.path, alphaRoot);
     const alphaId = result.body.project.id as string;
     assert.equal(result.body.activeProjectId, alphaId);
-    assert.deepEqual(await recorder.nextMessage(), { type: 'project:switched', activeProjectId: alphaId });
+    await alphaClient.recorder.expectNoMessage();
+
+    sendWsJson(alphaClient.ws, { type: 'project:bind', projectId: alphaId });
+    assertProjectBoundMessage(
+      await alphaClient.recorder.nextMessage(),
+      alphaId,
+      'Alpha Project'
+    );
 
     result = await apiJson(runtime.baseUrl, '/api/project');
     assert.equal(result.response.status, 200);
@@ -203,6 +320,7 @@ test('server integration covers /api/projects CRUD, duplicate-path 200, active-p
     });
     assert.equal(result.response.status, 200);
     assert.equal(result.body.project.id, alphaId);
+    await alphaClient.recorder.expectNoMessage();
 
     result = await apiJson(runtime.baseUrl, '/api/projects', {
       method: 'POST',
@@ -211,64 +329,109 @@ test('server integration covers /api/projects CRUD, duplicate-path 200, active-p
     });
     assert.equal(result.response.status, 201);
     const betaId = result.body.project.id as string;
-    assert.deepEqual(await recorder.nextMessage(), { type: 'project:switched', activeProjectId: betaId });
+    await alphaClient.recorder.expectNoMessage();
 
     result = await apiJson(runtime.baseUrl, '/api/project');
     assert.equal(result.body.project.name, 'Beta Project');
+
+    result = await apiJson(runtime.baseUrl, '/api/project', {
+      headers: { 'X-Project-Id': alphaId },
+    });
+    assert.equal(result.response.status, 200);
+    assert.equal(result.body.project.name, 'Alpha Project');
 
     result = await apiJson(runtime.baseUrl, '/api/projects');
     assert.equal(result.response.status, 200);
     assert.equal(result.body.projects.length, 2);
     assert.equal(result.body.activeProjectId, betaId);
 
-    result = await apiJson(runtime.baseUrl, `/api/projects/${encodeURIComponent(alphaId)}/activate`, {
-      method: 'POST',
+    result = await apiJson(runtime.baseUrl, '/api/commands/availability', {
+      headers: { 'X-Project-Id': alphaId },
     });
-    assert.equal(result.response.status, 200);
-    assert.equal(result.body.activeProjectId, alphaId);
-    assert.deepEqual(await recorder.nextMessage(), { type: 'project:switched', activeProjectId: alphaId });
-
-    result = await apiJson(runtime.baseUrl, '/api/project');
-    assert.equal(result.body.project.name, 'Alpha Project');
-
-    result = await apiJson(runtime.baseUrl, '/api/commands/availability');
     assert.equal(result.response.status, 200);
     assert.equal(result.body.availability.status, 'ready');
     assert.deepEqual(result.body.availability.availableExpandedCommands, ['new', 'verify']);
+    assert.equal(result.body.availability.profile, 'test-profile');
 
-    result = await apiJson(runtime.baseUrl, `/api/projects/${encodeURIComponent(alphaId)}`, {
-      method: 'DELETE',
+    result = await apiJson(runtime.baseUrl, '/api/commands/availability', {
+      headers: { 'X-Project-Id': betaId },
     });
-    assert.equal(result.response.status, 200);
-    assert.equal(result.body.removedProjectId, alphaId);
-    assert.equal(result.body.activeProjectId, betaId);
-    assert.deepEqual(await recorder.nextMessage(), { type: 'project:switched', activeProjectId: betaId });
-
-    result = await apiJson(runtime.baseUrl, '/api/project');
-    assert.equal(result.body.project.name, 'Beta Project');
-
-    result = await apiJson(runtime.baseUrl, '/api/commands/availability');
     assert.equal(result.response.status, 200);
     assert.equal(result.body.availability.status, 'unavailable');
     assert.match(result.body.availability.error, /workflow unavailable/i);
 
-    result = await apiJson(runtime.baseUrl, `/api/projects/${encodeURIComponent(betaId)}`, {
-      method: 'DELETE',
-    });
-    assert.equal(result.response.status, 200);
-    assert.equal(result.body.activeProjectId, null);
-    assert.deepEqual(await recorder.nextMessage(), { type: 'project:switched', activeProjectId: null });
+    const betaClient = await openWsClient(runtime.baseUrl);
 
-    result = await apiJson(runtime.baseUrl, '/api/commands/availability');
-    assert.equal(result.response.status, 200);
-    assert.equal(result.body.availability.status, 'unavailable');
-    assert.equal(result.body.availability.error, 'No active project selected');
+    try {
+      assert.deepEqual(await betaClient.recorder.nextMessage(), {
+        type: 'connection:init',
+        activeProjectId: betaId,
+      });
+
+      result = await apiJson(runtime.baseUrl, `/api/projects/${encodeURIComponent(alphaId)}/activate`, {
+        method: 'POST',
+      });
+      assert.equal(result.response.status, 200);
+      assert.equal(result.body.activeProjectId, alphaId);
+      await alphaClient.recorder.expectNoMessage();
+      await betaClient.recorder.expectNoMessage();
+
+      result = await apiJson(runtime.baseUrl, '/api/project');
+      assert.equal(result.body.project.name, 'Alpha Project');
+
+      result = await apiJson(runtime.baseUrl, '/api/project', {
+        headers: { 'X-Project-Id': betaId },
+      });
+      assert.equal(result.response.status, 200);
+      assert.equal(result.body.project.name, 'Beta Project');
+
+      result = await apiJson(runtime.baseUrl, '/api/commands/availability');
+      assert.equal(result.response.status, 200);
+      assert.equal(result.body.availability.status, 'ready');
+      assert.deepEqual(result.body.availability.availableExpandedCommands, ['new', 'verify']);
+
+      result = await apiJson(runtime.baseUrl, `/api/projects/${encodeURIComponent(alphaId)}`, {
+        method: 'DELETE',
+      });
+      assert.equal(result.response.status, 200);
+      assert.equal(result.body.removedProjectId, alphaId);
+      assert.equal(result.body.activeProjectId, betaId);
+      assertProjectBoundMessage(
+        await alphaClient.recorder.nextMessage(),
+        betaId,
+        'Beta Project'
+      );
+      await betaClient.recorder.expectNoMessage();
+
+      result = await apiJson(runtime.baseUrl, '/api/project');
+      assert.equal(result.body.project.name, 'Beta Project');
+
+      result = await apiJson(runtime.baseUrl, '/api/commands/availability');
+      assert.equal(result.response.status, 200);
+      assert.equal(result.body.availability.status, 'unavailable');
+      assert.match(result.body.availability.error, /workflow unavailable/i);
+
+      result = await apiJson(runtime.baseUrl, `/api/projects/${encodeURIComponent(betaId)}`, {
+        method: 'DELETE',
+      });
+      assert.equal(result.response.status, 200);
+      assert.equal(result.body.activeProjectId, null);
+      assertProjectBoundMessage(await alphaClient.recorder.nextMessage(), null);
+      assertProjectBoundMessage(await betaClient.recorder.nextMessage(), null);
+
+      result = await apiJson(runtime.baseUrl, '/api/commands/availability');
+      assert.equal(result.response.status, 200);
+      assert.equal(result.body.availability.status, 'unavailable');
+      assert.equal(result.body.availability.error, 'No active project selected');
+    } finally {
+      betaClient.ws.close();
+    }
 
     const registry = await readRegistry(configHome);
     assert.deepEqual(registry.projects, []);
     assert.equal(registry.activeProjectId, null);
   } finally {
-    ws.close();
+    alphaClient.ws.close();
     await runtime.close();
   }
 });
@@ -325,19 +488,47 @@ test('startup bootstraps a valid OPENSPEC_INITIAL_PROJECT and removes stale pers
   }
 });
 
-test('activation rollback on parse failure keeps the previous active project context', async () => {
+test('activation rollback on parse failure keeps the previous active project context when the target session is not loaded', async () => {
   const configHome = await createTempDir('openspec-webui-server-config-');
   process.env.XDG_CONFIG_HOME = configHome;
   const alphaRoot = await createProjectFixture('healthy-project');
   const brokenRoot = await createBrokenProjectFixture('broken-project');
 
-  const runtime = await startServer({ initialProjectPath: alphaRoot });
+  await mkdir(join(configHome, 'openspec-webui'), { recursive: true });
+  await writeFile(
+    join(configHome, 'openspec-webui', 'projects.json'),
+    JSON.stringify(
+      {
+        version: 1,
+        projects: [
+          {
+            id: 'healthy-project-id',
+            path: alphaRoot,
+            label: 'Healthy Project',
+            addedAt: 1,
+            lastOpenedAt: 2,
+          },
+          {
+            id: 'broken-project-id',
+            path: brokenRoot,
+            label: 'Broken Project',
+            addedAt: 3,
+            lastOpenedAt: 4,
+          },
+        ],
+        activeProjectId: 'healthy-project-id',
+      },
+      null,
+      2
+    ) + '\n',
+    'utf8'
+  );
+
+  const runtime = await startServer();
 
   try {
-    let result = await apiJson(runtime.baseUrl, '/api/projects', {
+    let result = await apiJson(runtime.baseUrl, `/api/projects/${encodeURIComponent('broken-project-id')}/activate`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ path: brokenRoot }),
     });
     assert.equal(result.response.status, 500);
     assert.equal(result.body.code, 'ACTIVATION_FAILED');
@@ -348,9 +539,91 @@ test('activation rollback on parse failure keeps the previous active project con
 
     const projects = await apiJson(runtime.baseUrl, '/api/projects');
     assert.equal(projects.response.status, 200);
-    assert.equal(projects.body.projects.length, 1);
-    assert.equal(projects.body.projects[0].path, alphaRoot);
-    assert.equal(projects.body.activeProjectId, projects.body.projects[0].id);
+    assert.equal(projects.body.projects.length, 2);
+    assert.equal(projects.body.activeProjectId, 'healthy-project-id');
+  } finally {
+    await runtime.close();
+  }
+});
+
+test('project-scoped websocket refresh only reaches clients bound to the changed project', async () => {
+  const configHome = await createTempDir('openspec-webui-server-config-');
+  process.env.XDG_CONFIG_HOME = configHome;
+  const alphaRoot = await createProjectFixture('alpha-project');
+  const betaRoot = await createProjectFixture('beta-project');
+
+  const runtime = await startServer();
+
+  try {
+    let result = await apiJson(runtime.baseUrl, '/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: alphaRoot }),
+    });
+    assert.equal(result.response.status, 201);
+    const alphaId = result.body.project.id as string;
+
+    result = await apiJson(runtime.baseUrl, '/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: betaRoot }),
+    });
+    assert.equal(result.response.status, 201);
+    const betaId = result.body.project.id as string;
+
+    const alphaClient = await openWsClient(runtime.baseUrl);
+    const betaClient = await openWsClient(runtime.baseUrl);
+
+    try {
+      assert.deepEqual(await alphaClient.recorder.nextMessage(), {
+        type: 'connection:init',
+        activeProjectId: betaId,
+      });
+      assert.deepEqual(await betaClient.recorder.nextMessage(), {
+        type: 'connection:init',
+        activeProjectId: betaId,
+      });
+
+      sendWsJson(alphaClient.ws, { type: 'project:bind', projectId: alphaId });
+      assertProjectBoundMessage(
+        await alphaClient.recorder.nextMessage(),
+        alphaId,
+        'Alpha Project'
+      );
+
+      await writeFile(
+        join(alphaRoot, 'openspec', 'project.md'),
+        '# alpha-project\n\nUpdated description for alpha-project.\n',
+        'utf8'
+      );
+
+      const message = await alphaClient.recorder.nextMessage(3_000);
+      const refresh = message as {
+        type: string;
+        entity: string;
+        data?: {
+          project?: {
+            name?: string;
+            description?: string;
+            path?: string;
+            content?: string;
+          };
+        };
+      };
+      assert.equal(refresh.type, 'data:refresh');
+      assert.equal(refresh.entity, 'project');
+      assert.equal(refresh.data?.project?.name, 'Alpha Project');
+      assert.equal(refresh.data?.project?.description, 'Updated description for alpha-project.');
+      assert.equal(refresh.data?.project?.path, join(alphaRoot, 'openspec', 'project.md'));
+      assert.equal(
+        refresh.data?.project?.content,
+        '# alpha-project\n\nUpdated description for alpha-project.\n'
+      );
+      await betaClient.recorder.expectNoMessage(500);
+    } finally {
+      alphaClient.ws.close();
+      betaClient.ws.close();
+    }
   } finally {
     await runtime.close();
   }

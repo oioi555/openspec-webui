@@ -4,9 +4,11 @@ import fastifyWebsocket from '@fastify/websocket';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { existsSync } from 'fs';
+import type { RawData } from 'ws';
 
 import type { OpenSpecData } from '../parser/index.js';
 import type { FileChangeEvent } from '../watcher/file-watcher.js';
+import type { WSIncomingMessage } from '../shared/types.js';
 import { WebSocketManager } from './websocket/handler.js';
 import { registerApiRoutes } from './routes/api.js';
 import { createProjectRegistry } from './project-registry.js';
@@ -32,14 +34,64 @@ export async function createServer(options: ServerOptions): Promise<Server> {
 
   const wsManager = new WebSocketManager();
   const projectRegistry = createProjectRegistry({
-    onActiveFileChange: async (event, data) => {
+    onActiveFileChange: async (projectId, event, data) => {
       console.log(`File ${event.type}: ${event.path}`);
 
       if (data) {
-        wsManager.broadcastFileChange(event, getRefreshData(event, data));
+        wsManager.broadcastFileChange(projectId, event, getRefreshData(event, data));
       }
     },
   });
+
+  async function handleProjectBind(socket: import('ws').WebSocket, projectId: string | null) {
+    const currentProjectId = wsManager.getClientBinding(socket);
+
+    if (currentProjectId === projectId) {
+      const data = projectId ? projectRegistry.getData(projectId) : null;
+      wsManager.sendToClient(socket, {
+        type: 'project:bound',
+        activeProjectId: projectId,
+        data: data ? getBoundData(data) : null,
+      });
+      return;
+    }
+
+    if (projectId) {
+      const session = await projectRegistry.incrementRef(projectId);
+
+      if (currentProjectId) {
+        await projectRegistry.decrementRef(currentProjectId);
+      }
+
+      wsManager.bindClient(socket, projectId);
+      wsManager.sendToClient(socket, {
+        type: 'project:bound',
+        activeProjectId: projectId,
+        data: getBoundData(session.data),
+      });
+      return;
+    }
+
+    if (currentProjectId) {
+      await projectRegistry.decrementRef(currentProjectId);
+    }
+
+    wsManager.bindClient(socket, null);
+    wsManager.sendToClient(socket, {
+      type: 'project:bound',
+      activeProjectId: null,
+      data: null,
+    });
+  }
+
+  async function handleWebSocketMessage(socket: import('ws').WebSocket, rawMessage: RawData): Promise<void> {
+    const text = typeof rawMessage === 'string' ? rawMessage : rawMessage.toString();
+    const message = JSON.parse(text) as WSIncomingMessage;
+
+    if (message.type === 'project:bind') {
+      await handleProjectBind(socket, message.projectId);
+    }
+  }
 
   await projectRegistry.initialize();
 
@@ -71,23 +123,72 @@ export async function createServer(options: ServerOptions): Promise<Server> {
   // WebSocket endpoint
   fastify.register(async (fastify) => {
     fastify.get('/ws', { websocket: true }, (socket, req) => {
-      wsManager.addClient(socket, [
+      const initialProjectId = projectRegistry.getActiveProject()?.id ?? null;
+
+      wsManager.addClient(socket, initialProjectId, [
         {
           type: 'connection:init',
-          activeProjectId: projectRegistry.getActiveProject()?.id ?? null,
+          activeProjectId: initialProjectId,
         },
       ]);
+
+      if (initialProjectId) {
+        void projectRegistry.incrementRef(initialProjectId).catch((error) => {
+          console.error('Failed to increment initial project binding refCount:', error);
+        });
+      }
+
+      socket.on('message', (rawMessage: RawData) => {
+        void handleWebSocketMessage(socket, rawMessage).catch((error) => {
+          console.error('Failed to process WebSocket message:', error);
+          wsManager.sendToClient(socket, {
+            type: 'error',
+            message: error instanceof Error ? error.message : 'Failed to process websocket message',
+          });
+        });
+      });
+
+      const cleanupClient = () => {
+        const boundProjectId = wsManager.getClientBinding(socket);
+        wsManager.removeClient(socket);
+
+        if (boundProjectId) {
+          void projectRegistry.decrementRef(boundProjectId).catch((error) => {
+            console.error('Failed to decrement websocket binding refCount:', error);
+          });
+        }
+      };
+
+      socket.on('close', cleanupClient);
+      socket.on('error', (error: Error) => {
+        console.error('WebSocket error:', error);
+        cleanupClient();
+      });
     });
   });
 
   // Register API routes
   await registerApiRoutes(fastify, {
     registry: projectRegistry,
-    onProjectSwitched: async (projectId) => {
-      wsManager.broadcast({
-        type: 'project:switched',
-        activeProjectId: projectId,
-      });
+    onProjectRemoved: async (removedProjectId, nextProjectId) => {
+      for (const client of wsManager.getClientsBoundTo(removedProjectId)) {
+        wsManager.bindClient(client, nextProjectId);
+
+        if (nextProjectId) {
+          const session = await projectRegistry.incrementRef(nextProjectId);
+          wsManager.sendToClient(client, {
+            type: 'project:bound',
+            activeProjectId: nextProjectId,
+            data: getBoundData(session.data),
+          });
+        } else {
+          wsManager.sendToClient(client, {
+            type: 'project:bound',
+            activeProjectId: null,
+            data: null,
+          });
+        }
+      }
     },
   });
 
@@ -137,6 +238,15 @@ export async function createServer(options: ServerOptions): Promise<Server> {
       await projectRegistry.close();
       await fastify.close();
     },
+  };
+}
+
+function getBoundData(data: OpenSpecData): unknown {
+  return {
+    project: data.project,
+    specs: data.specs,
+    changes: data.changes,
+    stats: data.stats,
   };
 }
 

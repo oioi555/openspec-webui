@@ -10,6 +10,7 @@ export class WebSocketClient {
   private reconnectDelay = 1000;
   private maxReconnectDelay = 30000;
   private shouldReconnect = true;
+  private ready = false;
 
   constructor(private url: string) {}
 
@@ -24,6 +25,7 @@ export class WebSocketClient {
 
     this.ws.onopen = () => {
       console.log('WebSocket connected');
+      this.ready = true;
       this.reconnectDelay = 1000;
     };
 
@@ -37,6 +39,7 @@ export class WebSocketClient {
     };
 
     this.ws.onclose = () => {
+      this.ready = false;
       if (!this.shouldReconnect) {
         return;
       }
@@ -46,6 +49,7 @@ export class WebSocketClient {
     };
 
     this.ws.onerror = (error) => {
+      this.ready = false;
       console.error('WebSocket error:', error);
     };
   }
@@ -66,8 +70,21 @@ export class WebSocketClient {
     return () => this.handlers.delete(handler);
   }
 
+  send(message: WSMessage) {
+    if (this.ws?.readyState !== WebSocket.OPEN) {
+      throw new Error('WebSocket is not connected');
+    }
+
+    this.ws.send(JSON.stringify(message));
+  }
+
+  get isConnected() {
+    return this.ready && this.ws?.readyState === WebSocket.OPEN;
+  }
+
   disconnect() {
     this.shouldReconnect = false;
+    this.ready = false;
 
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);

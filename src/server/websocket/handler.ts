@@ -1,5 +1,5 @@
 import type { WebSocket } from 'ws';
-import type { WSMessage } from '../../shared/types.js';
+import type { WSOutgoingMessage } from '../../shared/types.js';
 import type { FileChangeEvent } from '../../watcher/file-watcher.js';
 
 /**
@@ -7,21 +7,14 @@ import type { FileChangeEvent } from '../../watcher/file-watcher.js';
  */
 export class WebSocketManager {
   private clients: Set<WebSocket> = new Set();
+  private clientBindings: Map<WebSocket, string | null> = new Map();
 
   /**
    * Register a new client connection
    */
-  addClient(ws: WebSocket, initialMessages: readonly WSMessage[]) {
+  addClient(ws: WebSocket, projectId: string | null, initialMessages: readonly WSOutgoingMessage[]) {
     this.clients.add(ws);
-
-    ws.on('close', () => {
-      this.clients.delete(ws);
-    });
-
-    ws.on('error', (error: Error) => {
-      console.error('WebSocket error:', error);
-      this.clients.delete(ws);
-    });
+    this.clientBindings.set(ws, projectId);
 
     for (const message of initialMessages) {
       this.sendToClient(ws, message);
@@ -29,23 +22,62 @@ export class WebSocketManager {
   }
 
   /**
-   * Broadcast a file change to all connected clients
+   * Remove a client connection
    */
-  broadcastFileChange(event: FileChangeEvent, data?: unknown) {
-    const message: WSMessage = {
+  removeClient(ws: WebSocket) {
+    this.clients.delete(ws);
+    this.clientBindings.delete(ws);
+  }
+
+  /**
+   * Get a client's current project binding
+   */
+  getClientBinding(ws: WebSocket): string | null {
+    return this.clientBindings.get(ws) ?? null;
+  }
+
+  /**
+   * Update a client's project binding
+   */
+  bindClient(ws: WebSocket, projectId: string | null) {
+    if (!this.clients.has(ws)) {
+      return;
+    }
+
+    this.clientBindings.set(ws, projectId);
+  }
+
+  /**
+   * List clients bound to a project
+   */
+  getClientsBoundTo(projectId: string): WebSocket[] {
+    return [...this.clientBindings.entries()]
+      .filter(([, boundProjectId]) => boundProjectId === projectId)
+      .map(([client]) => client);
+  }
+
+  /**
+   * Broadcast a file change to bound clients
+   */
+  broadcastFileChange(projectId: string, event: FileChangeEvent, data?: unknown) {
+    const message: WSOutgoingMessage = {
       type: 'data:refresh',
       entity: event.affectedEntity,
       entityId: event.entityId,
       data,
     };
 
-    this.broadcast(message);
+    for (const [client, boundProjectId] of this.clientBindings.entries()) {
+      if (boundProjectId === projectId) {
+        this.sendToClient(client, message);
+      }
+    }
   }
 
   /**
    * Broadcast a message to all connected clients
    */
-  broadcast(message: WSMessage) {
+  broadcast(message: WSOutgoingMessage) {
     const payload = JSON.stringify(message);
 
     for (const client of this.clients) {
@@ -59,7 +91,7 @@ export class WebSocketManager {
   /**
    * Send a message to a specific client
    */
-  private sendToClient(ws: WebSocket, message: WSMessage) {
+  sendToClient(ws: WebSocket, message: WSOutgoingMessage) {
     if (ws.readyState === 1) {
       ws.send(JSON.stringify(message));
     }

@@ -72,6 +72,7 @@ export interface ActiveProjectSession {
   openspecPath: string;
   data: OpenSpecData;
   watcher: ClosableWatcher;
+  refCount: number;
 }
 
 export interface ClosableWatcher {
@@ -102,7 +103,11 @@ interface ProjectRegistryDependencies {
   getHomeDir: () => string;
   logger: LoggerLike;
   now: () => number;
-  onActiveFileChange?: (event: FileChangeEvent, data: OpenSpecData | null) => Promise<void> | void;
+  onActiveFileChange?: (
+    projectId: string,
+    event: FileChangeEvent,
+    data: OpenSpecData | null
+  ) => Promise<void> | void;
   parse: typeof parseOpenSpec;
   randomId: () => string;
 }
@@ -114,7 +119,11 @@ export interface ProjectRegistryOptions {
   getHomeDir?: () => string;
   logger?: LoggerLike;
   now?: () => number;
-  onActiveFileChange?: (event: FileChangeEvent, data: OpenSpecData | null) => Promise<void> | void;
+  onActiveFileChange?: (
+    projectId: string,
+    event: FileChangeEvent,
+    data: OpenSpecData | null
+  ) => Promise<void> | void;
   parse?: typeof parseOpenSpec;
   randomId?: () => string;
 }
@@ -122,6 +131,7 @@ export interface ProjectRegistryOptions {
 interface PreparedActivation {
   entry: ProjectEntry;
   session: ActiveProjectSession;
+  reused: boolean;
 }
 
 interface CachedCommandAvailability {
@@ -268,8 +278,8 @@ export class ProjectRegistry {
   private readonly deps: ProjectRegistryDependencies;
   private readonly paths: RegistryPaths;
 
-  private activeSession: ActiveProjectSession | null = null;
-  private commandAvailabilityCache: CachedCommandAvailability | null = null;
+  private activeSessions = new Map<string, ActiveProjectSession>();
+  private commandAvailabilityCache = new Map<string, CachedCommandAvailability>();
   private initializationPromise: Promise<void> | null = null;
   private initialized = false;
   private mutationLock: Promise<unknown> = Promise.resolve();
@@ -318,53 +328,125 @@ export class ProjectRegistry {
   }
 
   getActiveProject(): ProjectEntry | null {
-    if (this.activeSession) {
-      return cloneProjectEntry(this.activeSession.project);
-    }
-
-    const activeEntry = this.registry.activeProjectId
-      ? this.registry.projects.find((entry) => entry.id === this.registry.activeProjectId) ?? null
-      : null;
-
-    return activeEntry ? cloneProjectEntry(activeEntry) : null;
+    return this.getProjectEntry(this.registry.activeProjectId);
   }
 
   getActiveProjectRoot(): string | null {
-    return this.activeSession?.projectRoot ?? this.getActiveProject()?.path ?? null;
+    return this.getProjectRoot(this.registry.activeProjectId);
   }
 
   getActiveOpenSpecPath(): string | null {
-    return this.activeSession?.openspecPath ?? null;
+    return this.getOpenSpecPath(this.registry.activeProjectId);
   }
 
   getActiveData(): OpenSpecData | null {
-    return this.activeSession?.data ?? null;
+    return this.getData(this.registry.activeProjectId);
   }
 
-  getCommandAvailabilityCache(): CommandAvailability | null {
-    const activeProjectRoot = this.getActiveProjectRoot();
-    if (!activeProjectRoot) {
+  getProjectRoot(projectId: string | null): string | null {
+    if (!projectId) {
       return null;
     }
 
-    if (this.commandAvailabilityCache?.projectRoot !== activeProjectRoot) {
+    return this.activeSessions.get(projectId)?.projectRoot ?? this.findProjectEntry(projectId)?.path ?? null;
+  }
+
+  getOpenSpecPath(projectId: string | null): string | null {
+    if (!projectId) {
       return null;
     }
 
-    return this.commandAvailabilityCache.availability;
+    return this.activeSessions.get(projectId)?.openspecPath ??
+      (this.findProjectEntry(projectId) ? getOpenSpecPath(this.findProjectEntry(projectId)!.path) : null);
   }
 
-  setCommandAvailabilityCache(availability: CommandAvailability | null): void {
-    const activeProjectRoot = this.getActiveProjectRoot();
-    if (!availability || !activeProjectRoot) {
-      this.commandAvailabilityCache = null;
+  getData(projectId: string | null): OpenSpecData | null {
+    if (!projectId) {
+      return null;
+    }
+
+    return this.activeSessions.get(projectId)?.data ?? null;
+  }
+
+  getSession(projectId: string): ActiveProjectSession | null {
+    return this.activeSessions.get(projectId) ?? null;
+  }
+
+  getCommandAvailabilityCache(
+    projectId: string | null = this.registry.activeProjectId
+  ): CommandAvailability | null {
+    if (!projectId) {
+      return null;
+    }
+
+    return this.commandAvailabilityCache.get(projectId)?.availability ?? null;
+  }
+
+  setCommandAvailabilityCache(
+    availability: CommandAvailability | null,
+    projectId: string | null = this.registry.activeProjectId
+  ): void {
+    if (!projectId) {
+      if (!availability) {
+        this.commandAvailabilityCache.clear();
+      }
       return;
     }
 
-    this.commandAvailabilityCache = {
-      projectRoot: activeProjectRoot,
+    if (!availability) {
+      this.commandAvailabilityCache.delete(projectId);
+      return;
+    }
+
+    const projectRoot = this.getProjectRoot(projectId);
+    if (!projectRoot) {
+      this.commandAvailabilityCache.delete(projectId);
+      return;
+    }
+
+    this.commandAvailabilityCache.set(projectId, {
+      projectRoot,
       availability,
-    };
+    });
+  }
+
+  async ensureSession(projectId: string): Promise<ActiveProjectSession> {
+    await this.initialize();
+    return this.runExclusive(async () => this.ensureSessionLocked(projectId));
+  }
+
+  async incrementRef(projectId: string): Promise<ActiveProjectSession> {
+    await this.initialize();
+
+    return this.runExclusive(async () => {
+      const session = await this.ensureSessionLocked(projectId);
+      session.refCount += 1;
+      return session;
+    });
+  }
+
+  async decrementRef(projectId: string): Promise<number> {
+    await this.initialize();
+
+    return this.runExclusive(async () => {
+      const session = this.activeSessions.get(projectId);
+      if (!session) {
+        return 0;
+      }
+
+      if (session.refCount <= 0) {
+        return session.refCount;
+      }
+
+      session.refCount -= 1;
+      const nextRefCount = session.refCount;
+
+      if (nextRefCount === 0) {
+        await this.releaseSessionLocked(projectId);
+      }
+
+      return nextRefCount;
+    });
   }
 
   async addProject(projectPath: string): Promise<AddProjectResult> {
@@ -419,84 +501,55 @@ export class ProjectRegistry {
 
       const remainingProjects = this.registry.projects.filter((entry) => entry.id !== id);
       const removingActive = this.registry.activeProjectId === id;
+      const fallback = removingActive ? remainingProjects[0] ?? null : null;
+      let preparedFallback: PreparedActivation | null = null;
 
-      if (!removingActive) {
-        const nextRegistry: ProjectRegistryFile = {
-          version: PROJECT_REGISTRY_VERSION,
-          projects: remainingProjects,
-          activeProjectId: this.registry.activeProjectId,
-        };
-
-        await this.persistRegistry(nextRegistry);
-        this.registry = nextRegistry;
-
-        return {
-          removed: { ...removed },
-          activeChanged: false,
-          activeProjectId: nextRegistry.activeProjectId,
-        };
+      if (fallback) {
+        preparedFallback = await this.prepareActivation(fallback, true);
       }
 
-      const fallback = remainingProjects[0] ?? null;
-      if (!fallback) {
-        const previousProjectId = this.registry.activeProjectId;
-        const nextRegistry: ProjectRegistryFile = {
-          version: PROJECT_REGISTRY_VERSION,
-          projects: [],
-          activeProjectId: null,
-        };
-
-        await this.persistRegistry(nextRegistry);
-        const previousSession = this.activeSession;
-
-        this.registry = nextRegistry;
-        this.activeSession = null;
-        this.clearProjectScopedCaches();
-
-        await this.closeWatcherIfNeeded(previousSession);
-
-        return {
-          removed: { ...removed },
-          activeChanged: previousProjectId !== null,
-          activeProjectId: null,
-        };
-      }
-
-      const preparedFallback = await this.prepareActivation(fallback, true);
-      const nextRegistry = this.withActiveProject(
-        {
-          version: PROJECT_REGISTRY_VERSION,
-          projects: remainingProjects,
-          activeProjectId: null,
-        },
-        preparedFallback.entry
-      );
+      const nextRegistry = preparedFallback
+        ? this.withActiveProject(
+            {
+              version: PROJECT_REGISTRY_VERSION,
+              projects: remainingProjects,
+              activeProjectId: null,
+            },
+            preparedFallback.entry
+          )
+        : {
+            version: PROJECT_REGISTRY_VERSION,
+            projects: remainingProjects,
+            activeProjectId: removingActive ? null : this.registry.activeProjectId,
+          };
 
       try {
         await this.persistRegistry(nextRegistry);
       } catch (error) {
-        await this.closeWatcherIfNeeded(preparedFallback.session);
+        if (preparedFallback && !preparedFallback.reused) {
+          await this.closeWatcherIfNeeded(preparedFallback.session);
+        }
         throw error;
       }
 
-      const previousSession = this.activeSession;
       this.registry = nextRegistry;
-      this.activeSession = preparedFallback.session;
-      this.clearProjectScopedCaches();
 
-      await this.closeWatcherIfNeeded(previousSession, preparedFallback.session.project.id);
+      if (preparedFallback) {
+        this.adoptPreparedSession(preparedFallback);
+      }
+
+      await this.releaseSessionLocked(id);
 
       return {
-        removed: { ...removed },
-        activeChanged: true,
-        activeProjectId: preparedFallback.session.project.id,
+        removed: cloneProjectEntry(removed),
+        activeChanged: removingActive,
+        activeProjectId: nextRegistry.activeProjectId,
       };
     });
   }
 
   async activateProject(id: string): Promise<ActivateProjectResult> {
     await this.initialize();
-
     return this.runExclusive(async () => this.activateEntryLocked(id, this.registry, true));
   }
 
@@ -514,18 +567,17 @@ export class ProjectRegistry {
 
       const nextRegistry: ProjectRegistryFile = {
         version: PROJECT_REGISTRY_VERSION,
-        projects: this.registry.projects.map((entry) => ({ ...entry })),
+        projects: this.registry.projects.map((entry) => cloneProjectEntry(entry)),
         activeProjectId: null,
       };
 
       await this.persistRegistry(nextRegistry);
-      const previousSession = this.activeSession;
-
       this.registry = nextRegistry;
-      this.activeSession = null;
-      this.clearProjectScopedCaches();
 
-      await this.closeWatcherIfNeeded(previousSession);
+      const previousSession = this.activeSessions.get(previousProjectId);
+      if (previousSession?.refCount === 0) {
+        await this.releaseSessionLocked(previousProjectId);
+      }
 
       return {
         activeChanged: true,
@@ -538,10 +590,13 @@ export class ProjectRegistry {
     await this.initialize();
 
     await this.runExclusive(async () => {
-      const previousSession = this.activeSession;
-      this.activeSession = null;
-      this.clearProjectScopedCaches();
-      await this.closeWatcherIfNeeded(previousSession);
+      const sessions = [...this.activeSessions.values()];
+      this.activeSessions.clear();
+      this.commandAvailabilityCache.clear();
+
+      for (const session of sessions) {
+        await this.closeWatcherIfNeeded(session);
+      }
     });
   }
 
@@ -579,14 +634,14 @@ export class ProjectRegistry {
       if (activeEntry) {
         try {
           const prepared = await this.prepareActivation(activeEntry, false);
-          this.activeSession = prepared.session;
+          this.adoptPreparedSession(prepared);
           this.registry = this.withActiveProject(this.registry, prepared.entry);
           shouldPersist ||= prepared.entry.lastOpenedAt !== activeEntry.lastOpenedAt;
         } catch (error) {
           this.deps.logger.warn('Failed to restore active project session, clearing active project', error);
           this.registry = {
             ...this.registry,
-            projects: this.registry.projects.map((entry) => ({ ...entry })),
+            projects: this.registry.projects.map((entry) => cloneProjectEntry(entry)),
             activeProjectId: null,
           };
           shouldPersist = true;
@@ -769,12 +824,13 @@ export class ProjectRegistry {
       throw createProjectNotFoundError(id);
     }
 
-    if (allowNoop && this.activeSession?.project.id === id && this.registry.activeProjectId === id) {
-        return {
-          entry: cloneProjectEntry(this.activeSession.project),
-          activeChanged: false,
-          alreadyActive: true,
-        };
+    if (allowNoop && this.registry.activeProjectId === id && this.activeSessions.has(id)) {
+      const existing = this.activeSessions.get(id)!;
+      return {
+        entry: cloneProjectEntry(existing.project),
+        activeChanged: false,
+        alreadyActive: true,
+      };
     }
 
     const previousActiveProjectId = this.registry.activeProjectId;
@@ -784,28 +840,56 @@ export class ProjectRegistry {
     try {
       await this.persistRegistry(nextRegistry);
     } catch (error) {
-      await this.closeWatcherIfNeeded(prepared.session);
+      if (!prepared.reused) {
+        await this.closeWatcherIfNeeded(prepared.session);
+      }
       throw error;
     }
 
-    const previousSession = this.activeSession;
     this.registry = nextRegistry;
-    this.activeSession = prepared.session;
-    this.clearProjectScopedCaches();
-
-    await this.closeWatcherIfNeeded(previousSession, prepared.session.project.id);
+    this.adoptPreparedSession(prepared);
 
     return {
-      entry: cloneProjectEntry(prepared.session.project),
-      activeChanged: previousActiveProjectId !== id || previousSession?.project.id !== id,
+      entry: cloneProjectEntry(prepared.entry),
+      activeChanged: previousActiveProjectId !== id,
       alreadyActive: false,
     };
+  }
+
+  private async ensureSessionLocked(projectId: string): Promise<ActiveProjectSession> {
+    const existing = this.activeSessions.get(projectId);
+    if (existing) {
+      return existing;
+    }
+
+    const entry = this.findProjectEntry(projectId);
+    if (!entry) {
+      throw createProjectNotFoundError(projectId);
+    }
+
+    const prepared = await this.prepareActivation(entry, false);
+    this.adoptPreparedSession(prepared);
+    return prepared.session;
   }
 
   private async prepareActivation(
     entry: ProjectEntry,
     updateLastOpenedAt: boolean
   ): Promise<PreparedActivation> {
+    const preparedEntry: ProjectEntry = {
+      ...entry,
+      lastOpenedAt: updateLastOpenedAt ? this.deps.now() : entry.lastOpenedAt,
+    };
+
+    const existing = this.activeSessions.get(entry.id);
+    if (existing) {
+      return {
+        entry: preparedEntry,
+        session: existing,
+        reused: true,
+      };
+    }
+
     const openspecPath = getOpenSpecPath(entry.path);
     const parseResult = await this.deps.parse(openspecPath);
 
@@ -829,11 +913,6 @@ export class ProjectRegistry {
       );
     }
 
-    const preparedEntry: ProjectEntry = {
-      ...entry,
-      lastOpenedAt: updateLastOpenedAt ? this.deps.now() : entry.lastOpenedAt,
-    };
-
     return {
       entry: preparedEntry,
       session: {
@@ -842,8 +921,18 @@ export class ProjectRegistry {
         openspecPath,
         data: parseResult.data,
         watcher,
+        refCount: 0,
       },
+      reused: false,
     };
+  }
+
+  private adoptPreparedSession(prepared: PreparedActivation): ActiveProjectSession {
+    prepared.session.project = prepared.entry;
+    prepared.session.projectRoot = prepared.entry.path;
+    prepared.session.openspecPath = getOpenSpecPath(prepared.entry.path);
+    this.activeSessions.set(prepared.entry.id, prepared.session);
+    return prepared.session;
   }
 
   private withActiveProject(
@@ -860,20 +949,22 @@ export class ProjectRegistry {
   }
 
   private async handleActiveFileChange(projectId: string, event: FileChangeEvent): Promise<void> {
-    const currentSession = this.activeSession;
-    if (!currentSession || currentSession.project.id !== projectId) {
+    const currentSession = this.activeSessions.get(projectId);
+    if (!currentSession) {
       return;
     }
 
     const parseResult = await this.deps.parse(currentSession.openspecPath);
-    if (parseResult.data) {
-      const latestSession = this.activeSession;
-      if (latestSession && latestSession.project.id === projectId) {
-        latestSession.data = parseResult.data;
-      }
+    const latestSession = this.activeSessions.get(projectId);
+    if (!latestSession) {
+      return;
     }
 
-    await this.deps.onActiveFileChange?.(event, parseResult.data);
+    if (parseResult.data) {
+      latestSession.data = parseResult.data;
+    }
+
+    await this.deps.onActiveFileChange?.(projectId, event, parseResult.data);
   }
 
   private async persistRegistry(registry: ProjectRegistryFile): Promise<void> {
@@ -904,8 +995,35 @@ export class ProjectRegistry {
     }
   }
 
-  private clearProjectScopedCaches(): void {
-    this.commandAvailabilityCache = null;
+  private findProjectEntry(projectId: string | null): ProjectEntry | null {
+    if (!projectId) {
+      return null;
+    }
+
+    return this.registry.projects.find((entry) => entry.id === projectId) ?? null;
+  }
+
+  private getProjectEntry(projectId: string | null): ProjectEntry | null {
+    if (!projectId) {
+      return null;
+    }
+
+    const session = this.activeSessions.get(projectId);
+    if (session) {
+      return cloneProjectEntry(session.project);
+    }
+
+    const entry = this.findProjectEntry(projectId);
+    return entry ? cloneProjectEntry(entry) : null;
+  }
+
+  private clearProjectScopedCaches(projectId?: string): void {
+    if (projectId) {
+      this.commandAvailabilityCache.delete(projectId);
+      return;
+    }
+
+    this.commandAvailabilityCache.clear();
   }
 
   private disablePersistence(message: string, error: unknown): void {
@@ -913,11 +1031,8 @@ export class ProjectRegistry {
     this.deps.logger.warn(message, error);
   }
 
-  private async closeWatcherIfNeeded(
-    session: ActiveProjectSession | null | undefined,
-    keepProjectId?: string
-  ): Promise<void> {
-    if (!session || session.project.id === keepProjectId) {
+  private async closeWatcherIfNeeded(session: ActiveProjectSession | null | undefined): Promise<void> {
+    if (!session) {
       return;
     }
 
@@ -926,6 +1041,18 @@ export class ProjectRegistry {
     } catch (error) {
       this.deps.logger.warn('Failed to close project watcher', error);
     }
+  }
+
+  private async releaseSessionLocked(projectId: string): Promise<void> {
+    const session = this.activeSessions.get(projectId);
+    if (!session) {
+      this.clearProjectScopedCaches(projectId);
+      return;
+    }
+
+    this.activeSessions.delete(projectId);
+    this.clearProjectScopedCaches(projectId);
+    await this.closeWatcherIfNeeded(session);
   }
 
   private runExclusive<T>(operation: () => Promise<T>): Promise<T> {

@@ -27,7 +27,7 @@
 
     switchingProjectId = id;
     try {
-      await projectStore.switchProject(id);
+      await projectStore.bindProject(id);
       onClose();
     } catch {
       toast.error(error ?? 'Failed to switch project');

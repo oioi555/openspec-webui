@@ -1,5 +1,6 @@
 import type { ExpandedCommand } from './commandTypes';
 const API_BASE = '/api';
+let activeProjectContextId: string | null = null;
 
 export type ApiErrorCode =
   | 'ACTIVATION_FAILED'
@@ -224,6 +225,10 @@ async function parseApiError(response: Response): Promise<ApiError> {
 async function fetchApi<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
 
+  if (shouldAttachProjectHeader(path) && activeProjectContextId && !headers.has('X-Project-Id')) {
+    headers.set('X-Project-Id', activeProjectContextId);
+  }
+
   if (init.body !== undefined && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
@@ -238,6 +243,25 @@ async function fetchApi<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
 
   return response.json();
+}
+
+function shouldAttachProjectHeader(path: string): boolean {
+  return (
+    path === '/project' ||
+    path.startsWith('/specs') ||
+    path.startsWith('/changes') ||
+    path === '/stats' ||
+    path.startsWith('/search') ||
+    path === '/commands/availability'
+  );
+}
+
+export function setActiveProjectContext(projectId: string | null): void {
+  activeProjectContextId = projectId;
+}
+
+export function getActiveProjectContext(): string | null {
+  return activeProjectContextId;
 }
 
 export function isApiError(error: unknown): error is ApiError {

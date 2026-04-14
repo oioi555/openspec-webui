@@ -1,4 +1,4 @@
-import type { FastifyInstance, FastifyReply } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { OpenSpecData } from '../../parser/index.js';
 import { parseSpec, parseChangeByName, searchOpenSpec } from '../../parser/index.js';
 import {
@@ -20,16 +20,20 @@ interface RegisterApiRoutesOptions {
     ProjectRegistry,
     | 'addProject'
     | 'activateProject'
+    | 'ensureSession'
+    | 'getData'
     | 'getActiveData'
     | 'getActiveOpenSpecPath'
     | 'getActiveProject'
     | 'getActiveProjectRoot'
     | 'getCommandAvailabilityCache'
+    | 'getOpenSpecPath'
+    | 'getProjectRoot'
     | 'listProjects'
     | 'removeProject'
     | 'setCommandAvailabilityCache'
   >;
-  onProjectSwitched?: (projectId: string | null) => Promise<void> | void;
+  onProjectRemoved?: (removedProjectId: string, nextProjectId: string | null) => Promise<void> | void;
 }
 
 interface AddProjectRequestBody {
@@ -43,10 +47,26 @@ export async function registerApiRoutes(
   fastify: FastifyInstance,
   options: RegisterApiRoutesOptions
 ) {
-  const { registry, onProjectSwitched } = options;
+  const { registry, onProjectRemoved } = options;
 
-  async function getCommandAvailability() {
-    const projectRoot = registry.getActiveProjectRoot();
+  function readProjectIdHeader(request: FastifyRequest): string | null {
+    const rawValue = request.headers['x-project-id'];
+
+    if (Array.isArray(rawValue)) {
+      const first = rawValue.find((value) => typeof value === 'string' && value.trim().length > 0);
+      return first?.trim() ?? null;
+    }
+
+    if (typeof rawValue === 'string' && rawValue.trim()) {
+      return rawValue.trim();
+    }
+
+    return null;
+  }
+
+  async function getCommandAvailability(projectId: string | null) {
+    const resolvedProjectId = projectId ?? registry.getActiveProject()?.id ?? null;
+    const projectRoot = resolvedProjectId ? registry.getProjectRoot(resolvedProjectId) : registry.getActiveProjectRoot();
     if (!projectRoot) {
       return {
         status: 'unavailable',
@@ -60,31 +80,11 @@ export async function registerApiRoutes(
     const availability = await inspectCommandAvailability(projectRoot);
 
     if (availability.status === 'ready') {
-      registry.setCommandAvailabilityCache(availability);
+      registry.setCommandAvailabilityCache(availability, resolvedProjectId);
       return availability;
     }
 
-    return registry.getCommandAvailabilityCache() ?? availability;
-  }
-
-  function getActiveData(reply: FastifyReply): OpenSpecData | null {
-    const data = registry.getActiveData();
-    if (!data) {
-      void reply.status(503).send(createNoActiveProjectError().toResponseBody());
-      return null;
-    }
-
-    return data;
-  }
-
-  function getActiveOpenSpecPath(reply: FastifyReply): string | null {
-    const openspecPath = registry.getActiveOpenSpecPath();
-    if (!openspecPath) {
-      void reply.status(503).send(createNoActiveProjectError().toResponseBody());
-      return null;
-    }
-
-    return openspecPath;
+    return registry.getCommandAvailabilityCache(resolvedProjectId) ?? availability;
   }
 
   function sendProjectRegistryError(reply: FastifyReply, error: unknown, fallbackMessage: string) {
@@ -96,6 +96,34 @@ export async function registerApiRoutes(
     return reply
       .status(500)
       .send(createStructuredApiError('ACTIVATION_FAILED', message));
+  }
+
+  async function resolveProjectContext(request: FastifyRequest, reply: FastifyReply): Promise<{
+    projectId: string;
+    data: OpenSpecData;
+    openspecPath: string;
+    projectRoot: string;
+  } | null> {
+    const headerProjectId = readProjectIdHeader(request);
+    const projectId = headerProjectId ?? registry.getActiveProject()?.id ?? null;
+
+    if (!projectId) {
+      void reply.status(503).send(createNoActiveProjectError().toResponseBody());
+      return null;
+    }
+
+    try {
+      const session = await registry.ensureSession(projectId);
+      return {
+        projectId,
+        data: session.data,
+        openspecPath: session.openspecPath,
+        projectRoot: session.projectRoot,
+      };
+    } catch (error) {
+      sendProjectRegistryError(reply, error, 'Failed to resolve project context');
+      return null;
+    }
   }
 
   // List projects
@@ -114,10 +142,6 @@ export async function registerApiRoutes(
     try {
       const result = await registry.addProject(projectPath);
 
-      if (result.activeChanged) {
-        await onProjectSwitched?.(result.entry.id);
-      }
-
       return reply.status(result.status === 'created' ? 201 : 200).send({
         project: result.entry,
         activeProjectId: result.entry.id,
@@ -132,9 +156,7 @@ export async function registerApiRoutes(
     try {
       const result = await registry.removeProject(request.params.id);
 
-      if (result.activeChanged) {
-        await onProjectSwitched?.(result.activeProjectId);
-      }
+      await onProjectRemoved?.(result.removed.id, result.activeProjectId);
 
       return {
         removedProjectId: result.removed.id,
@@ -152,10 +174,6 @@ export async function registerApiRoutes(
       try {
         const result = await registry.activateProject(request.params.id);
 
-        if (result.activeChanged) {
-          await onProjectSwitched?.(result.entry.id);
-        }
-
         return {
           project: result.entry,
           activeProjectId: result.entry.id,
@@ -168,23 +186,23 @@ export async function registerApiRoutes(
 
   // Get project info
   fastify.get('/api/project', async (request, reply) => {
-    const data = getActiveData(reply);
-    if (!data) {
+    const context = await resolveProjectContext(request, reply);
+    if (!context) {
       return reply;
     }
 
-    return { project: data.project };
+    return { project: context.data.project };
   });
 
   // Get all specs
   fastify.get('/api/specs', async (request, reply) => {
-    const data = getActiveData(reply);
-    if (!data) {
+    const context = await resolveProjectContext(request, reply);
+    if (!context) {
       return reply;
     }
 
     return {
-      specs: data.specs.map((s) => ({
+      specs: context.data.specs.map((s) => ({
         name: s.name,
         path: s.path,
         hasDesign: s.designContent !== null,
@@ -196,12 +214,12 @@ export async function registerApiRoutes(
   // Get single spec
   fastify.get<{ Params: { name: string } }>('/api/specs/:name', async (request, reply) => {
     const { name } = request.params;
-    const openspecPath = getActiveOpenSpecPath(reply);
-    if (!openspecPath) {
+    const context = await resolveProjectContext(request, reply);
+    if (!context) {
       return reply;
     }
 
-    const result = await parseSpec(openspecPath, name);
+    const result = await parseSpec(context.openspecPath, name);
 
     if (!result.data) {
       return reply.status(404).send({ error: result.errors[0] || 'Spec not found' });
@@ -212,26 +230,26 @@ export async function registerApiRoutes(
 
   // Get all changes
   fastify.get('/api/changes', async (request, reply) => {
-    const data = getActiveData(reply);
-    if (!data) {
+    const context = await resolveProjectContext(request, reply);
+    if (!context) {
       return reply;
     }
 
     return {
-      active: data.changes.active.map(summarizeChange),
-      archived: data.changes.archived.map(summarizeChange),
+      active: context.data.changes.active.map(summarizeChange),
+      archived: context.data.changes.archived.map(summarizeChange),
     };
   });
 
   // Get single change
   fastify.get<{ Params: { name: string } }>('/api/changes/:name', async (request, reply) => {
     const { name } = request.params;
-    const openspecPath = getActiveOpenSpecPath(reply);
-    if (!openspecPath) {
+    const context = await resolveProjectContext(request, reply);
+    if (!context) {
       return reply;
     }
 
-    const result = await parseChangeByName(openspecPath, name);
+    const result = await parseChangeByName(context.openspecPath, name);
 
     if (!result.data) {
       return reply.status(404).send({ error: result.errors[0] || 'Change not found' });
@@ -242,17 +260,26 @@ export async function registerApiRoutes(
 
   // Get stats
   fastify.get('/api/stats', async (request, reply) => {
-    const data = getActiveData(reply);
-    if (!data) {
+    const context = await resolveProjectContext(request, reply);
+    if (!context) {
       return reply;
     }
 
-    return { stats: data.stats };
+    return { stats: context.data.stats };
   });
 
   // Get local OpenSpec command availability
-  fastify.get('/api/commands/availability', async () => {
-    const availability = await getCommandAvailability();
+  fastify.get('/api/commands/availability', async (request, reply) => {
+    const projectId = readProjectIdHeader(request) ?? registry.getActiveProject()?.id ?? null;
+    if (projectId) {
+      try {
+        await registry.ensureSession(projectId);
+      } catch (error) {
+        return sendProjectRegistryError(reply, error, 'Failed to inspect command availability');
+      }
+    }
+
+    const availability = await getCommandAvailability(projectId);
     return { availability };
   });
 
@@ -264,12 +291,12 @@ export async function registerApiRoutes(
       return { results: [] };
     }
 
-    const data = getActiveData(reply);
-    if (!data) {
+    const context = await resolveProjectContext(request, reply);
+    if (!context) {
       return reply;
     }
 
-    const results = searchOpenSpec(data, q);
+    const results = searchOpenSpec(context.data, q);
     return { results };
   });
 

@@ -12,6 +12,7 @@ import { wsClient, type WSMessage } from '../lib/websocket';
 import { commandPreferencesStore } from './commandPreferences.svelte.ts';
 import { layoutStore } from './layout.svelte.ts';
 import { projectStore } from './projects.svelte.ts';
+import { shouldRestoreProjectBinding } from './projectsCore';
 import { handleProjectContextMessage } from './projectSync';
 import { tabStore } from './tabs.svelte.ts';
 import { toast } from 'svelte-sonner';
@@ -38,6 +39,8 @@ const state = $state({
   searchQuery: '',
   specsRefreshTrigger: 0,
   changesRefreshTrigger: 0,
+  ignoreRefreshUntilBound: false,
+  reconnectAnnouncedProjectId: null as string | null,
 });
 
 export const isLoading = createBox(
@@ -134,11 +137,22 @@ function applyNoActiveProjectState() {
   state.error = null;
 }
 
-async function reinitializeProjectScopedState(messageType: 'project:switched' | 'connection:init', announcedActiveProjectId: string | null) {
+function beginIgnoringRefreshUntilBound(announcedActiveProjectId: string | null) {
+  state.ignoreRefreshUntilBound = true;
+  state.reconnectAnnouncedProjectId = announcedActiveProjectId;
+}
+
+function stopIgnoringRefreshUntilBound() {
+  state.ignoreRefreshUntilBound = false;
+  state.reconnectAnnouncedProjectId = null;
+}
+
+async function reinitializeProjectScopedState(messageType: 'project:bound' | 'connection:init', announcedActiveProjectId: string | null) {
   await handleProjectContextMessage({
     messageType,
     announcedActiveProjectId,
     currentActiveProjectId: projectStore.activeProjectId,
+    shouldIgnoreRefreshUntilBound: state.ignoreRefreshUntilBound,
     overlay: layoutStore.overlay,
     closeOverlay: () => layoutStore.closeOverlay(),
     clearProjectScopedSearchState,
@@ -192,6 +206,46 @@ export async function initializeData() {
   }
 }
 
+async function handleConnectionInit(announcedActiveProjectId: string | null) {
+  const localProjectId = projectStore.preferredProjectId;
+
+  if (shouldRestoreProjectBinding(localProjectId, announcedActiveProjectId)) {
+    beginIgnoringRefreshUntilBound(announcedActiveProjectId);
+
+    try {
+      await projectStore.bindProject(localProjectId, { force: true });
+    } catch (cause) {
+      stopIgnoringRefreshUntilBound();
+      projectStore.setActiveProjectId(announcedActiveProjectId);
+      toast.error(getApiErrorMessage(cause, 'Failed to restore project binding'));
+      await reinitializeProjectScopedState('connection:init', announcedActiveProjectId);
+    }
+
+    return;
+  }
+
+  stopIgnoringRefreshUntilBound();
+
+  if (localProjectId === announcedActiveProjectId) {
+    await reinitializeProjectScopedState('connection:init', announcedActiveProjectId);
+    return;
+  }
+
+  projectStore.setActiveProjectId(announcedActiveProjectId);
+  await reinitializeProjectScopedState('connection:init', announcedActiveProjectId);
+}
+
+async function handleProjectBound(activeProjectId: string | null) {
+  const wasIgnoringRefresh = state.ignoreRefreshUntilBound;
+  projectStore.handleProjectBound(activeProjectId);
+
+  if (wasIgnoringRefresh) {
+    stopIgnoringRefreshUntilBound();
+  }
+
+  await reinitializeProjectScopedState('project:bound', activeProjectId);
+}
+
 export function setupWebSocket() {
   if (typeof window === 'undefined') {
     return () => {};
@@ -202,6 +256,10 @@ export function setupWebSocket() {
   const unsubscribe = wsClient.subscribe(async (message: WSMessage) => {
     switch (message.type) {
       case 'data:refresh': {
+        if (state.ignoreRefreshUntilBound) {
+          return;
+        }
+
         const entity = message.entity;
         const scrollY = window.scrollY;
 
@@ -232,7 +290,7 @@ export function setupWebSocket() {
           window.scrollTo(0, scrollY);
         } catch (cause) {
           if (isNoActiveProjectError(cause)) {
-            await reinitializeProjectScopedState('project:switched', null);
+            await handleProjectBound(null);
             return;
           }
 
@@ -242,16 +300,28 @@ export function setupWebSocket() {
         return;
       }
       case 'connection:init': {
-        await reinitializeProjectScopedState('connection:init', message.activeProjectId);
+        await handleConnectionInit(message.activeProjectId);
         return;
       }
-      case 'project:switched': {
-        await reinitializeProjectScopedState('project:switched', message.activeProjectId);
+      case 'project:bound': {
+        await handleProjectBound(message.activeProjectId);
         return;
       }
       case 'file:changed':
-      case 'error':
         return;
+      case 'error': {
+        if (projectStore.hasPendingBind) {
+          const announcedProjectId = state.reconnectAnnouncedProjectId;
+          stopIgnoringRefreshUntilBound();
+          projectStore.handleProjectBindingError(message.message);
+
+          if (announcedProjectId !== null || projectStore.activeProjectId === null) {
+            projectStore.setActiveProjectId(announcedProjectId);
+          }
+        }
+
+        return;
+      }
     }
   });
 

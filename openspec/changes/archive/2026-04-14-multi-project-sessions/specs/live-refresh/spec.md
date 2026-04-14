@@ -1,14 +1,11 @@
-# live-refresh Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change capture-baseline-specs. Update Purpose after archive.
-## Requirements
 ### Requirement: Watch relevant OpenSpec files and directories
 The system SHALL watch the OpenSpec project directory for each active session's project. Each session SHALL have its own independent chokidar watcher. The system SHALL ignore dotfiles and `node_modules` for all watchers. Each watcher SHALL classify relevant updates as affecting `project`, `specs`, or `changes`. Watchers SHALL be created on session activation and closed when the session's reference count reaches zero.
 
 #### Scenario: Ignore unsupported file changes
 - **WHEN** a file event occurs for a non-markdown file in any watched project
-- **THEN** the watcher ignores the event
+- **THEN** the corresponding watcher ignores the event
 
 #### Scenario: Classify a spec file change
 - **WHEN** a file event occurs under `specs/<capability>/` in a watched project
@@ -34,7 +31,7 @@ On every relevant watcher event for an active session's project, the system SHAL
 
 #### Scenario: Keep prior data on failed reparses
 - **WHEN** a watcher-triggered reparse fails for a project
-- **THEN** the system does not replace the previously loaded in-memory data
+- **THEN** the system does not replace the previously loaded in-memory data for that project
 
 #### Scenario: Client switches project via bind message
 - **WHEN** a client sends a `project:bind` WebSocket message with a valid project ID
@@ -66,7 +63,7 @@ The browser client SHALL handle `data:refresh` events only for its currently bou
 - **WHEN** the browser client receives a `project:bound` websocket message
 - **THEN** it reloads the bound project data
 - **AND** closes project-specific tabs so the Dashboard becomes the focused tab
-- **AND** refreshes command availability for the new active project
+- **AND** refreshes command availability for the new project
 
 #### Scenario: Reconcile project context after websocket reconnect
 - **WHEN** the browser client reconnects and receives `connection:init`

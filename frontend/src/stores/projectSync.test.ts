@@ -10,7 +10,8 @@ function createActions(options: {
   overlay?: string | null;
   currentActiveProjectId?: string | null;
   announcedActiveProjectId?: string | null;
-  messageType?: 'project:switched' | 'connection:init';
+  messageType?: 'project:bound' | 'connection:init';
+  shouldIgnoreRefreshUntilBound?: boolean;
 } = {}) {
   const calls: string[] = [];
 
@@ -35,15 +36,16 @@ function createActions(options: {
       },
       currentActiveProjectId: options.currentActiveProjectId ?? null,
       announcedActiveProjectId: options.announcedActiveProjectId ?? null,
-      messageType: options.messageType ?? 'project:switched',
+      shouldIgnoreRefreshUntilBound: options.shouldIgnoreRefreshUntilBound,
+      messageType: options.messageType ?? 'project:bound',
     },
   };
 }
 
-test('project switch reinitialization closes the selector, resets tabs to Dashboard, and refreshes availability', async () => {
+test('project bound reinitialization closes the selector, resets tabs to Dashboard, and refreshes availability', async () => {
   const { actions, calls } = createActions({
     overlay: 'project-selector',
-    messageType: 'project:switched',
+    messageType: 'project:bound',
   });
 
   await reinitializeProjectScopedState(actions);
@@ -81,6 +83,20 @@ test('connection:init ignores reconnect messages when the active project is alre
     messageType: 'connection:init',
     currentActiveProjectId: 'project-a',
     announcedActiveProjectId: 'project-a',
+  });
+
+  const reinitialized = await handleProjectContextMessage(actions);
+
+  assert.equal(reinitialized, false);
+  assert.deepEqual(calls, []);
+});
+
+test('connection:init skips reinitialization while waiting for project:bound after restore bind', async () => {
+  const { actions, calls } = createActions({
+    messageType: 'connection:init',
+    currentActiveProjectId: 'project-a',
+    announcedActiveProjectId: 'project-b',
+    shouldIgnoreRefreshUntilBound: true,
   });
 
   const reinitialized = await handleProjectContextMessage(actions);

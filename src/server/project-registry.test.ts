@@ -168,7 +168,7 @@ test('initialize creates missing config directory and empty registry file', asyn
   assert.equal(registry.getActiveProject(), null);
 });
 
-test('add, activate, remove, clear, and getters manage active project session', async () => {
+test('add, activate, remove, clear, and getters manage multi-project sessions without closing inactive watchers', async () => {
   const configHome = await createTempDir('openspec-webui-config-');
   const projectAlpha = await createProjectRoot('alpha-project');
   const projectBeta = await createProjectRoot('beta-project');
@@ -203,18 +203,25 @@ test('add, activate, remove, clear, and getters manage active project session', 
   assert.equal(second.status, 'created');
   assert.equal(registry.getActiveProjectRoot(), projectBeta);
   assert.equal(registry.getCommandAvailabilityCache(), null);
-  assert.equal(harness.watcherRecords[0]?.closeCalls, 1);
+  assert.deepEqual(registry.getCommandAvailabilityCache(first.entry.id), harness.cacheValue);
+  assert.equal(registry.getSession(first.entry.id)?.projectRoot, projectAlpha);
+  assert.equal(registry.getSession(second.entry.id)?.projectRoot, projectBeta);
+  assert.equal(harness.watcherRecords[0]?.closeCalls, 0);
 
   const activated = await registry.activateProject(first.entry.id);
   assert.equal(activated.alreadyActive, false);
   assert.equal(registry.getActiveProject()?.id, first.entry.id);
   assert.equal(registry.getActiveProjectRoot(), projectAlpha);
-  assert.equal(harness.watcherRecords[1]?.closeCalls, 1);
+  assert.equal(registry.getSession(second.entry.id)?.projectRoot, projectBeta);
+  assert.equal(harness.watcherRecords[1]?.closeCalls, 0);
 
   const removed = await registry.removeProject(first.entry.id);
   assert.equal(removed.activeChanged, true);
   assert.equal(removed.activeProjectId, second.entry.id);
   assert.equal(registry.getActiveProject()?.id, second.entry.id);
+  assert.equal(registry.getSession(first.entry.id), null);
+  assert.equal(harness.watcherRecords[0]?.closeCalls, 1);
+  assert.equal(harness.watcherRecords[1]?.closeCalls, 0);
 
   registry.setCommandAvailabilityCache(harness.cacheValue);
   const cleared = await registry.clearActiveProject();
@@ -225,6 +232,8 @@ test('add, activate, remove, clear, and getters manage active project session', 
   assert.equal(registry.getActiveOpenSpecPath(), null);
   assert.equal(registry.getActiveData(), null);
   assert.equal(registry.getCommandAvailabilityCache(), null);
+  assert.equal(registry.getSession(second.entry.id), null);
+  assert.equal(harness.watcherRecords[1]?.closeCalls, 1);
 
   const stored = await readRegistryJson(configHome);
   assert.equal(stored.projects.length, 1);
@@ -339,7 +348,7 @@ test('initialize ignores invalid saved paths and preserves valid persisted entri
   assert.equal(stored.activeProjectId, null);
 });
 
-test('activation rollback keeps previous session and watcher when target parse fails', async () => {
+test('activation rollback keeps previous session and watcher when activating a persisted project without an in-memory session fails', async () => {
   const configHome = await createTempDir('openspec-webui-config-');
   const projectAlpha = await createProjectRoot('alpha-project');
   const projectBeta = await createProjectRoot('beta-project');
@@ -357,10 +366,14 @@ test('activation rollback keeps previous session and watcher when target parse f
 
   const alpha = await registry.addProject(projectAlpha);
   const beta = await registry.addProject(projectBeta);
+  await registry.clearActiveProject();
+  assert.equal(registry.getSession(beta.entry.id), null);
   await registry.activateProject(alpha.entry.id);
 
   const activeBeforeFailure = registry.getActiveProject();
-  const alphaWatcher = harness.watcherRecords[harness.watcherRecords.length - 1];
+  const alphaWatcher = harness.watcherRecords.find(
+    (watcher) => watcher.path === getOpenSpecPath(projectAlpha)
+  );
   harness.parseFailures.add(getOpenSpecPath(projectBeta));
 
   await assert.rejects(() => registry.activateProject(beta.entry.id), (error: unknown) => {
@@ -372,6 +385,11 @@ test('activation rollback keeps previous session and watcher when target parse f
   assert.equal(registry.getActiveProject()?.id, activeBeforeFailure?.id);
   assert.equal(registry.getActiveProjectRoot(), projectAlpha);
   assert.equal(alphaWatcher?.closeCalls, 0);
+  assert.equal(registry.getSession(beta.entry.id), null);
+  assert.deepEqual(
+    harness.parseCalls.filter((path) => path === getOpenSpecPath(projectBeta)).length,
+    2
+  );
 
   const stored = await readRegistryJson(configHome);
   assert.equal(stored.activeProjectId, alpha.entry.id);
