@@ -121,7 +121,7 @@ When the Explorer Pane is visible, the system SHALL render current-project heade
 - **AND** the collapse state of the Explorer Pane does not change
 
 #### Scenario: Narrow drawer keeps the Activity Bar visible
-- **WHEN** the application is in narrow layout and the operator opens the Explorer drawer
+- **WHEN** the application is in narrow layout (viewport width 960px or less) and the operator opens the Explorer drawer
 - **THEN** the drawer appears to the right of the 48px Activity Bar
 - **AND** the Activity Bar remains visible and interactive
 

@@ -546,12 +546,12 @@ async function main() {
     await clickSelector(cdp, '[aria-label="Close settings"]');
     results.push('theme-switching');
 
-    await cdp.setViewport(700, 900);
+    await cdp.setViewport(960, 900);
     state = await getState(cdp);
-    assert(!state.explorerVisible, 'Persistent explorer should hide in narrow mode');
+    assert(!state.explorerVisible, 'Persistent explorer should hide at the 960px narrow breakpoint');
     await clickSelector(cdp, '[aria-label="Dashboard"]');
     state = await getState(cdp);
-    assert(state.drawerCloseVisible && state.activeChangesState === 'open', 'Dashboard should open narrow explorer drawer with Active Changes focused');
+    assert(state.drawerCloseVisible && state.activeChangesState === 'open', 'Dashboard should open narrow explorer drawer with Active Changes focused at 960px');
     assert(state.explorerDrawerVisible && state.explorerDrawerLeft >= state.activityBarRight - 1, 'Narrow explorer drawer should open to the right of the Activity Bar');
     assert(state.activityBarWidth >= 48 && state.activityBarHitVisible, 'Activity Bar should remain visible and interactive while the narrow drawer is open');
     assert(await cdp.evaluate(pageExpression(() => !!document.querySelector('[title="Copy /opsx-propose"]'))), 'Narrow Dashboard drawer should include workspace command shortcuts');
@@ -564,6 +564,9 @@ async function main() {
     state = await getState(cdp);
     assert(state.drawerCloseVisible && state.specsState === 'open', 'Specs should open narrow explorer drawer with Specs focused');
     await clickSelector(cdp, '[aria-label="Close explorer"]');
+    await cdp.setViewport(961, 900);
+    state = await getState(cdp);
+    assert(state.explorerVisible && !state.explorerDrawerVisible, 'Persistent three-pane layout should render again at 961px');
     await cdp.setViewport(1400, 900);
     await clickSelector(cdp, '[aria-label="Dashboard"]');
     results.push('responsive-drawer');

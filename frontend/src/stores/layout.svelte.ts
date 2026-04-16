@@ -1,12 +1,13 @@
 export type ActivityPreset = 'home' | 'archive' | 'specs';
 export type ExplorerSection = 'active-changes' | 'archive' | 'specs';
-export type ResponsiveMode = 'wide' | 'medium' | 'narrow';
+export type ResponsiveMode = 'narrow' | 'wide';
 export type LayoutOverlay = 'search' | 'settings' | 'project-selector' | 'add-project' | null;
 
 const STORAGE_KEY = 'openspec-layout';
 const DEFAULT_EXPLORER_WIDTH = 280;
 const MIN_EXPLORER_WIDTH = 180;
 const MAX_EXPLORER_WIDTH = 600;
+export const DESKTOP_BREAKPOINT = 960;
 
 const PRESET_SECTION_MAP: Record<ActivityPreset, ExplorerSection> = {
   home: 'active-changes',
@@ -31,12 +32,8 @@ function clampWidth(width: number) {
 }
 
 function getResponsiveMode(width: number): ResponsiveMode {
-  if (width < 768) {
+  if (width <= DESKTOP_BREAKPOINT) {
     return 'narrow';
-  }
-
-  if (width <= 1024) {
-    return 'medium';
   }
 
   return 'wide';
@@ -273,14 +270,6 @@ function createLayoutStore() {
 
     toggleSection(section: ExplorerSection) {
       this.setSectionCollapsed(section, !state.sectionCollapsed[section]);
-    },
-
-    setResponsiveMode(mode: ResponsiveMode) {
-      state.responsiveMode = mode;
-
-      if (mode !== 'narrow') {
-        state.narrowDrawerOpen = false;
-      }
     },
 
     setNarrowDrawerOpen(open: boolean) {
