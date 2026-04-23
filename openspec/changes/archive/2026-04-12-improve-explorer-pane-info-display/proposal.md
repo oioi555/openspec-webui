@@ -4,7 +4,7 @@ ExplorerPane の Archive・Specs・Active Changes の情報表示は、従来の
 
 ## What Changes
 
-- **ExplorerPane / ChangeViewer 表示**: Active Changes・Archive・Specs の 2 行目を Calendar / FileText / CheckSquare の compact metadata style に統一し、Archive 名から日付プレフィックスを除去する
+- **ExplorerPane / ChangeViewer 表示**: Active Changes・Archive・Specs の 2 行目を Calendar / FileText / CircleCheckBig の compact metadata style に統一し、Archive 名から日付プレフィックスを除去する
 - **SpecViewer サブタイトル**: 固定文言ではなく、他ビューと揃えた compact metadata style（Calendar icon + formatted date）で最終更新日を表示する
 - **バックエンド lastModified**: `Spec` / `Change` の `lastModified` を API で提供し、Change の計算には proposal/tasks/design などの root ファイルに加えて `changes/<name>/specs/` 配下の spec delta ファイルも含める
 - **日付フォーマット安全化**: `formatDate` は null / undefined / malformed input に対して空文字を返し、例外を投げない

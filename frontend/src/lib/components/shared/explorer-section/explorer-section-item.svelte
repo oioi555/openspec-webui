@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  import { Calendar, CheckSquare, FileText } from '@lucide/svelte';
+  import { Calendar, CircleCheckBig, FileText } from '@lucide/svelte';
   import { Progress } from '$lib/components/ui/progress';
   import { ItemContextMenu } from '$lib/components/shared/item-context-menu';
   import { createItemContextMenuItems, type ItemContextMenuKind } from '$lib/itemContextMenu';
@@ -102,7 +102,7 @@
               <span class="flex items-center gap-0.5"><FileText class="h-3 w-3" />{specDeltaCount}</span>
             {/if}
             {#if taskProgress}
-              <span class="flex items-center gap-0.5"><CheckSquare class="h-3 w-3" />{taskProgress.done}/{taskProgress.total}</span>
+              <span class="flex items-center gap-0.5"><CircleCheckBig class="h-3 w-3" />{taskProgress.done}/{taskProgress.total}</span>
             {/if}
           </div>
           {#if showProgress && taskProgress}

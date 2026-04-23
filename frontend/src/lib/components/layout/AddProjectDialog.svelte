@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Folder, FolderOpen, FolderPlus, Loader2, AlertCircle, ChevronDown, ChevronUp, ChevronRight } from '@lucide/svelte';
+  import { Folder, FolderOpen, FolderPlus, LoaderCircle, CircleAlert, ChevronDown, ChevronUp, ChevronRight } from '@lucide/svelte';
   import { Button } from '$lib/components/ui/button';
   import * as Collapsible from '$lib/components/ui/collapsible';
   import * as Dialog from '$lib/components/ui/dialog';
@@ -147,15 +147,15 @@
           }}
         />
         {#if browseLoading}
-          <Loader2 class="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
+          <LoaderCircle class="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
         {/if}
       </div>
 
       <!-- Directory listing -->
-      <div class="min-h-[280px] rounded-lg border border-border">
+      <div class="min-h-70 rounded-lg border border-border">
         {#if browseError}
           <div class="flex items-center gap-2 px-4 py-8 text-sm text-destructive">
-            <AlertCircle class="h-4 w-4 shrink-0" />
+            <CircleAlert class="h-4 w-4 shrink-0" />
             {browseError}
           </div>
         {:else if browseResult && browseResult.dirs.length === 0}
@@ -163,7 +163,7 @@
             {m.add_project_no_subdirectories()}
           </div>
         {:else if browseResult}
-          <div class="max-h-[400px] overflow-y-auto">
+          <div class="max-h-100 overflow-y-auto">
             {#each browseResult.dirs as dir}
               <button
                 type="button"
@@ -202,7 +202,7 @@
           onclick={handleSelectAndAdd}
         >
           {#if loading}
-            <Loader2 class="mr-2 h-4 w-4 animate-spin" />
+            <LoaderCircle class="mr-2 h-4 w-4 animate-spin" />
           {:else}
             <FolderPlus class="mr-2 h-4 w-4" />
           {/if}
@@ -248,7 +248,7 @@
 
       {#if error}
         <div class="flex items-center gap-2 rounded-md bg-destructive/15 p-3 text-sm text-destructive">
-          <AlertCircle class="h-4 w-4 shrink-0" />
+          <CircleAlert class="h-4 w-4 shrink-0" />
           <p>{error}</p>
         </div>
       {/if}

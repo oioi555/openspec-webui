@@ -16,15 +16,15 @@ The system SHALL discover capability directories under `specs/`, sort them alpha
 - **THEN** the Explorer Pane's SPECS section shows `No specifications found`
 
 ### Requirement: Active change display uses compact format with progress
-The system SHALL display active changes with a compact second line showing the last modification date with Calendar icon, spec delta count with FileText icon, and task progress (done/total) with CheckSquare icon. The progress bar SHALL be displayed with a narrow width alongside the icon indicators.
+The system SHALL display active changes with a compact second line showing the last modification date with Calendar icon, spec delta count with FileText icon, and task progress (done/total) with CircleCheckBig icon. The progress bar SHALL be displayed with a narrow width alongside the icon indicators.
 
 #### Scenario: Active change shows compact second line with progress bar
 - **WHEN** the Explorer Pane renders an active change with lastModified "2026-04-10", 3 spec deltas and 5/10 tasks
-- **THEN** the second line shows a Calendar icon with "2026-04-10", a FileText icon with "3", a CheckSquare icon with "5/10"
+- **THEN** the second line shows a Calendar icon with "2026-04-10", a FileText icon with "3", a CircleCheckBig icon with "5/10"
 - **AND** a narrow progress bar is displayed on the right side
 
 ### Requirement: Archive change display uses compact format
-The system SHALL display archived changes with the date prefix (YYYY-MM-DD-) stripped from the name. The second line SHALL show the archived date with Calendar icon, spec delta count with FileText icon, and task progress (done/total) with CheckSquare icon. No progress bar SHALL be shown for archived changes.
+The system SHALL display archived changes with the date prefix (YYYY-MM-DD-) stripped from the name. The second line SHALL show the archived date with Calendar icon, spec delta count with FileText icon, and task progress (done/total) with CircleCheckBig icon. No progress bar SHALL be shown for archived changes.
 
 #### Scenario: Archived change shows name without date prefix
 - **WHEN** the Explorer Pane renders an archived change named "2026-04-06-migrate-svelte5-runes"
@@ -33,7 +33,7 @@ The system SHALL display archived changes with the date prefix (YYYY-MM-DD-) str
 
 #### Scenario: Archived change shows compact second line with date icon
 - **WHEN** the Explorer Pane renders an archived change archived on 2026-04-06 with 3 spec deltas and 5/10 tasks
-- **THEN** the second line shows a Calendar icon with "2026-04-06", a FileText icon with "3", and a CheckSquare icon with "5/10"
+- **THEN** the second line shows a Calendar icon with "2026-04-06", a FileText icon with "3", and a CircleCheckBig icon with "5/10"
 - **AND** no progress bar is displayed
 
 ### Requirement: Spec list shows last modified date with icon

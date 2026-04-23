@@ -69,7 +69,7 @@
       />
     </div>
   </ScrollArea.Root>
-  <div class={`gap-3 border-b border-border px-3 py-2 ${!temporary ? 'bg-secondary/70' : ''}`}>
+  <div class={`gap-3 border-t border-border px-3 py-2 ${!temporary ? 'bg-secondary/70' : ''}`}>
     <div class="flex min-w-0 items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
         <Folder class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         <span class="truncate">{FIXED_LABELS.common.currentProject}</span>

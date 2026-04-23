@@ -104,7 +104,7 @@
 
 <Dialog.Root open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
   <Dialog.Overlay />
-  <Dialog.Content class="max-w-2xl gap-0 p-0">
+  <Dialog.Content class="max-w-2xl gap-0 p-0 xl:max-w-3xl">
     <SharedDialogHeader
       icon={Search}
       title={FIXED_LABELS.search.title}
@@ -124,7 +124,7 @@
       />
     </div>
 
-    <div class="max-h-96 overflow-y-auto px-2 py-2">
+    <div class="max-h-[60vh] overflow-y-auto px-2 py-2">
       {#if searchQuery.value.length < 2}
         <div class="px-3 py-8 text-center text-sm text-muted-foreground">{t(m.search_start_typing)}</div>
       {:else if searchResults.length === 0}

@@ -3,6 +3,7 @@
   import { ErrorBanner } from '$lib/components/shared/error-banner';
   import { IconBox } from '$lib/components/shared/icon-box';
   import { LoadingState } from '$lib/components/shared/loading-state';
+  import { SurfaceCard } from '$lib/components/shared/surface';
   import { Button } from '$lib/components/ui/button';
   import * as ContextMenu from '$lib/components/ui/context-menu';
   import { toast } from 'svelte-sonner';
@@ -144,9 +145,9 @@
   {:else if spec}
     <!-- Content -->
     <ContextMenu.Root onOpenChange={handleMenuOpenChange}>
-      <div class="rounded-lg border border-border bg-card p-6 shadow-lg">
+      <SurfaceCard shadow="lg" class="p-6">
         <MarkdownRenderer content={spec.specContent} />
-      </div>
+      </SurfaceCard>
       <ContextMenu.Content>
         <ContextMenu.Item disabled={!hasSelection} onSelect={handleCopy}>
           <Clipboard class="h-4 w-4" />

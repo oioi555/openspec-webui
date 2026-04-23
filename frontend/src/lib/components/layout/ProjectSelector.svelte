@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Folder, FolderPlus, Loader2, Trash2, CheckCircle2 } from '@lucide/svelte';
+  import { Folder, FolderPlus, LoaderCircle, Trash2, CircleCheck } from '@lucide/svelte';
   import { Button } from '$lib/components/ui/button';
   import * as Dialog from '$lib/components/ui/dialog';
   import { DialogHeader as SharedDialogHeader } from '$lib/components/shared/dialog-header';
@@ -57,7 +57,7 @@
 
 <Dialog.Root open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
   <Dialog.Overlay />
-  <Dialog.Content class="max-w-md gap-0 p-0">
+  <Dialog.Content class="max-h-[60vh] max-w-xl gap-0 p-0">
     <SharedDialogHeader
       icon={Folder}
       title={FIXED_LABELS.projectSelector.title}
@@ -82,7 +82,7 @@
                 >
                   <div class="mt-0.5 shrink-0 text-muted-foreground">
                     {#if switchingProjectId === project.id}
-                      <Loader2 class="h-5 w-5 animate-spin text-primary" />
+                      <LoaderCircle class="h-5 w-5 animate-spin text-primary" />
                     {:else}
                       <Folder class="h-5 w-5" />
                     {/if}
@@ -97,7 +97,7 @@
                       {/if}
                       {#if project.id === activeProjectId}
                         <span class="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
-                          <CheckCircle2 class="mr-1 h-3 w-3" />
+                          <CircleCheck class="mr-1 h-3 w-3" />
                           {FIXED_LABELS.common.active}
                         </span>
                       {/if}
@@ -126,8 +126,8 @@
                         size="sm"
                         class="h-7 px-2 text-xs"
                         onclick={() => confirmRemoveId = null}
-                         disabled={loading || Boolean(switchingProjectId)}
-                       >
+                        disabled={loading || Boolean(switchingProjectId)}
+                      >
                         {FIXED_LABELS.common.cancel}
                       </Button>
                     </div>
@@ -137,9 +137,9 @@
                       size="icon"
                       class="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive hover:bg-destructive/10"
                       onclick={() => confirmRemoveId = project.id}
-                       disabled={loading || Boolean(switchingProjectId)}
-                       title={FIXED_LABELS.projectSelector.removeProject}
-                     >
+                      disabled={loading || Boolean(switchingProjectId)}
+                      title={FIXED_LABELS.projectSelector.removeProject}
+                    >
                       <Trash2 class="h-4 w-4" />
                       <span class="sr-only">{FIXED_LABELS.common.remove}</span>
                     </Button>

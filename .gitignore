@@ -2,16 +2,16 @@
 node_modules/
 
 # Build outputs
-dist/
 dist-frontend/
+dist/
 frontend/dist/
 frontend/src/lib/paraglide/
 
 # IDE
+*.swo
+*.swp
 .idea/
 .vscode/
-*.swp
-*.swo
 
 # OS
 .DS_Store
@@ -26,14 +26,14 @@ npm-debug.log*
 .env.local
 
 # Local AI/dev tooling
-.codenomad/
 .claude/
-.opencode/
-.opencode*
-.cursor/
+.codenomad/
 .codex
+.cursor/
 .github/
+.opencode*
+.opencode/
 
 # OpenSpec: exclude active (unarchived) changes, keep archive/
-openspec/changes/*
 !openspec/changes/archive/
+openspec/changes/*

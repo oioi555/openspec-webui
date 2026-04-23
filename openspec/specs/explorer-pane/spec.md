@@ -14,7 +14,7 @@ The system SHALL render an Explorer Pane between the Activity Bar and the Main V
 - **AND** the `headerExtra` slot includes the CommandShortcutBar when workspace commands exist
 - **AND** the section passes `emptyMessage="No active changes"` and `emptyIcon={SquarePen}` to ExplorerSection
 - **AND** the default slot renders ExplorerItem components for each active change
-- **AND** each ExplorerItem shows a compact second line with Calendar+date, FileText+delta count, CheckSquare+task progress, and a narrow progress bar
+- **AND** each ExplorerItem shows a compact second line with Calendar+date, FileText+delta count, CircleCheckBig+task progress, and a narrow progress bar
 
 #### Scenario: Explorer Pane uses ExplorerSection for ARCHIVE
 - **WHEN** the Explorer Pane renders the ARCHIVE section
@@ -23,7 +23,7 @@ The system SHALL render an Explorer Pane between the Activity Bar and the Main V
 - **AND** the section passes `emptyMessage="No archived changes"` and `emptyIcon={Archive}` to ExplorerSection
 - **AND** the default slot renders ExplorerItem components for each archived change
 - **AND** each archived change name has the date prefix stripped in the visible label while preserving the full name in the tooltip
-- **AND** each ExplorerItem shows a compact second line with Calendar+date, FileText+delta count, CheckSquare+task progress, with no progress bar
+- **AND** each ExplorerItem shows a compact second line with Calendar+date, FileText+delta count, CircleCheckBig+task progress, with no progress bar
 
 #### Scenario: Explorer Pane uses ExplorerSection for SPECS
 - **WHEN** the Explorer Pane renders the SPECS section

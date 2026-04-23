@@ -9,7 +9,7 @@ The system SHALL render an Explorer Pane between the Activity Bar and the Main V
 - **AND** the wrapper internally renders `ExplorerSection` with `title="Active Changes"`, `section="active-changes"`, and `emptyMessage="No active changes"`
 - **AND** the `headerExtra` slot includes the CommandShortcutBar when workspace commands exist
 - **AND** the wrapper internally renders active changes list items via `ExplorerSectionItem`
-- **AND** each list item shows a compact second line with Calendar+date, FileText+delta count, CheckSquare+task progress, and a narrow progress bar
+- **AND** each list item shows a compact second line with Calendar+date, FileText+delta count, CircleCheckBig+task progress, and a narrow progress bar
 
 #### Scenario: Explorer Pane uses ArchiveExplorerSection for Archive
 - **WHEN** the Explorer Pane renders the ARCHIVE section
@@ -17,7 +17,7 @@ The system SHALL render an Explorer Pane between the Activity Bar and the Main V
 - **AND** the wrapper internally renders `ExplorerSection` with `title="Archive"`, `section="archive"`, and `emptyMessage="No archived changes"`
 - **AND** the wrapper internally renders archived changes list items via `ExplorerSectionItem`
 - **AND** each archived change name has the date prefix stripped in the visible label while preserving the full name in the tooltip
-- **AND** each list item shows a compact second line with Calendar+date, FileText+delta count, CheckSquare+task progress, with no progress bar
+- **AND** each list item shows a compact second line with Calendar+date, FileText+delta count, CircleCheckBig+task progress, with no progress bar
 
 #### Scenario: Explorer Pane uses SpecsExplorerSection for Specs
 - **WHEN** the Explorer Pane renders the SPECS section

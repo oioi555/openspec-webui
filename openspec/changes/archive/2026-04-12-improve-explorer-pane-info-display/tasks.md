@@ -19,18 +19,18 @@
 
 ## 4. フロントエンド: ExplorerPane表示改善
 
-- [x] 4.1 `Calendar`, `CheckSquare` アイコンと `formatChangeName` ユーティリティを import
-- [x] 4.2 Active Changes 2段目を「Calendar+日付 + FileText+delta数 + CheckSquare+done/total + プログレスバー(w-14)」に変更
+- [x] 4.1 `Calendar`, `CircleCheckBig` アイコンと `formatChangeName` ユーティリティを import
+- [x] 4.2 Active Changes 2段目を「Calendar+日付 + FileText+delta数 + CircleCheckBig+done/total + プログレスバー(w-14)」に変更
 - [x] 4.3 Archive Change名を `formatChangeName` で日付プレフィックス除去
-- [x] 4.4 Archive 2段目を「Calendar+日付 + FileText+delta数 + CheckSquare+done/total」に変更（プログレスバーなし）
+- [x] 4.4 Archive 2段目を「Calendar+日付 + FileText+delta数 + CircleCheckBig+done/total」に変更（プログレスバーなし）
 - [x] 4.5 Specs 2行目を Calendarアイコン＋最終更新日（YYYY-MM-DD）に変更
 
 ## 5. フロントエンド: ChangeViewer表示改善
 
-- [x] 5.1 `Calendar`, `CheckSquare`, `FileText` アイコンと `formatChangeName`, `formatDate` を import
+- [x] 5.1 `Calendar`, `CircleCheckBig`, `FileText` アイコンと `formatChangeName`, `formatDate` を import
 - [x] 5.2 isArchived: タイトルから日付プレフィックスを除去（`formatChangeName` 使用）
-- [x] 5.3 isArchived: 2行目を「Calendar+アーカイブ日付 + FileText+delta数 + CheckSquare+done/total + プログレスバー(w-32)」に変更
-- [x] 5.4 !isArchived: 2行目を「Calendar+最終更新日 + FileText+delta数 + CheckSquare+done/total + プログレスバー(w-32)」に変更
+- [x] 5.3 isArchived: 2行目を「Calendar+アーカイブ日付 + FileText+delta数 + CircleCheckBig+done/total + プログレスバー(w-32)」に変更
+- [x] 5.4 !isArchived: 2行目を「Calendar+最終更新日 + FileText+delta数 + CircleCheckBig+done/total + プログレスバー(w-32)」に変更
 
 ## 6. フロントエンド: SpecViewer表示改善
 
@@ -38,7 +38,7 @@
 
 ## 7. フロントエンド: Dashboard表示改善
 
-- [x] 7.1 Active Changes 2段目を「Calendar+日付 + FileText+delta数 + CheckSquare+done/total」に変更
+- [x] 7.1 Active Changes 2段目を「Calendar+日付 + FileText+delta数 + CircleCheckBig+done/total」に変更
 
 ## 8. Follow-up: parser lastModified 補強
 

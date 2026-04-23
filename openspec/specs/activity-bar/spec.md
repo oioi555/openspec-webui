@@ -5,12 +5,12 @@ Define the persistent Activity Bar that anchors primary navigation and quick act
 
 ## Requirements
 ### Requirement: Activity Bar renders persistent vertical control strip
-The system SHALL render a vertical Activity Bar as the leftmost pane of the application layout, fixed at 48px width. The Activity Bar SHALL remain visible even when the Explorer Pane is collapsed. When an active project exists, the top area SHALL provide an Explorer open/close control rather than a current-project avatar tile. That control SHALL be visually separated from the navigation icons by a divider, background difference, or both. The bar SHALL display icon buttons in this order: Dashboard, Archive, Specs, Search, and Settings. The Dashboard control SHALL keep using the LayoutDashboard icon as the visual symbol for the primary landing surface. Each navigation icon SHALL use the `@lucide/svelte` library. When no active project exists, the top area SHALL fall back to the shared `app-icon.svg` and SHALL open project selection. The `decodeName` utility function used in the Activity Bar SHALL be imported from `$lib/utils` instead of being defined locally.
+The system SHALL render a vertical Activity Bar as the leftmost pane of the application layout, fixed at 48px width. The Activity Bar SHALL remain visible even when the Explorer Pane is collapsed. When an active project exists, the bottom area SHALL provide an Explorer open/close control rather than a current-project avatar tile. That control SHALL be visually separated from the navigation icons by a divider, background difference, or both. The bar SHALL display icon buttons in this order: Dashboard, Archive, Specs, Search, and Settings. The Dashboard control SHALL keep using the LayoutDashboard icon as the visual symbol for the primary landing surface. Each navigation icon SHALL use the `@lucide/svelte` library. When no active project exists, the top area SHALL fall back to the shared `app-icon.svg` and SHALL open project selection. The `decodeName` utility function used in the Activity Bar SHALL be imported from `$lib/utils` instead of being defined locally.
 
 #### Scenario: Activity Bar renders on page load with explorer toggle
 - **WHEN** the application loads with an active project
 - **THEN** a vertical Activity Bar is displayed at the leftmost edge
-- **AND** it contains an Explorer open/close control at the top
+- **AND** it contains an Explorer open/close control at the bottom
 - **AND** it contains icon buttons for Dashboard, Archive, Specs, Search, and Settings
 - **AND** each navigation icon renders at 20px size using `@lucide/svelte`
 
@@ -27,12 +27,12 @@ The system SHALL render a vertical Activity Bar as the leftmost pane of the appl
 #### Scenario: Activity Bar remains when Explorer Pane collapses
 - **WHEN** the operator collapses the Explorer Pane
 - **THEN** the Activity Bar remains visible at the left edge
-- **AND** the Explorer toggle remains visible at the top
+- **AND** the Explorer toggle remains visible at the bottom
 - **AND** all Activity Bar controls stay interactive
 
 #### Scenario: Explorer toggle is visually separated from navigation icons
 - **WHEN** the Activity Bar renders with an active project
-- **THEN** the top Explorer control is visually grouped apart from the navigation stack
+- **THEN** the bottom Explorer control is visually grouped apart from the navigation stack
 - **AND** the operator can distinguish pane chrome from navigation destinations at a glance
 
 #### Scenario: decodeName imported from shared utils
@@ -53,15 +53,15 @@ The system SHALL visually highlight the icon corresponding to the currently acti
 - **THEN** the Dashboard icon is highlighted in the Activity Bar
 
 ### Requirement: Activity Bar icons trigger explorer section or actions
-The system SHALL respond to Activity Bar control clicks: the top Explorer control SHALL toggle the Explorer Pane open and closed without changing the active explorer preset; the Dashboard icon SHALL focus the Dashboard tab in the Main Viewer and expand the Explorer Pane with the ACTIVE CHANGES section focused while collapsing ARCHIVE and SPECS; the Archive icon SHALL expand the Explorer Pane with the ARCHIVE section focused while collapsing ACTIVE CHANGES and SPECS; the Specs icon SHALL expand the Explorer Pane with the SPECS section focused while collapsing ACTIVE CHANGES and ARCHIVE; the Search icon SHALL show a search panel or command palette; the Settings icon SHALL open the settings dialog. When the operator clicks the icon for the currently active section while the Explorer Pane is expanded, the Explorer Pane SHALL toggle between expanded and collapsed. The highlighted Activity Bar icon SHALL follow the active explorer preset even when the current Main Viewer tab does not change. The Dashboard icon SHALL focus the existing Dashboard tab without opening a new tab. The Archive and Specs icons SHALL NOT open or focus tabs in the Main Viewer.
+The system SHALL respond to Activity Bar control clicks: the bottom Explorer control SHALL toggle the Explorer Pane open and closed without changing the active explorer preset; the Dashboard icon SHALL focus the Dashboard tab in the Main Viewer and expand the Explorer Pane with the ACTIVE CHANGES section focused while collapsing ARCHIVE and SPECS; the Archive icon SHALL expand the Explorer Pane with the ARCHIVE section focused while collapsing ACTIVE CHANGES and SPECS; the Specs icon SHALL expand the Explorer Pane with the SPECS section focused while collapsing ACTIVE CHANGES and ARCHIVE; the Search icon SHALL show a search panel or command palette; the Settings icon SHALL open the settings dialog. When the operator clicks the icon for the currently active section while the Explorer Pane is expanded, the Explorer Pane SHALL toggle between expanded and collapsed. The highlighted Activity Bar icon SHALL follow the active explorer preset even when the current Main Viewer tab does not change. The Dashboard icon SHALL focus the existing Dashboard tab without opening a new tab. The Archive and Specs icons SHALL NOT open or focus tabs in the Main Viewer.
 
 #### Scenario: Explorer toggle opens collapsed pane
-- **WHEN** the operator activates the top Explorer control while the Explorer Pane is collapsed
+- **WHEN** the operator activates the bottom Explorer control while the Explorer Pane is collapsed
 - **THEN** the Explorer Pane opens using the current explorer preset
 - **AND** the active section highlight does not change
 
 #### Scenario: Explorer toggle closes expanded pane
-- **WHEN** the operator activates the top Explorer control while the Explorer Pane is open
+- **WHEN** the operator activates the bottom Explorer control while the Explorer Pane is open
 - **THEN** the Explorer Pane closes
 - **AND** the active section highlight does not change
 
@@ -106,7 +106,7 @@ The system SHALL respond to Activity Bar control clicks: the top Explorer contro
 - **AND** the Specs icon remains highlighted
 
 #### Scenario: No-project fallback opens selector
-- **WHEN** the operator clicks the top control in the Activity Bar while no project is active
+- **WHEN** the operator clicks the bottom control in the Activity Bar while no project is active
 - **THEN** the project selector opens
 - **AND** the current view is not navigated away from
 
@@ -119,6 +119,6 @@ The system SHALL respond to Activity Bar control clicks: the top Explorer contro
 The system SHALL display a tooltip on hover for each Activity Bar icon and the top control, showing the control name (e.g., `Explorer`, `Dashboard`, `Specs`, `Archive`, `Search`, `Settings`, or the no-project selector label).
 
 #### Scenario: Show tooltip on explorer toggle hover
-- **WHEN** the operator hovers over the top Explorer control with an active project
+- **WHEN** the operator hovers over the bottom Explorer control with an active project
 - **THEN** a tooltip appears showing whether the control will open or close the Explorer Pane
 - **AND** the tooltip disappears when the cursor leaves the control
