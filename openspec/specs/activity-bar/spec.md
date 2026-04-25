@@ -5,7 +5,7 @@ Define the persistent Activity Bar that anchors primary navigation and quick act
 
 ## Requirements
 ### Requirement: Activity Bar renders persistent vertical control strip
-The system SHALL render a vertical Activity Bar as the leftmost pane of the application layout, fixed at 48px width. The Activity Bar SHALL remain visible even when the Explorer Pane is collapsed. When an active project exists, the bottom area SHALL provide an Explorer open/close control rather than a current-project avatar tile. That control SHALL be visually separated from the navigation icons by a divider, background difference, or both. The bar SHALL display icon buttons in this order: Dashboard, Archive, Specs, Search, and Settings. The Dashboard control SHALL keep using the LayoutDashboard icon as the visual symbol for the primary landing surface. Each navigation icon SHALL use the `@lucide/svelte` library. When no active project exists, the top area SHALL fall back to the shared `app-icon.svg` and SHALL open project selection. The `decodeName` utility function used in the Activity Bar SHALL be imported from `$lib/utils` instead of being defined locally.
+The system SHALL render a vertical Activity Bar as the leftmost pane of the application layout, fixed at 48px width. The Activity Bar SHALL remain visible even when the Explorer Pane is collapsed. When an active project exists, the bottom area SHALL provide an Explorer open/close control rather than a current-project avatar tile. The bar SHALL display icon buttons in this order: Dashboard, Archive, Specs, a visual separator, and Search. The Dashboard control SHALL keep using the LayoutDashboard icon as the visual symbol for the primary landing surface. Each navigation icon SHALL use the `@lucide/svelte` library. When no active project exists, the bottom area SHALL fall back to the shared `app-icon.svg` and SHALL open project selection. The `decodeName` utility function used in the Activity Bar SHALL be imported from `$lib/utils` instead of being defined locally.
 
 #### Scenario: Activity Bar renders on page load with explorer toggle
 - **WHEN** the application loads with an active project
@@ -16,7 +16,7 @@ The system SHALL render a vertical Activity Bar as the leftmost pane of the appl
 
 #### Scenario: Activity Bar renders no-project fallback icon
 - **WHEN** the application loads without an active project
-- **THEN** the top control renders the shared `app-icon.svg`
+- **THEN** the bottom control renders the shared `app-icon.svg`
 - **AND** activating the control still opens project selection
 
 #### Scenario: Activity Bar has fixed width
@@ -32,8 +32,8 @@ The system SHALL render a vertical Activity Bar as the leftmost pane of the appl
 
 #### Scenario: Explorer toggle is visually separated from navigation icons
 - **WHEN** the Activity Bar renders with an active project
-- **THEN** the bottom Explorer control is visually grouped apart from the navigation stack
-- **AND** the operator can distinguish pane chrome from navigation destinations at a glance
+- **THEN** the bottom Explorer control is grouped in the bottom area via `mt-auto`
+- **AND** a horizontal rule separator appears between the Specs and Search navigation icons
 
 #### Scenario: decodeName imported from shared utils
 - **WHEN** the ActivityBar component needs to decode a URI component
@@ -116,7 +116,7 @@ The system SHALL respond to Activity Bar control clicks: the bottom Explorer con
 - **AND** the current view is not navigated away from
 
 ### Requirement: Activity Bar tooltips
-The system SHALL display a tooltip on hover for each Activity Bar icon and the top control, showing the control name (e.g., `Explorer`, `Dashboard`, `Specs`, `Archive`, `Search`, `Settings`, or the no-project selector label).
+The system SHALL display a tooltip on hover for each Activity Bar icon and the bottom control, showing the control name (e.g., `Explorer`, `Dashboard`, `Specs`, `Archive`, `Search`, `Settings`, or the no-project selector label).
 
 #### Scenario: Show tooltip on explorer toggle hover
 - **WHEN** the operator hovers over the bottom Explorer control with an active project

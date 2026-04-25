@@ -4,11 +4,11 @@
 TBD - created by archiving change capture-baseline-specs. Update Purpose after archive.
 ## Requirements
 ### Requirement: Watch relevant OpenSpec files and directories
-The system SHALL watch the OpenSpec project directory for each active session's project. Each session SHALL have its own independent chokidar watcher. The watcher SHALL treat supported markdown files, `project.md`, `AGENTS.md`, and `config.yaml` as relevant project files. Each watcher SHALL ignore dotfiles, `node_modules`, and other unsupported files. Each watcher SHALL classify relevant updates as affecting `project`, `specs`, or `changes`. Watchers SHALL be created on session activation and closed when the session's reference count reaches zero.
+The system SHALL watch the OpenSpec project directory for each active session's project. Each session SHALL have its own independent chokidar watcher. The watcher SHALL treat supported markdown files, `project.md`, `AGENTS.md`, and `config.yaml` as relevant project files. Each watcher SHALL ignore dotfiles, `node_modules`, and other non-markdown non-config files. Unsupported markdown files that do not match `project.md`, `AGENTS.md`, `specs/`, or `changes/` paths SHALL trigger a project-scoped refresh. Each watcher SHALL classify relevant updates as affecting `project`, `specs`, or `changes`. Watchers SHALL be created on session activation and closed when the session's reference count reaches zero.
 
-#### Scenario: Ignore unsupported file changes
-- **WHEN** a file event occurs for a file other than supported markdown files or `config.yaml` in any watched project
-- **THEN** the watcher ignores the event
+#### Scenario: Classify unsupported markdown as project refresh
+- **WHEN** a file event occurs for a markdown file not under `specs/`, `changes/`, and not named `project.md` or `AGENTS.md`
+- **THEN** the watcher classifies the update as affecting `project`
 
 #### Scenario: Classify a config change as project-scoped
 - **WHEN** a file event occurs for `config.yaml` in a watched project

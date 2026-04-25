@@ -19,6 +19,7 @@ import {
   loadPreferredProjectId,
   persistPreferredProjectId,
   resolveProjectSelection,
+  shouldSkipProjectBind,
   type ProjectSelectionResolution,
 } from './projectsCore';
 
@@ -40,6 +41,7 @@ function createProjectsStore() {
     error: null,
   });
   let preferredProjectId = initialPreferredProjectId;
+  let authoritativeBoundProjectId: string | null = null;
 
   setActiveProjectContext(initialPreferredProjectId);
 
@@ -61,6 +63,10 @@ function createProjectsStore() {
     const projectId = selection.activeProjectId;
     state.activeProjectId = projectId;
     setActiveProjectContext(projectId);
+  }
+
+  function setAuthoritativeBoundProjectId(projectId: string | null) {
+    authoritativeBoundProjectId = projectId;
   }
 
   function clearPendingBind() {
@@ -122,7 +128,14 @@ function createProjectsStore() {
       throw new Error(t(m.error_websocket_not_connected));
     }
 
-    if (!force && !pendingBind && state.activeProjectId === projectId) {
+    if (
+      shouldSkipProjectBind({
+        targetProjectId: projectId,
+        authoritativeProjectId: authoritativeBoundProjectId,
+        hasPendingBind: pendingBind !== null,
+        force,
+      })
+    ) {
       return;
     }
 
@@ -234,6 +247,8 @@ function createProjectsStore() {
     bindProject,
 
     handleProjectBound(projectId: string | null) {
+      setAuthoritativeBoundProjectId(projectId);
+
       if (pendingBind?.projectId === projectId) {
         applyProjectSelection({
           activeProjectId: projectId,
@@ -245,7 +260,9 @@ function createProjectsStore() {
           preferredProjectId: null,
         });
       }
+    },
 
+    completeProjectBound(projectId: string | null) {
       if (pendingBind?.projectId === projectId) {
         pendingBind.resolve();
       } else if (pendingBind) {
@@ -262,6 +279,12 @@ function createProjectsStore() {
         activeProjectId: id,
         preferredProjectId: null,
       });
+    },
+
+    setAuthoritativeBoundProjectId,
+
+    get authoritativeBoundProjectId() {
+      return authoritativeBoundProjectId;
     },
 
     get preferredProjectId() {

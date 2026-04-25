@@ -6,6 +6,7 @@ import {
   loadPreferredProjectId,
   persistPreferredProjectId,
   resolveProjectSelection,
+  shouldSkipProjectBind,
   shouldRestoreProjectBinding,
 } from './projectsCore';
 
@@ -88,4 +89,56 @@ test('shouldRestoreProjectBinding only rebinds websocket context for a stored ta
   assert.equal(shouldRestoreProjectBinding('project-b', 'project-a'), true);
   assert.equal(shouldRestoreProjectBinding('project-a', 'project-a'), false);
   assert.equal(shouldRestoreProjectBinding(null, 'project-a'), false);
+});
+
+test('first add from empty state still binds when local snapshot already points at the new project', () => {
+  assert.equal(
+    shouldSkipProjectBind({
+      targetProjectId: 'project-a',
+      authoritativeProjectId: null,
+      hasPendingBind: false,
+    }),
+    false
+  );
+});
+
+test('reactivating an existing project still binds when websocket state has not confirmed it yet', () => {
+  assert.equal(
+    shouldSkipProjectBind({
+      targetProjectId: 'project-a',
+      authoritativeProjectId: 'project-b',
+      hasPendingBind: false,
+    }),
+    false
+  );
+});
+
+test('shouldSkipProjectBind only skips when the authoritative binding already matches', () => {
+  assert.equal(
+    shouldSkipProjectBind({
+      targetProjectId: 'project-a',
+      authoritativeProjectId: 'project-a',
+      hasPendingBind: false,
+    }),
+    true
+  );
+
+  assert.equal(
+    shouldSkipProjectBind({
+      targetProjectId: 'project-a',
+      authoritativeProjectId: 'project-a',
+      hasPendingBind: true,
+    }),
+    false
+  );
+
+  assert.equal(
+    shouldSkipProjectBind({
+      targetProjectId: 'project-a',
+      authoritativeProjectId: 'project-a',
+      hasPendingBind: false,
+      force: true,
+    }),
+    false
+  );
 });

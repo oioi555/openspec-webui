@@ -12,6 +12,7 @@
   import { tabStore } from '$lib/state/tabs.svelte.ts';
   import { layoutStore } from '$lib/state/layout.svelte.ts';
   import type { SearchResult } from '$lib/types/api';
+  import { createSearchController } from './searchController';
 
   interface Props {
     open?: boolean;
@@ -21,30 +22,24 @@
   let { open = false, onClose = () => {} }: Props = $props();
 
   let searchResults = $state<SearchResult[]>([]);
-  let searchTimeout = $state<ReturnType<typeof setTimeout> | null>(null);
   let inputRef = $state<HTMLInputElement | null>(null);
+
+  const searchController = createSearchController({
+    search,
+    updateResults: (results) => {
+      searchResults = results;
+    },
+  });
 
   function clearSearch() {
     searchQuery.value = '';
-    searchResults = [];
+    searchController.clear();
   }
 
-  async function handleSearch(event: Event) {
+  function handleSearch(event: Event) {
     const query = (event.target as HTMLInputElement).value;
     searchQuery.value = query;
-
-    if (searchTimeout) {
-      clearTimeout(searchTimeout);
-    }
-
-    if (query.length < 2) {
-      searchResults = [];
-      return;
-    }
-
-    searchTimeout = setTimeout(async () => {
-      searchResults = await search(query);
-    }, 300);
+    searchController.handleQueryChange(query);
   }
 
   function openResult(result: SearchResult) {
@@ -72,12 +67,6 @@
     return 'secondary';
   }
 
-  async function performSearch(query: string) {
-    if (query.length >= 2) {
-      searchResults = await search(query);
-    }
-  }
-
   $effect(() => {
     if (!open) {
       clearSearch();
@@ -87,7 +76,7 @@
     const initialQuery = layoutStore.searchInitialQuery;
     if (initialQuery) {
       searchQuery.value = initialQuery;
-      void performSearch(initialQuery);
+      void searchController.searchImmediately(initialQuery);
     }
 
     void tick().then(() => inputRef?.focus());
@@ -95,9 +84,7 @@
 
   $effect(() => {
     return () => {
-      if (searchTimeout) {
-        clearTimeout(searchTimeout);
-      }
+      searchController.destroy();
     };
   });
 </script>

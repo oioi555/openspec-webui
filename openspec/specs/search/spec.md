@@ -4,7 +4,7 @@
 Provide workspace search through the Activity Bar so operators can open matching content in the tabbed Main Viewer.
 ## Requirements
 ### Requirement: Provide debounced workspace search from Activity Bar
-The system SHALL expose a search interface accessible from the Activity Bar's Search icon. The search SHALL wait briefly before issuing a search request and SHALL suppress result queries until the operator has entered at least two characters. Search results SHALL be displayed in a dropdown panel or command palette overlay.
+The system SHALL expose a search interface accessible from the Activity Bar's Search icon. The search SHALL wait briefly before issuing a search request and SHALL suppress result queries until the operator has entered at least two characters. When the query becomes shorter than two characters, the system SHALL clear any previously displayed results. The system SHALL ignore stale debounced timers and asynchronous search responses whose query no longer matches the current input. Search results SHALL be displayed in a dropdown panel or command palette overlay.
 
 #### Scenario: Open search from Activity Bar
 - **WHEN** the operator clicks the Search icon in the Activity Bar
@@ -16,17 +16,27 @@ The system SHALL expose a search interface accessible from the Activity Bar's Se
 - **THEN** the system clears the visible search results
 - **AND** does not issue a search request
 
+#### Scenario: Clear results when query becomes short
+- **WHEN** the operator deletes characters so the query becomes shorter than two characters after previously having results
+- **THEN** the system clears the visible search results immediately
+- **AND** does not issue a new search request
+
 #### Scenario: Debounce a valid query
 - **WHEN** the operator enters a query with at least two characters
 - **THEN** the system waits for the debounce interval before issuing the search request
 - **AND** shows the returned results in the search panel
 
+#### Scenario: Ignore stale search results after the query changes
+- **WHEN** the operator enters a valid query and then changes or shortens it before the older search response resolves
+- **THEN** only the latest matching query may update the visible search results
+- **AND** any older response is ignored
+
 ### Requirement: Search the supported content sources only
-The system SHALL search project markdown, spec markdown, and change proposal markdown, and SHALL return each hit with a result type, result name, source path, excerpt, and first-match line number.
+The system SHALL search project markdown, spec markdown, and change proposal markdown, and SHALL return each hit with a result type, result name, and excerpt.
 
 #### Scenario: Return a project match
 - **WHEN** the query matches the project document
-- **THEN** the system returns a `project` result with a project excerpt and line number
+- **THEN** the system returns a `project` result with a project excerpt
 
 #### Scenario: Return a spec match
 - **WHEN** the query matches a capability specification document

@@ -13,7 +13,7 @@ The system SHALL discover capability directories under `specs/`, sort them alpha
 
 #### Scenario: Show an empty spec list in Explorer
 - **WHEN** the workspace contains no spec capability directories
-- **THEN** the Explorer Pane's SPECS section shows `No specifications found`
+- **THEN** the Explorer Pane's SPECS section shows `No specs found`
 
 ### Requirement: Active change display uses compact format with progress
 The system SHALL display active changes with a compact second line showing the last modification date with Calendar icon, spec delta count with FileText icon, and task progress (done/total) with CircleCheckBig icon. The progress bar SHALL be displayed with a narrow width alongside the icon indicators.
@@ -37,11 +37,11 @@ The system SHALL display archived changes with the date prefix (YYYY-MM-DD-) str
 - **AND** no progress bar is displayed
 
 ### Requirement: Spec list shows last modified date with icon
-The system SHALL display each spec entry with a Calendar icon and the last modification date in YYYY-MM-DD format on the second line.
+The system SHALL display each spec entry with a Calendar icon and the last modification date in locale-aware format (e.g., `Apr 10, 2026` for English, locale-equivalent for Japanese) using `Intl.DateTimeFormat` with `month: 'short'`, `day: 'numeric'`, and `year: 'numeric'`.
 
 #### Scenario: Spec shows last modified date with calendar icon
 - **WHEN** the Explorer Pane renders a spec with lastModified "2026-04-08"
-- **THEN** the second line shows a Calendar icon followed by "2026-04-08"
+- **THEN** the second line shows a Calendar icon followed by a locale-formatted date (e.g., "Apr 8, 2026" in English)
 
 ### Requirement: Render spec content
 The system SHALL load a spec by capability name when the operator clicks it in the Explorer Pane, SHALL open a tab in the Main Viewer rendering `spec.md` content, and SHALL display the spec's last modification date using the same compact metadata style as other views: a Calendar icon followed by the formatted date when available, or `Specification` as fallback. The SpecViewer heading icon SHALL use the same `FileText`-based success color treatment as the Dashboard Specs summary card so spec surfaces share a consistent visual identity.

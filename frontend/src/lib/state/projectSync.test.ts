@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import {
+  handleProjectBoundMessage,
   handleProjectContextMessage,
   reinitializeProjectScopedState,
 } from './projectSync';
@@ -21,6 +22,9 @@ function createActions(options: {
       overlay: options.overlay ?? null,
       closeOverlay: () => {
         calls.push('closeOverlay');
+      },
+      prepareProjectScopedRefresh: () => {
+        calls.push('prepareProjectScopedRefresh');
       },
       clearProjectScopedSearchState: () => {
         calls.push('clearProjectScopedSearchState');
@@ -52,6 +56,7 @@ test('project bound reinitialization closes the selector, resets tabs to Dashboa
 
   assert.deepEqual(calls, [
     'closeOverlay',
+    'prepareProjectScopedRefresh',
     'clearProjectScopedSearchState',
     'resetTabsToDashboard',
     'initializeData',
@@ -70,6 +75,7 @@ test('connection:init reinitializes project-scoped state when the active project
 
   assert.equal(reinitialized, true);
   assert.deepEqual(calls, [
+    'prepareProjectScopedRefresh',
     'clearProjectScopedSearchState',
     'resetTabsToDashboard',
     'initializeData',
@@ -102,4 +108,98 @@ test('connection:init skips reinitialization while waiting for project:bound aft
 
   assert.equal(reinitialized, false);
   assert.deepEqual(calls, []);
+});
+
+test('project:bound completes pending bind only after project-scoped refresh finishes', async () => {
+  const calls: string[] = [];
+
+  await handleProjectBoundMessage({
+    overlay: 'project-selector',
+    activeProjectId: 'project-a',
+    wasIgnoringRefreshUntilBound: true,
+    stopIgnoringRefreshUntilBound: () => {
+      calls.push('stopIgnoringRefreshUntilBound');
+    },
+    applyProjectBound: () => {
+      calls.push('applyProjectBound');
+    },
+    completeProjectBound: () => {
+      calls.push('completeProjectBound');
+    },
+    closeOverlay: () => {
+      calls.push('closeOverlay');
+    },
+    prepareProjectScopedRefresh: () => {
+      calls.push('prepareProjectScopedRefresh');
+    },
+    clearProjectScopedSearchState: () => {
+      calls.push('clearProjectScopedSearchState');
+    },
+    resetTabsToDashboard: () => {
+      calls.push('resetTabsToDashboard');
+    },
+    initializeData: async () => {
+      calls.push('initializeData');
+    },
+    refreshCommandAvailability: async () => {
+      calls.push('refreshCommandAvailability');
+    },
+  });
+
+  assert.deepEqual(calls, [
+    'applyProjectBound',
+    'stopIgnoringRefreshUntilBound',
+    'closeOverlay',
+    'prepareProjectScopedRefresh',
+    'clearProjectScopedSearchState',
+    'resetTabsToDashboard',
+    'initializeData',
+    'refreshCommandAvailability',
+    'completeProjectBound',
+  ]);
+});
+
+test('project:bound still completes pending bind when refresh fails', async () => {
+  const calls: string[] = [];
+
+  await assert.rejects(() =>
+    handleProjectBoundMessage({
+      overlay: null,
+      activeProjectId: 'project-a',
+      applyProjectBound: () => {
+        calls.push('applyProjectBound');
+      },
+      completeProjectBound: () => {
+        calls.push('completeProjectBound');
+      },
+      closeOverlay: () => {
+        calls.push('closeOverlay');
+      },
+      prepareProjectScopedRefresh: () => {
+        calls.push('prepareProjectScopedRefresh');
+      },
+      clearProjectScopedSearchState: () => {
+        calls.push('clearProjectScopedSearchState');
+      },
+      resetTabsToDashboard: () => {
+        calls.push('resetTabsToDashboard');
+      },
+      initializeData: async () => {
+        calls.push('initializeData');
+        throw new Error('refresh failed');
+      },
+      refreshCommandAvailability: async () => {
+        calls.push('refreshCommandAvailability');
+      },
+    })
+  );
+
+  assert.deepEqual(calls, [
+    'applyProjectBound',
+    'prepareProjectScopedRefresh',
+    'clearProjectScopedSearchState',
+    'resetTabsToDashboard',
+    'initializeData',
+    'completeProjectBound',
+  ]);
 });

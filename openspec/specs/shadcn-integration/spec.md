@@ -47,7 +47,7 @@ The system SHALL replace the custom `Icon.svelte` component with `@lucide/svelte
 - **THEN** file/folder/archive icons use `@lucide/svelte` components
 
 ### Requirement: Install required shadcn-svelte components
-The system SHALL install the following shadcn-svelte components: Button, Tabs, Tooltip, ScrollArea, Collapsible, Resizable, Separator, Dialog, DropdownMenu, Sheet, Input, Badge, Progress, and Sonner. The Badge component SHALL support a `success` variant in addition to the standard variants (`default`, `secondary`, `outline`, `destructive`). General action buttons SHALL use the shared shadcn `<Button>` component, while command shortcut controls SHALL use the dedicated `<CommandChip>` shared component. No feature component SHALL keep inline button or badge styling once the corresponding shared UI component exists.
+The system SHALL install the following shadcn-svelte components: Button, Tabs, Tooltip, ScrollArea, Collapsible, Resizable, Separator, Dialog, DropdownMenu, Sheet, Input, Badge, Progress, and Sonner. The Badge component SHALL support a `success` variant in addition to the standard variants (`default`, `secondary`, `outline`, `destructive`). General action buttons SHALL use the shared shadcn `<Button>` component, while command shortcut controls SHALL use the dedicated `<CommandChip>` shared component. No feature component SHALL keep inline button or badge styling once the corresponding shared UI component exists. The `toast()` function SHALL be imported directly from `svelte-sonner` rather than from `$lib/components/ui/sonner/`; the Sonner component requirement applies only to the `<Toaster>` root mount component.
 
 #### Scenario: All required components are available
 - **WHEN** the frontend is built
@@ -77,5 +77,10 @@ The system SHALL install the following shadcn-svelte components: Button, Tabs, T
 
 #### Scenario: Sonner toast component is available
 - **WHEN** a feature component needs to show a toast notification
-- **THEN** it uses the `toast()` function from `$lib/components/ui/sonner/`
+- **THEN** it imports `toast()` directly from `svelte-sonner`
 - **AND** the `<Toaster>` component is mounted at the application root
+
+#### Scenario: Raw button elements remain in some components
+- **WHEN** certain shared components (e.g., ExplorerSectionItem) render interactive elements
+- **THEN** they may use raw `<button>` HTML elements instead of the shared `<Button>` component
+- **AND** this is acceptable where the component's styling requirements diverge from `<Button>` variants

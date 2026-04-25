@@ -4,10 +4,10 @@
 Generates and surfaces copyable OpenSpec commands in the web UI using the operator's preferred AI tool syntax, with visibility rules that adapt to workspace state and change completion status.
 ## Requirements
 ### Requirement: Generate command text from the active syntax preference
-The system SHALL generate OpenSpec commands with `/opsx-<workflow>` when the AI tool preference is `default`, SHALL generate OpenSpec commands with `/opsx:<workflow>` when the AI tool preference is `Claude Code`, SHALL append no positional arguments for workspace-scoped commands, and SHALL append `<change-name>` only for change-scoped commands.
+The system SHALL generate OpenSpec commands with `/opsx-<workflow>` when the AI tool preference is `standard`, SHALL generate OpenSpec commands with `/opsx:<workflow>` when the AI tool preference is `Claude Code`, SHALL generate OpenSpec commands with `/openspec-<workflow>` when the AI tool preference is `skill`, SHALL append no positional arguments for workspace-scoped commands, and SHALL append `<change-name>` only for change-scoped commands.
 
-#### Scenario: Generate a workspace command with the default syntax
-- **WHEN** the operator uses a workspace-scoped command while the AI tool preference is `default`
+#### Scenario: Generate a workspace command with the standard syntax
+- **WHEN** the operator uses a workspace-scoped command while the AI tool preference is `standard`
 - **THEN** the system generates a command such as `/opsx-propose`
 - **AND** does not append a change argument
 
@@ -16,12 +16,17 @@ The system SHALL generate OpenSpec commands with `/opsx-<workflow>` when the AI 
 - **THEN** the system generates a command such as `/opsx:apply <change-name>`
 - **AND** does not append a task label or other extra argument
 
-### Requirement: Show workspace command buttons on Dashboard and Changes
-The system SHALL render copy-command buttons inline within the ACTIVE CHANGES section header surface using the `CommandChip` component from `$lib/components/ui/command-chip/`, whether that surface is shown in the persistent Explorer Pane or the temporary narrow-width Home drawer. The system SHALL always include the core workspace commands `propose` and `explore`, SHALL include `new` only when that expanded command is both available and enabled, SHALL include `bulk-archive` only when at least one active change is fully complete and that expanded command is both available and enabled, and SHALL include `continue` and `ff` only when at least one active change remains incomplete and those expanded commands are both available and enabled. The row SHALL remain compact, SHALL wrap when many commands are visible, and SHALL preserve command-emphasis styling distinct from standard action buttons.
+#### Scenario: Generate a workspace command with the skill syntax
+- **WHEN** the operator uses a workspace-scoped command while the AI tool preference is `skill`
+- **THEN** the system generates a command such as `/openspec-propose`
+- **AND** does not append a change argument
 
-#### Scenario: Show the always-available workspace commands on Home
+### Requirement: Show workspace command buttons on Dashboard and Changes
+The system SHALL render copy-command buttons inline within the ACTIVE CHANGES section header surface using the `CommandChip` component from `$lib/components/shared/command-chip/`, whether that surface is shown in the persistent Explorer Pane or the temporary narrow-width Home drawer. The system SHALL include `propose` and `explore` only when those core commands are enabled via visibility settings, SHALL include `new` only when that expanded command is both available and enabled, SHALL include `bulk-archive` only when at least one active change is fully complete and that expanded command is both available and enabled, and SHALL include `continue` and `ff` only when at least one active change remains incomplete and those expanded commands are both available and enabled. The row SHALL remain compact, SHALL wrap when many commands are visible, and SHALL preserve command-emphasis styling distinct from standard action buttons.
+
+#### Scenario: Show enabled workspace commands on Home
 - **WHEN** the operator views the Home surface
-- **THEN** the UI shows `CommandChip` controls for `propose` and `explore` inline in the ACTIVE CHANGES section header
+- **THEN** the UI shows `CommandChip` controls for `propose` and `explore` only if those commands are enabled via visibility settings
 
 #### Scenario: Show incomplete-work workspace commands
 - **WHEN** at least one active change still has incomplete tasks
@@ -46,16 +51,16 @@ The system SHALL render copy-command buttons inline within the ACTIVE CHANGES se
 - **THEN** the ACTIVE CHANGES section header in that drawer shows the same `CommandChip` controls as the persistent Explorer Pane
 
 ### Requirement: Show change-scoped command buttons in ChangeViewer
-The system SHALL render change-scoped copy-command buttons inline within the ChangeViewer header using `CommandChip` components. The system SHALL also render change-scoped copy-command buttons within each Dashboard Active Changes list item using `CommandChip` components via `CommandShortcutBar`. The system SHALL show `apply` when the change still has incomplete tasks, SHALL show `archive` when the change has no incomplete tasks, SHALL show `continue` and `ff` for incomplete changes only when those commands are both available and enabled, and SHALL show `verify` and `sync` for complete changes only when those commands are both available and enabled. In Dashboard list items, the command chips SHALL be visually separated from the primary open-change action, SHALL be preceded by a `Next Step` cue label, and activating a command chip SHALL NOT trigger navigation into the change.
+The system SHALL render change-scoped copy-command buttons inline within the ChangeViewer header using `CommandChip` components. The system SHALL also render change-scoped copy-command buttons within each Dashboard Active Changes list item using `CommandChip` components via `CommandShortcutBar`. The system SHALL show `apply` only when the change still has incomplete tasks and the command is enabled, SHALL show `archive` only when the change has no incomplete tasks and the command is enabled, SHALL show `continue` and `ff` for incomplete changes only when those commands are both available and enabled, and SHALL show `verify` and `sync` for complete changes only when those commands are both available and enabled. In Dashboard list items, the command chips SHALL be visually separated from the primary open-change action, SHALL be preceded by a `Next Step` cue label, and activating a command chip SHALL NOT trigger navigation into the change.
 
 #### Scenario: Show commands for an incomplete active change in Dashboard
 - **WHEN** the Dashboard surface renders an active change with incomplete tasks
-- **THEN** that change item shows a `CommandChip` for `apply`
+- **THEN** that change item shows a `CommandChip` for `apply` only if enabled
 - **AND** shows `continue` and `ff` only if those commands are available and enabled
 
 #### Scenario: Show commands for a complete active change in Dashboard
 - **WHEN** the Dashboard surface renders an active change whose tasks are all complete
-- **THEN** that change item shows a `CommandChip` for `archive`
+- **THEN** that change item shows a `CommandChip` for `archive` only if enabled
 - **AND** shows `verify` and `sync` only if those commands are available and enabled
 
 #### Scenario: Dashboard command row shows next-step cue
@@ -70,12 +75,12 @@ The system SHALL render change-scoped copy-command buttons inline within the Cha
 
 #### Scenario: Show commands for an incomplete active change in ChangeViewer
 - **WHEN** the operator opens an active change with incomplete tasks
-- **THEN** the UI shows a `CommandChip` for `apply` inline in the header
+- **THEN** the UI shows a `CommandChip` for `apply` inline in the header only if enabled
 - **AND** shows `continue` and `ff` only if those commands are available and enabled
 
 #### Scenario: Show commands for a complete active change in ChangeViewer
 - **WHEN** the operator opens an active change whose tasks are all complete
-- **THEN** the UI shows a `CommandChip` for `archive` inline in the header
+- **THEN** the UI shows a `CommandChip` for `archive` inline in the header only if enabled
 - **AND** shows `verify` and `sync` only if those commands are available and enabled
 
 #### Scenario: ChangeViewer header does not render suggestion actions
@@ -86,4 +91,3 @@ The system SHALL render change-scoped copy-command buttons inline within the Cha
 - **WHEN** the operator activates a change-scoped command button
 - **THEN** the system copies the command plus the current change name
 - **AND** does not append a task label
-

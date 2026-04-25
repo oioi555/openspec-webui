@@ -13,6 +13,13 @@ export interface ProjectSelectionResolution {
   preferredProjectId: string | null;
 }
 
+export interface ProjectBindResolution {
+  targetProjectId: string | null;
+  authoritativeProjectId: string | null;
+  hasPendingBind: boolean;
+  force?: boolean;
+}
+
 function getSessionStorage(storage?: StorageLike | null): StorageLike | null {
   if (storage !== undefined) {
     return storage;
@@ -92,4 +99,13 @@ export function shouldRestoreProjectBinding(
   announcedActiveProjectId: string | null
 ): preferredProjectId is string {
   return preferredProjectId !== null && preferredProjectId !== announcedActiveProjectId;
+}
+
+export function shouldSkipProjectBind({
+  targetProjectId,
+  authoritativeProjectId,
+  hasPendingBind,
+  force = false,
+}: ProjectBindResolution): boolean {
+  return !force && !hasPendingBind && authoritativeProjectId === targetProjectId;
 }

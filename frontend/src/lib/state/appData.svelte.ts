@@ -18,7 +18,7 @@ import { commandPreferencesStore } from './commandPreferences.svelte.ts';
 import { layoutStore } from './layout.svelte.ts';
 import { projectStore } from './projects.svelte.ts';
 import { shouldRestoreProjectBinding } from './projectsCore';
-import { handleProjectContextMessage } from './projectSync';
+import { handleProjectBoundMessage, handleProjectContextMessage } from './projectSync';
 import { tabStore } from './tabs.svelte.ts';
 
 function createBox<T>(read: () => T, write: (value: T) => void) {
@@ -151,14 +151,19 @@ function stopIgnoringRefreshUntilBound() {
   state.reconnectAnnouncedProjectId = null;
 }
 
-async function reinitializeProjectScopedState(messageType: 'project:bound' | 'connection:init', announcedActiveProjectId: string | null) {
+async function reinitializeProjectScopedState(
+  messageType: 'project:bound' | 'connection:init',
+  announcedActiveProjectId: string | null,
+  currentActiveProjectId = projectStore.activeProjectId
+) {
   await handleProjectContextMessage({
     messageType,
     announcedActiveProjectId,
-    currentActiveProjectId: projectStore.activeProjectId,
+    currentActiveProjectId,
     shouldIgnoreRefreshUntilBound: state.ignoreRefreshUntilBound,
     overlay: layoutStore.overlay,
     closeOverlay: () => layoutStore.closeOverlay(),
+    prepareProjectScopedRefresh: clearLoadedWorkspaceState,
     clearProjectScopedSearchState,
     resetTabsToDashboard: () => {
       tabStore.closeAll();
@@ -211,6 +216,8 @@ export async function initializeData() {
 }
 
 async function handleConnectionInit(announcedActiveProjectId: string | null) {
+  projectStore.setAuthoritativeBoundProjectId(announcedActiveProjectId);
+  const currentActiveProjectId = projectStore.activeProjectId;
   const localProjectId = projectStore.preferredProjectId;
 
   if (shouldRestoreProjectBinding(localProjectId, announcedActiveProjectId)) {
@@ -222,7 +229,11 @@ async function handleConnectionInit(announcedActiveProjectId: string | null) {
       stopIgnoringRefreshUntilBound();
       projectStore.setActiveProjectId(announcedActiveProjectId);
       toast.error(getApiErrorMessage(cause, t(m.error_failed_to_restore_project_binding)));
-      await reinitializeProjectScopedState('connection:init', announcedActiveProjectId);
+      await reinitializeProjectScopedState(
+        'connection:init',
+        announcedActiveProjectId,
+        currentActiveProjectId
+      );
     }
 
     return;
@@ -231,23 +242,39 @@ async function handleConnectionInit(announcedActiveProjectId: string | null) {
   stopIgnoringRefreshUntilBound();
 
   if (localProjectId === announcedActiveProjectId) {
-    await reinitializeProjectScopedState('connection:init', announcedActiveProjectId);
+    await reinitializeProjectScopedState(
+      'connection:init',
+      announcedActiveProjectId,
+      currentActiveProjectId
+    );
     return;
   }
 
   projectStore.setActiveProjectId(announcedActiveProjectId);
-  await reinitializeProjectScopedState('connection:init', announcedActiveProjectId);
+  await reinitializeProjectScopedState('connection:init', announcedActiveProjectId, currentActiveProjectId);
 }
 
 async function handleProjectBound(activeProjectId: string | null) {
-  const wasIgnoringRefresh = state.ignoreRefreshUntilBound;
-  projectStore.handleProjectBound(activeProjectId);
-
-  if (wasIgnoringRefresh) {
-    stopIgnoringRefreshUntilBound();
-  }
-
-  await reinitializeProjectScopedState('project:bound', activeProjectId);
+  await handleProjectBoundMessage({
+    overlay: layoutStore.overlay,
+    activeProjectId,
+    wasIgnoringRefreshUntilBound: state.ignoreRefreshUntilBound,
+    stopIgnoringRefreshUntilBound,
+    applyProjectBound: (projectId) => {
+      projectStore.handleProjectBound(projectId);
+    },
+    completeProjectBound: (projectId) => {
+      projectStore.completeProjectBound(projectId);
+    },
+    closeOverlay: () => layoutStore.closeOverlay(),
+    prepareProjectScopedRefresh: clearLoadedWorkspaceState,
+    clearProjectScopedSearchState,
+    resetTabsToDashboard: () => {
+      tabStore.closeAll();
+    },
+    initializeData,
+    refreshCommandAvailability: () => commandPreferencesStore.refreshAvailability(),
+  });
 }
 
 export function setupWebSocket() {

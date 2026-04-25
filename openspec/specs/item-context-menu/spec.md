@@ -5,7 +5,7 @@ Define the ItemContextMenu component that wraps trigger elements with a configur
 
 ## Requirements
 ### Requirement: ItemContextMenu component
-The system SHALL provide an `ItemContextMenu` component in `$lib/components/ui/item-context-menu/` that wraps a trigger element with a context menu. The component SHALL accept an `items` prop (array of `{ label: string; icon?: Component; onSelect: () => void }`) and render the trigger element via the children snippet. Each menu item SHALL render the optional icon followed by the label text.
+The system SHALL provide an `ItemContextMenu` component in `$lib/components/shared/item-context-menu/` that wraps a trigger element with a context menu. The component SHALL accept an `items` prop (array of `{ label: string; icon?: Component; onSelect: () => void }`) and render the trigger element via the children snippet. Each menu item SHALL render the optional icon followed by the label text.
 
 #### Scenario: Render context menu with items
 - **WHEN** an ItemContextMenu is rendered with `items=[{label:"Open",icon:FileText,onSelect:fn},{label:"Copy",icon:Clipboard,onSelect:fn}]` and a button as children

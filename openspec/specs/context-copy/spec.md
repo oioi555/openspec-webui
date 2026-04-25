@@ -22,16 +22,16 @@ The system SHALL display a context menu when the operator right-clicks on the ma
 - **AND** the menu contains "Copy" and "Quote Copy" items
 
 ### Requirement: Plain text copy from context menu
-The system SHALL provide a "Copy" item in the context menu. When selected, the system SHALL copy the currently selected text to the clipboard using `navigator.clipboard.writeText()`. If no text is selected, the item SHALL be disabled (greyed out, non-clickable). After a successful copy, the system SHALL show a toast notification confirming the action.
+The system SHALL provide a "Copy" item in the context menu. When selected, the system SHALL copy the currently selected text to the clipboard using `navigator.clipboard.writeText()`. If no text is selected, the item SHALL be disabled (greyed out, non-clickable). The selection scope SHALL be the current `window.getSelection()`, which may include text outside the viewer content area. After a successful copy, the system SHALL show a toast notification confirming the action.
 
 #### Scenario: Copy selected text via context menu
-- **WHEN** the operator has text selected in the markdown content
-- **AND** right-clicks and selects "Copy"
+- **WHEN** the operator has text selected in the window
+- **AND** right-clicks on the markdown content and selects "Copy"
 - **THEN** the selected text is copied to the clipboard
-- **AND** a toast notification shows "Copied"
+- **AND** a toast notification shows "Text copied"
 
 #### Scenario: Copy item disabled when no text selected
-- **WHEN** no text is selected in the markdown content
+- **WHEN** no text is selected in the window
 - **AND** the operator right-clicks
 - **THEN** the "Copy" menu item is disabled and cannot be clicked
 
@@ -41,7 +41,7 @@ The system SHALL provide a "Quote Copy" item in the context menu. When selected 
 > [change-name] context-label
 > selected text
 ```
-Where `context-label` is: in ChangeViewer's file content tab the active file name, in ChangeViewer's spec deltas tab the spec delta capability name, and in SpecViewer the label `Specification`. Each line of the selected text SHALL be prefixed with `> `. If no text is selected, the item SHALL be disabled. After a successful copy, the system SHALL show a toast notification confirming the action.
+Where `context-label` is: in ChangeViewer's file content tab the active file name, in ChangeViewer's spec deltas tab the spec delta capability name, and in SpecViewer the label `Specification`. Each line of the selected text SHALL be prefixed with `> `. If no text is selected, the item SHALL be disabled. The selection scope SHALL be the current `window.getSelection()`, which may include text outside the viewer content area. After a successful copy, the system SHALL show a toast notification confirming the action.
 
 #### Scenario: Quote copy with file context in ChangeViewer
 - **WHEN** the operator has text selected in a file content tab in ChangeViewer
@@ -62,7 +62,7 @@ Where `context-label` is: in ChangeViewer's file content tab the active file nam
 - **AND** each line of the selected text is prefixed with `> `
 
 #### Scenario: Quote copy item disabled when no text selected
-- **WHEN** no text is selected in the markdown content
+- **WHEN** no text is selected in the window
 - **AND** the operator right-clicks
 - **THEN** the "Quote Copy" menu item is disabled and cannot be clicked
 

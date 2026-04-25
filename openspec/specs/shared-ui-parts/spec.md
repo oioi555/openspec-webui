@@ -18,11 +18,11 @@ The system SHALL provide an `ErrorBanner` component in `$lib/components/ui/error
 - **AND** clicking the retry button calls `onRetry`
 
 ### Requirement: LoadingState component
-The system SHALL provide a `LoadingState` component in `$lib/components/ui/loading-state/` that renders a centered loading indicator with a configurable height. The loading label SHALL be localized for the active locale.
+The system SHALL provide a `LoadingState` component in `$lib/components/shared/loading-state/` that renders a centered loading indicator with a configurable height. The loading label SHALL use a fixed English label (`Loading...`) from `$lib/uiText` rather than a localized message.
 
 #### Scenario: Render default loading state
 - **WHEN** a LoadingState is rendered without props
-- **THEN** it displays a centered localized loading message with muted foreground color
+- **THEN** it displays a centered English loading message with muted foreground color
 - **AND** the container height defaults to `h-64`
 
 #### Scenario: Render loading state with custom height
@@ -109,7 +109,7 @@ The system SHALL provide an `ExplorerSection` component in `$lib/components/shar
 - **AND** no EmptyState is rendered
 
 ### Requirement: CommandChip component
-The system SHALL provide a `CommandChip` component in `$lib/components/ui/command-chip/` that renders a compact, emphasized command shortcut control. The component SHALL accept `label` (string), optional `title` (string), and optional `icon` (Svelte component) props, and SHALL forward standard button attributes and click handling. The component SHALL be visually distinct from standard Button variants by using a compact pill-style shape and command-emphasis styling.
+The system SHALL provide a `CommandChip` component in `$lib/components/shared/command-chip/` that renders a compact, emphasized command shortcut control. The component SHALL accept `label` (string), optional `title` (string), and optional `icon` (Svelte component) props, and SHALL forward standard button attributes and click handling. The component SHALL be visually distinct from standard Button variants by using a compact pill-style shape and command-emphasis styling.
 
 #### Scenario: Render command chip with icon
 - **WHEN** a CommandChip is rendered with `label="propose"` and `icon={Clipboard}`
@@ -149,10 +149,10 @@ The system SHALL NOT provide a custom `TaskProgress` component. All call sites S
 - **THEN** it uses `<Progress value={progress.percentage} class="h-2" />` for a compact variant
 
 ### Requirement: ItemContextMenu shared component
-The system SHALL provide an `ItemContextMenu` component in `$lib/components/ui/item-context-menu/` as part of the shared UI parts. The component SHALL be importable via `$lib/components/ui/item-context-menu`.
+The system SHALL provide an `ItemContextMenu` component in `$lib/components/shared/item-context-menu/` as part of the shared UI parts. The component SHALL be importable via `$lib/components/shared/item-context-menu`.
 
 #### Scenario: Import ItemContextMenu
-- **WHEN** a component imports from `$lib/components/ui/item-context-menu`
+- **WHEN** a component imports from `$lib/components/shared/item-context-menu`
 - **THEN** the `ItemContextMenu` component is available for use
 
 ### Requirement: Shared item context menu definitions
@@ -167,16 +167,21 @@ The system SHALL provide a shared helper in `$lib/itemContextMenu.ts` that build
 - **THEN** the resulting menu contains `Open in New Tab`, `Copy Name`, and `Search Related Changes`
 
 ### Requirement: Clipboard copy utility
-The system SHALL provide a `copyToClipboard` function in `$lib/utils.ts` (or equivalent shared utility module) that accepts a text string and a label, copies the text to the system clipboard, and shows a success or error toast notification whose feedback copy is localized for the active locale.
+The system SHALL provide a `copyToClipboard` function in `$lib/utils.ts` that accepts a text string and a label, copies the text to the system clipboard, and shows a success or error toast notification. Some components (e.g., TabBar) MAY implement their own inline clipboard logic rather than importing the shared utility.
 
 #### Scenario: Copy text to clipboard successfully
 - **WHEN** `copyToClipboard("my-change", "Change name")` is called
 - **THEN** the text "my-change" is written to the system clipboard
-- **AND** a localized success toast is shown using the provided label
+- **AND** a success toast is shown using the provided label
 
 #### Scenario: Copy fails gracefully
 - **WHEN** the clipboard API fails
-- **THEN** a localized error toast is shown
+- **THEN** an error toast is shown
+
+#### Scenario: Components may duplicate clipboard logic
+- **WHEN** a component like TabBar needs clipboard functionality
+- **THEN** it MAY implement its own inline `copyToClipboard` function
+- **AND** this is an accepted divergence from the shared utility pattern
 
 ### Requirement: Card surface primitives
 The system SHALL provide reusable Card surface primitives in `$lib/components/ui/card/` for standard container, header, title, description, content, and footer layouts. Feature surfaces that use the shared Card pattern SHALL compose these primitives directly or through thin shared wrappers instead of duplicating feature-local card container markup.
