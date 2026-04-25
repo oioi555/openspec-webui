@@ -1,8 +1,9 @@
 {
   "name": "openspec-webui",
-  "version": "0.2.0",
+  "version": "0.1.0",
   "description": "Interactive browser UI for OpenSpec projects with server-side project selection",
   "type": "module",
+  "packageManager": "npm@11.13.0",
   "bin": {
     "openspec-webui": "./bin/openspec-webui.js"
   },
@@ -10,10 +11,11 @@
   "scripts": {
     "dev": "node ./scripts/dev.mjs",
     "i18n:compile": "node ./scripts/run-local-bin.mjs paraglide-js compile --project ./frontend/project.inlang --outdir ./frontend/src/lib/paraglide --strategy custom-openspec-locale preferredLanguage baseLocale --emit-ts-declarations --no-emit-git-ignore --no-emit-prettier-ignore --no-emit-readme",
-    "build": "npm run i18n:compile && node ./scripts/run-local-bin.mjs tsc && node ./scripts/run-local-bin.mjs vite build --config frontend/vite.config.ts",
+    "licenses:generate": "generate-license-file --input package.json --output ThirdPartyNotices.txt --overwrite --eol lf --ci",
+    "build": "node ./scripts/clean-dist.mjs && npm run i18n:compile && node ./scripts/run-local-bin.mjs tsc -p ./tsconfig.build.json && node ./scripts/run-local-bin.mjs vite build --config frontend/vite.config.ts",
     "test": "npm run i18n:compile && node --import tsx --test src/parser/changes.test.ts src/parser/project.test.ts src/server/project-registry.test.ts src/server/server.integration.test.ts frontend/src/lib/state/theme.test.ts frontend/src/lib/state/uiPreferences.test.ts frontend/src/lib/state/projectSync.test.ts frontend/src/lib/state/projectsCore.test.ts frontend/src/lib/state/commandPreferencesCore.test.ts frontend/src/lib/state/localeCore.test.ts frontend/src/lib/locale.test.ts frontend/src/lib/utils.test.ts frontend/src/lib/contextCopy.test.ts frontend/src/lib/commandShortcuts.test.ts frontend/src/lib/projectPlanningContext.test.ts scripts/dev-utils.test.mjs",
     "typecheck": "npm run i18n:compile && node ./scripts/run-local-bin.mjs tsc --noEmit && node ./scripts/run-local-bin.mjs svelte-check --tsconfig ./frontend/tsconfig.json",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run test && npm run licenses:generate && npm run build && node ./scripts/verify-release.mjs"
   },
   "keywords": [
     "openspec",
@@ -36,6 +38,9 @@
     "node": ">=20.0.0"
   },
   "files": [
+    "README.md",
+    "LICENSE",
+    "ThirdPartyNotices.txt",
     "bin/",
     "dist/",
     "dist-frontend/"
@@ -69,6 +74,7 @@
     "tailwindcss": "^4.2.2",
     "tailwindcss-animate": "^1.0.7",
     "tsx": "^4.19.2",
+    "generate-license-file": "^4.1.1",
     "typescript": "^5.7.2",
     "vite": "^6.0.6"
   }

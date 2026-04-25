@@ -1,14 +1,22 @@
 #!/usr/bin/env node
+import { createRequire } from 'node:module';
 import { Command } from 'commander';
 import open from 'open';
 import { createServer } from '../server/index.js';
 
+const require = createRequire(import.meta.url);
+const packageJson = require('../../package.json') as {
+  name: string;
+  description: string;
+  version: string;
+};
+
 const program = new Command();
 
 program
-  .name('openspec-webui')
-  .description('Interactive browser UI for OpenSpec projects with server-side project selection')
-  .version('0.2.0')
+  .name(packageJson.name)
+  .description(packageJson.description)
+  .version(packageJson.version)
   .option('-p, --port <number>', 'Port to run server on', '3001')
   .option('--no-open', 'Do not open browser automatically')
   .action(async (options: { port: string; open: boolean }) => {

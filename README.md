@@ -54,7 +54,7 @@ openspec-webui --no-open
 ### Options
 
 | Option | Description |
-|--------|-------------|
+| -------- | ------------- |
 | `-p, --port <port>` | Port to run the server on (default: 3001) |
 | `--no-open` | Do not open the browser automatically |
 | `-V, --version` | Display version |
@@ -88,3 +88,5 @@ npm run typecheck  # TypeScript + Svelte diagnostics
 MIT. See [LICENSE](./LICENSE).
 
 This project is based on [MusicAdam/openspec-viewer](https://github.com/MusicAdam/openspec-viewer), which is licensed under the MIT License.
+
+Third-party package licenses can be found in the included `ThirdPartyNotices.txt`.
