@@ -70,6 +70,7 @@ test('parseProject reads config.yaml planning context', async () => {
       path: join(openspecPath, 'config.yaml'),
       type: 'config',
     },
+    status: 'parsed',
     aiContext: 'Alpha planning context.\nSecond line.',
     artifactRules: [
       {
@@ -122,8 +123,34 @@ test('parseProject marks migration-needed when only legacy project.md contains c
   assert.deepEqual(result.warnings, []);
   assert.equal(result.data?.description, '');
   assert.equal(result.data?.migrationState, 'migration-needed');
+  assert.equal(result.data?.planningContext.status, 'parsed');
   assert.equal(result.data?.planningContext.aiContext, '');
   assert.equal(result.data?.legacyProjectDoc?.description, 'Legacy context still lives here.');
+});
+
+test('parseProject returns degraded invalid planning context for malformed config.yaml', async () => {
+  const openspecPath = await createProjectFixture('invalid-config-project', {
+    configYaml: `schema: default-workflow\ncontext: "Broken "quote" content"\n`,
+    projectMd: '# Invalid Config Project\n\nLegacy context is still available.\n',
+  });
+
+  const result = await parseProject(openspecPath);
+
+  assert.ok(result.data);
+  assert.ok(result.errors.length > 0);
+  assert.deepEqual(result.warnings, []);
+  assert.equal(result.data?.name, 'Invalid Config Project');
+  assert.equal(result.data?.description, '');
+  assert.equal(result.data?.migrationState, 'migration-needed');
+  assert.equal(result.data?.planningContext.status, 'invalid');
+  assert.equal(
+    result.data?.planningContext.rawConfig,
+    `schema: default-workflow\ncontext: "Broken "quote" content"\n`
+  );
+  assert.equal(result.data?.planningContext.parseErrors.length, result.errors.length);
+  assert.match(result.data?.content ?? '', /## Parse Errors/);
+  assert.match(result.data?.content ?? '', /## Raw config\.yaml/);
+  assert.equal(result.data?.legacyProjectDoc?.description, 'Legacy context is still available.');
 });
 
 test('parseProject returns null data when config.yaml is missing', async () => {

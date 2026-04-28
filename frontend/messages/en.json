@@ -47,6 +47,7 @@
   "dashboard_no_active_changes": "No active changes",
   "dashboard_recent_activity_description": "Newest change and spec updates across the workspace.",
   "dashboard_planning_uses": "OpenSpec planning uses {path}.",
+  "dashboard_invalid_config_description": "config.yaml could not be parsed, so structured planning data is unavailable. Review the errors and raw file content below.",
   "dashboard_migration_needed_description": "OpenSpec planning uses config.yaml, but valuable context may still exist only in legacy project.md.",
   "dashboard_legacy_present_description": "project.md is legacy. OpenSpec planning uses config.yaml.",
   "dashboard_ai_context_description": "Included in every OpenSpec planning request.",

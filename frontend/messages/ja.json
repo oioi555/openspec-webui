@@ -47,6 +47,7 @@
   "dashboard_no_active_changes": "Active change はありません",
   "dashboard_recent_activity_description": "ワークスペース全体の最新の Change と Spec 更新です。",
   "dashboard_planning_uses": "OpenSpec の planning では {path} を使用します。",
+  "dashboard_invalid_config_description": "config.yaml を parse できないため、structured planning data は表示できません。下のエラー詳細と raw file content を確認してください。",
   "dashboard_migration_needed_description": "OpenSpec の planning では config.yaml を使いますが、有用な情報が legacy project.md にだけ残っている可能性があります。",
   "dashboard_legacy_present_description": "project.md は legacy です。OpenSpec の planning では config.yaml を使用します。",
   "dashboard_ai_context_description": "すべての OpenSpec planning request に含まれます。",

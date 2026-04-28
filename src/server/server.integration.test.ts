@@ -645,6 +645,68 @@ test('activation rollback on parse failure keeps the previous active project con
   }
 });
 
+test('activation succeeds when config.yaml is malformed but the viewer can expose degraded project data', async () => {
+  const configHome = await createTempDir('openspec-webui-server-config-');
+  process.env.XDG_CONFIG_HOME = configHome;
+  const alphaRoot = await createProjectFixture('healthy-project');
+  const invalidRoot = await createProjectFixture('invalid-project');
+  const nonProjectRoot = await createTempDir('openspec-webui-invalid-activation-cwd-');
+
+  await writeFile(
+    join(invalidRoot, 'openspec', 'config.yaml'),
+    'schema: default-workflow\ncontext: "Broken "quote" content"\n',
+    'utf8'
+  );
+
+  await mkdir(join(configHome, 'openspec-webui'), { recursive: true });
+  await writeFile(
+    join(configHome, 'openspec-webui', 'projects.json'),
+    JSON.stringify(
+      {
+        version: 1,
+        projects: [
+          {
+            id: 'healthy-project-id',
+            path: alphaRoot,
+            label: 'Healthy Project',
+            addedAt: 1,
+            lastOpenedAt: 2,
+          },
+          {
+            id: 'invalid-project-id',
+            path: invalidRoot,
+            label: 'Invalid Project',
+            addedAt: 3,
+            lastOpenedAt: 4,
+          },
+        ],
+        activeProjectId: 'healthy-project-id',
+      },
+      null,
+      2
+    ) + '\n',
+    'utf8'
+  );
+
+  const runtime = await startServer({ cwd: nonProjectRoot });
+
+  try {
+    let result = await apiJson(runtime.baseUrl, `/api/projects/${encodeURIComponent('invalid-project-id')}/activate`, {
+      method: 'POST',
+    });
+    assert.equal(result.response.status, 200);
+    assert.equal(result.body.activeProjectId, 'invalid-project-id');
+
+    result = await apiJson(runtime.baseUrl, '/api/project');
+    assert.equal(result.response.status, 200);
+    assert.equal(result.body.project.name, 'Invalid Project');
+    assert.equal(result.body.project.planningContext.status, 'invalid');
+    assert.match(result.body.project.planningContext.parseErrors[0], /Unexpected scalar/);
+  } finally {
+    await runtime.close();
+  }
+});
+
 test('project-scoped websocket refresh only reaches clients bound to the changed project', async () => {
   const configHome = await createTempDir('openspec-webui-server-config-');
   process.env.XDG_CONFIG_HOME = configHome;
@@ -710,6 +772,7 @@ test('project-scoped websocket refresh only reaches clients bound to the changed
             path?: string;
             planningContext?: {
               source?: { path?: string; type?: string };
+              status?: string;
               aiContext?: string;
               workflowSchema?: string;
             };
@@ -729,6 +792,7 @@ test('project-scoped websocket refresh only reaches clients bound to the changed
         join(alphaRoot, 'openspec', 'config.yaml')
       );
       assert.equal(refresh.data?.project?.planningContext?.source?.type, 'config');
+      assert.equal(refresh.data?.project?.planningContext?.status, 'parsed');
       assert.equal(
         refresh.data?.project?.planningContext?.aiContext,
         'Updated description for alpha-project.\nSupports refreshed planning context.'
@@ -741,6 +805,71 @@ test('project-scoped websocket refresh only reaches clients bound to the changed
     } finally {
       alphaClient.ws.close();
       betaClient.ws.close();
+    }
+  } finally {
+    await runtime.close();
+  }
+});
+
+test('project-scoped websocket refresh publishes degraded invalid planning context after malformed config change', async () => {
+  const configHome = await createTempDir('openspec-webui-server-config-');
+  process.env.XDG_CONFIG_HOME = configHome;
+  const alphaRoot = await createProjectFixture('alpha-project');
+
+  const runtime = await startServer();
+
+  try {
+    const result = await apiJson(runtime.baseUrl, '/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: alphaRoot }),
+    });
+    assert.equal(result.response.status, 201);
+    const alphaId = result.body.project.id as string;
+
+    const alphaClient = await openWsClient(runtime.baseUrl);
+
+    try {
+      assert.deepEqual(await alphaClient.recorder.nextMessage(), {
+        type: 'connection:init',
+        activeProjectId: alphaId,
+      });
+
+      sendWsJson(alphaClient.ws, { type: 'project:bind', projectId: alphaId });
+      assertProjectBoundMessage(await alphaClient.recorder.nextMessage(), alphaId, 'Alpha Project');
+
+      await writeFile(
+        join(alphaRoot, 'openspec', 'config.yaml'),
+        'schema: default-workflow\ncontext: "Broken "quote" content"\n',
+        'utf8'
+      );
+
+      const refresh = (await alphaClient.recorder.nextMessage(3_000)) as {
+        type: string;
+        entity: string;
+        data?: {
+          project?: {
+            planningContext?: {
+              status?: string;
+              parseErrors?: string[];
+              rawConfig?: string;
+            };
+            description?: string;
+          };
+        };
+      };
+
+      assert.equal(refresh.type, 'data:refresh');
+      assert.equal(refresh.entity, 'project');
+      assert.equal(refresh.data?.project?.description, '');
+      assert.equal(refresh.data?.project?.planningContext?.status, 'invalid');
+      assert.match(refresh.data?.project?.planningContext?.parseErrors?.[0] ?? '', /Unexpected scalar/);
+      assert.equal(
+        refresh.data?.project?.planningContext?.rawConfig,
+        'schema: default-workflow\ncontext: "Broken "quote" content"\n'
+      );
+    } finally {
+      alphaClient.ws.close();
     }
   } finally {
     await runtime.close();

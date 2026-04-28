@@ -29,20 +29,28 @@ The system SHALL watch the OpenSpec project directory for each active session's 
 - **AND** file changes in project A do not trigger events for project B's clients
 
 ### Requirement: Reparse and broadcast refresh events
-On every relevant watcher event for an active session's project, the system SHALL reparse that project's full workspace, SHALL retain the fresh in-memory data set when parsing succeeds, and SHALL route a `data:refresh` WebSocket message only to clients bound to that project. The message SHALL identify the affected entity and entity ID. When a client binds to a project via `project:bind`, the system SHALL send a `project:bound` WebSocket message containing the new project ID and current data to the requesting client only. When a WebSocket client connects or reconnects, the system SHALL send a `connection:init` WebSocket message containing the client's bound project ID.
+On every relevant watcher event for an active session's project, the system SHALL reparse that project's full workspace, SHALL retain the fresh in-memory data set when parsing succeeds, and SHALL route a `data:refresh` WebSocket message only to clients bound to that project. The message SHALL identify the affected entity and entity ID. When a client binds to a project via `project:bind`, the system SHALL send a `project:bound` WebSocket message containing the new project ID and current data to the requesting client only. When a WebSocket client connects or reconnects, the system SHALL send a `connection:init` WebSocket message containing the client's bound project ID. A `config.yaml` parse failure that still produces degraded project data SHALL count as a successful project refresh rather than as a failed reparse.
 
 #### Scenario: Broadcast a change refresh after a markdown edit
 - **WHEN** a markdown file changes inside a change directory in project A
 - **THEN** the system reparses project A's workspace
 - **AND** sends a `data:refresh` event for the `changes` entity only to clients bound to project A
 
-#### Scenario: Broadcast a project refresh after config change
+#### Scenario: Broadcast a project refresh after valid config change
 - **WHEN** `config.yaml` changes in project A
+- **AND** the updated file parses successfully
 - **THEN** the system reparses project A's workspace
 - **AND** sends a `data:refresh` event for the `project` entity only to clients bound to project A
 
+#### Scenario: Broadcast a project refresh after invalid config change
+- **WHEN** `config.yaml` changes in project A
+- **AND** the updated file is readable but malformed
+- **THEN** the system reparses project A's workspace into degraded project data
+- **AND** sends a `data:refresh` event for the `project` entity only to clients bound to project A
+- **AND** the refreshed project data marks the planning context as invalid
+
 #### Scenario: Keep prior data on failed reparses
-- **WHEN** a watcher-triggered reparse fails for a project
+- **WHEN** a watcher-triggered reparse fails for a project in a way that prevents degraded project data from being produced
 - **THEN** the system does not replace the previously loaded in-memory data
 
 #### Scenario: Client switches project via bind message
@@ -83,3 +91,4 @@ The browser client SHALL handle `data:refresh` events only for its currently bou
 - **THEN** it reinitializes project-scoped state before applying later refresh messages
 - **AND** MAY send a `project:bind` message to restore its previously viewed project
 - **AND** MAY ignore interim `data:refresh` messages until the restore attempt resolves
+

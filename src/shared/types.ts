@@ -27,12 +27,22 @@ export interface PlanningContextSection {
   items: PlanningContextRule[];
 }
 
-export interface PlanningContext {
+export interface ParsedPlanningContext {
   source: PlanningContextSource;
+  status: 'parsed';
   aiContext: string;
   artifactRules: PlanningContextSection[];
   workflowSchema: string;
 }
+
+export interface InvalidPlanningContext {
+  source: PlanningContextSource;
+  status: 'invalid';
+  rawConfig: string;
+  parseErrors: string[];
+}
+
+export type PlanningContext = ParsedPlanningContext | InvalidPlanningContext;
 
 export interface LegacyProjectDoc {
   path: string;

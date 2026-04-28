@@ -13,7 +13,7 @@
   import { activeChanges, archivedChanges, project, specs, stats } from '$lib/state/appData.svelte.ts';
   import { commandPreferencesStore } from '$lib/state/commandPreferences.svelte.ts';
   import { getChangeCommands, getWorkspaceCommands } from '$lib/commandShortcuts';
-  import { getPlanningContextNotice } from '$lib/projectPlanningContext';
+  import { getPlanningContextNotice, isInvalidPlanningContext, isParsedPlanningContext } from '$lib/projectPlanningContext';
   import { t } from '$lib/i18n';
   import * as m from '$lib/paraglide/messages.js';
   import { localeStore } from '$lib/state/locale.svelte.ts';
@@ -196,10 +196,23 @@
   }
 
   let planningContext = $derived(project.value?.planningContext ?? null);
+  let parsedPlanningContext = $derived.by(() =>
+    isParsedPlanningContext(planningContext) ? planningContext : null
+  );
+  let invalidPlanningContext = $derived.by(() =>
+    isInvalidPlanningContext(planningContext) ? planningContext : null
+  );
   let legacyProjectDoc = $derived(project.value?.legacyProjectDoc ?? null);
   let migrationState = $derived(project.value?.migrationState ?? 'config-only');
-  let hasArtifactRules = $derived((planningContext?.artifactRules.length ?? 0) > 0);
-  let planningContextNotice = $derived(getPlanningContextNotice({ migrationState }, localeStore.version));
+  let hasArtifactRules = $derived((parsedPlanningContext?.artifactRules.length ?? 0) > 0);
+  let planningContextNotice = $derived(
+    project.value
+      ? getPlanningContextNotice(
+          { migrationState, planningContext: project.value.planningContext },
+          localeStore.version,
+        )
+      : { variant: null, title: '' }
+  );
 
   function getProjectSelectorAriaLabel() {
     return FIXED_LABELS.dashboard.openProjectSelector;
@@ -472,7 +485,14 @@
             {t(m.dashboard_planning_uses, { path: planningContext.source.path })}
           </p>
 
-          {#if planningContextNotice.variant === 'warning'}
+          {#if planningContextNotice.variant === 'error'}
+            <Callout variant={planningContextNotice.variant}>
+              <p class="font-medium">{planningContextNotice.title}</p>
+              <p class="mt-1 text-sm">
+                {t(m.dashboard_invalid_config_description)}
+              </p>
+            </Callout>
+          {:else if planningContextNotice.variant === 'warning'}
             <Callout variant={planningContextNotice.variant}>
               <p class="font-medium">{planningContextNotice.title}</p>
               <p class="mt-1 text-sm">
@@ -486,66 +506,92 @@
           {/if}
         </div>
 
-        <section class="space-y-3">
-          <div>
-            <h3 class="text-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground">{FIXED_LABELS.dashboard.aiContext}</h3>
-            <p class="mt-1 text-sm text-muted-foreground">{t(m.dashboard_ai_context_description)}</p>
-          </div>
-
-          {#if planningContext.aiContext}
-            <InsetPanel>
-              <MarkdownRenderer content={planningContext.aiContext} />
-            </InsetPanel>
-          {:else}
-            <InsetPanel dashed class="text-sm text-muted-foreground">
-              {t(m.dashboard_no_ai_context)}
-            </InsetPanel>
-          {/if}
-        </section>
-
-        <section class="space-y-3">
-          <div>
-            <h3 class="text-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground">{FIXED_LABELS.dashboard.artifactRules}</h3>
-            <p class="mt-1 text-sm text-muted-foreground">{t(m.dashboard_artifact_rules_description)}</p>
-          </div>
-
-          {#if hasArtifactRules}
-            <div class="space-y-3">
-              {#each planningContext.artifactRules as ruleSection}
-                <InsetPanel>
-                  <div class="flex items-center gap-2">
-                    <Badge variant="outline">{ruleSection.artifactId}</Badge>
-                    <span class="text-sm font-medium text-foreground">{ruleSection.title}</span>
-                  </div>
-
-                  <div class="mt-3 space-y-3">
-                    {#each ruleSection.items as item}
-                      <div>
-                        <div class="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">{item.label}</div>
-                        <div class="mt-1 rounded-md bg-secondary/50 px-3 py-2 text-sm whitespace-pre-wrap text-foreground">{item.value}</div>
-                      </div>
-                    {/each}
-                  </div>
-                </InsetPanel>
-              {/each}
+        {#if parsedPlanningContext}
+          <section class="space-y-3">
+            <div>
+              <h3 class="text-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground">{FIXED_LABELS.dashboard.aiContext}</h3>
+              <p class="mt-1 text-sm text-muted-foreground">{t(m.dashboard_ai_context_description)}</p>
             </div>
-          {:else}
-            <InsetPanel dashed class="text-sm text-muted-foreground">
-              {t(m.dashboard_no_artifact_rules)}
+
+            {#if parsedPlanningContext.aiContext}
+              <InsetPanel>
+                <MarkdownRenderer content={parsedPlanningContext.aiContext} />
+              </InsetPanel>
+            {:else}
+              <InsetPanel dashed class="text-sm text-muted-foreground">
+                {t(m.dashboard_no_ai_context)}
+              </InsetPanel>
+            {/if}
+          </section>
+
+          <section class="space-y-3">
+            <div>
+              <h3 class="text-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground">{FIXED_LABELS.dashboard.artifactRules}</h3>
+              <p class="mt-1 text-sm text-muted-foreground">{t(m.dashboard_artifact_rules_description)}</p>
+            </div>
+
+            {#if hasArtifactRules}
+              <div class="space-y-3">
+                {#each parsedPlanningContext.artifactRules as ruleSection}
+                  <InsetPanel>
+                    <div class="flex items-center gap-2">
+                      <Badge variant="outline">{ruleSection.artifactId}</Badge>
+                      <span class="text-sm font-medium text-foreground">{ruleSection.title}</span>
+                    </div>
+
+                    <div class="mt-3 space-y-3">
+                      {#each ruleSection.items as item}
+                        <div>
+                          <div class="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">{item.label}</div>
+                          <div class="mt-1 rounded-md bg-secondary/50 px-3 py-2 text-sm whitespace-pre-wrap text-foreground">{item.value}</div>
+                        </div>
+                      {/each}
+                    </div>
+                  </InsetPanel>
+                {/each}
+              </div>
+            {:else}
+              <InsetPanel dashed class="text-sm text-muted-foreground">
+                {t(m.dashboard_no_artifact_rules)}
+              </InsetPanel>
+            {/if}
+          </section>
+
+          <section class="space-y-3">
+            <div>
+              <h3 class="text-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground">{FIXED_LABELS.dashboard.workflowSchema}</h3>
+              <p class="mt-1 text-sm text-muted-foreground">{t(m.dashboard_workflow_schema_description)}</p>
+            </div>
+
+            <InsetPanel class="py-3">
+              <span class="font-medium text-foreground">{parsedPlanningContext.workflowSchema || getWorkflowSchemaFallbackLabel()}</span>
             </InsetPanel>
-          {/if}
-        </section>
+          </section>
+        {:else if invalidPlanningContext}
+          <section class="space-y-3">
+            <div>
+              <h3 class="text-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground">{FIXED_LABELS.dashboard.parseErrors}</h3>
+            </div>
 
-        <section class="space-y-3">
-          <div>
-            <h3 class="text-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground">{FIXED_LABELS.dashboard.workflowSchema}</h3>
-            <p class="mt-1 text-sm text-muted-foreground">{t(m.dashboard_workflow_schema_description)}</p>
-          </div>
+            <InsetPanel class="space-y-3">
+              {#each invalidPlanningContext.parseErrors as parseError}
+                <div class="rounded-md bg-danger-bg/50 px-3 py-2 text-sm whitespace-pre-wrap text-foreground">
+                  {parseError}
+                </div>
+              {/each}
+            </InsetPanel>
+          </section>
 
-          <InsetPanel class="py-3">
-            <span class="font-medium text-foreground">{planningContext.workflowSchema || getWorkflowSchemaFallbackLabel()}</span>
-          </InsetPanel>
-        </section>
+          <section class="space-y-3">
+            <div>
+              <h3 class="text-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground">{FIXED_LABELS.dashboard.rawConfig}</h3>
+            </div>
+
+            <InsetPanel>
+              <pre class="overflow-x-auto text-sm whitespace-pre-wrap text-foreground"><code>{invalidPlanningContext.rawConfig}</code></pre>
+            </InsetPanel>
+          </section>
+        {/if}
 
         {#if legacyProjectDoc}
           <section class="space-y-3">

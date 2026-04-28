@@ -1,11 +1,13 @@
 import { readFile } from 'fs/promises';
 import { join, basename, resolve, dirname } from 'path';
-import { parse as parseYaml } from 'yaml';
+import { parseDocument } from 'yaml';
 import type {
+  InvalidPlanningContext,
   LegacyProjectDoc,
   PlanningContextRule,
   PlanningContextSection,
   PlanningContextSource,
+  ParsedPlanningContext,
   Project,
   ProjectMigrationState,
   ParseResult,
@@ -161,6 +163,47 @@ function buildCompatibilityContent(options: {
   return `${sections.join('\n').trimEnd()}\n`;
 }
 
+function buildInvalidCompatibilityContent(options: {
+  configPath: string;
+  rawConfig: string;
+  parseErrors: string[];
+  legacyProjectDoc: LegacyProjectDoc | null;
+}): string {
+  const sections: string[] = [
+    '# OpenSpec Planning Context',
+    '',
+    `Source: ${options.configPath}`,
+    '',
+    '## Config Status',
+    '',
+    'Invalid config.yaml',
+    '',
+    '## Parse Errors',
+  ];
+
+  if (options.parseErrors.length === 0) {
+    sections.push('', '_No parse error details available._');
+  } else {
+    for (const error of options.parseErrors) {
+      sections.push('', error);
+    }
+  }
+
+  sections.push('', '## Raw config.yaml', '', '```yaml', options.rawConfig.trimEnd(), '```');
+
+  if (options.legacyProjectDoc) {
+    sections.push('', '## Legacy project.md (Deprecated)', '', options.legacyProjectDoc.content);
+  }
+
+  return `${sections.join('\n').trimEnd()}\n`;
+}
+
+function formatYamlIssues(issues: Array<{ message: string }>): string[] {
+  return issues
+    .map((issue) => issue.message.trim())
+    .filter((message) => message.length > 0);
+}
+
 export async function parseProject(openspecPath: string): Promise<ParseResult<Project>> {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -173,11 +216,48 @@ export async function parseProject(openspecPath: string): Promise<ParseResult<Pr
 
   try {
     const configContent = await readFile(configPath, 'utf-8');
-    const parsedConfig = (parseYaml(configContent) ?? {}) as ParsedConfigFile;
+    const legacyProjectDoc = await readOptionalLegacyProjectDoc(projectPath, warnings);
+    const document = parseDocument(configContent);
+    warnings.push(...formatYamlIssues(document.warnings));
+
+    if (document.errors.length > 0) {
+      const parseErrors = formatYamlIssues(document.errors);
+      errors.push(...parseErrors);
+
+      const planningContext: InvalidPlanningContext = {
+        source: {
+          path: configPath,
+          type: 'config' satisfies PlanningContextSource['type'],
+        },
+        status: 'invalid',
+        rawConfig: configContent,
+        parseErrors,
+      };
+
+      return {
+        data: {
+          name,
+          description: '',
+          path: configPath,
+          content: buildInvalidCompatibilityContent({
+            configPath,
+            rawConfig: configContent,
+            parseErrors,
+            legacyProjectDoc,
+          }),
+          planningContext,
+          legacyProjectDoc,
+          migrationState: determineMigrationState('', legacyProjectDoc),
+        },
+        errors,
+        warnings,
+      };
+    }
+
+    const parsedConfig = (document.toJS() ?? {}) as ParsedConfigFile;
     const aiContext = normalizeText(parsedConfig.context);
     const schema = normalizeText(parsedConfig.schema);
     const artifactRules = normalizeRules(parsedConfig.rules);
-    const legacyProjectDoc = await readOptionalLegacyProjectDoc(projectPath, warnings);
     const migrationState = determineMigrationState(aiContext, legacyProjectDoc);
     const description = getFirstNonEmptyLine(aiContext);
     const content = buildCompatibilityContent({
@@ -187,6 +267,16 @@ export async function parseProject(openspecPath: string): Promise<ParseResult<Pr
       artifactRules,
       legacyProjectDoc,
     });
+    const planningContext: ParsedPlanningContext = {
+      source: {
+        path: configPath,
+        type: 'config' satisfies PlanningContextSource['type'],
+      },
+      status: 'parsed',
+      aiContext,
+      artifactRules,
+      workflowSchema: schema,
+    };
 
     return {
       data: {
@@ -194,15 +284,7 @@ export async function parseProject(openspecPath: string): Promise<ParseResult<Pr
         description,
         path: configPath,
         content,
-        planningContext: {
-          source: {
-            path: configPath,
-            type: 'config' satisfies PlanningContextSource['type'],
-          },
-          aiContext,
-          artifactRules,
-          workflowSchema: schema,
-        },
+        planningContext,
         legacyProjectDoc,
         migrationState,
       },

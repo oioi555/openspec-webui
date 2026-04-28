@@ -123,8 +123,11 @@ export const FIXED_LABELS = {
     focusSection: 'Focus section',
     migrationNeeded: 'Migration needed',
     legacyDetected: 'Legacy project.md detected',
+    invalidConfig: 'Invalid config.yaml',
     aiContext: 'AI Context',
     artifactRules: 'Artifact Rules',
+    parseErrors: 'Parse Errors',
+    rawConfig: 'Raw config.yaml',
     workflowSchema: 'Workflow Schema',
     proposal: 'Proposal',
     badges: {

@@ -67,6 +67,7 @@ function createData(openspecPath: string): OpenSpecData {
           path: configPath,
           type: 'config',
         },
+        status: 'parsed',
         aiContext: `Description for ${projectName}`,
         artifactRules: [
           {
@@ -422,6 +423,61 @@ test('activation rollback keeps previous session and watcher when activating a p
 
   const stored = await readRegistryJson(configHome);
   assert.equal(stored.activeProjectId, alpha.entry.id);
+});
+
+test('activation accepts degraded project data when config.yaml is malformed but parse still returns data', async () => {
+  const configHome = await createTempDir('openspec-webui-config-');
+  const projectAlpha = await createProjectRoot('alpha-project');
+  const projectBeta = await createProjectRoot('beta-project');
+  const harness = createRegistryHarness();
+  const betaOpenSpecPath = getOpenSpecPath(projectBeta);
+  const registry = createProjectRegistry({
+    env: { XDG_CONFIG_HOME: configHome },
+    logger: harness.logger,
+    parse: async (openspecPath: string) => {
+      if (openspecPath === betaOpenSpecPath) {
+        const degradedData = createData(openspecPath);
+        return {
+          data: {
+            ...degradedData,
+            project: {
+              ...degradedData.project,
+              description: '',
+              planningContext: {
+                source: {
+                  path: join(openspecPath, 'config.yaml'),
+                  type: 'config',
+                },
+                status: 'invalid',
+                rawConfig: 'context: "Broken "quote" content"\n',
+                parseErrors: ['Unexpected scalar at node end at line 1, column 19'],
+              },
+            },
+          },
+          errors: ['Unexpected scalar at node end at line 1, column 19'],
+          warnings: [],
+        };
+      }
+
+      return harness.parse(openspecPath);
+    },
+    createWatcher: harness.createWatcher,
+    randomId: (() => {
+      let current = 0;
+      return () => `project-${++current}`;
+    })(),
+  });
+
+  const alpha = await registry.addProject(projectAlpha);
+  const beta = await registry.addProject(projectBeta);
+
+  assert.equal(beta.status, 'created');
+  assert.equal(registry.getActiveProject()?.id, beta.entry.id);
+  assert.equal(registry.getActiveData()?.project.planningContext.status, 'invalid');
+
+  const reactivated = await registry.activateProject(alpha.entry.id);
+  assert.equal(reactivated.alreadyActive, false);
+  assert.equal(registry.getActiveProject()?.id, alpha.entry.id);
 });
 
 test('atomic writes use temp file rename semantics', async () => {

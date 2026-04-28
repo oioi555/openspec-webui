@@ -39,23 +39,34 @@ export interface Project {
   description: string;
   path: string;
   content: string;
-  planningContext: {
-    source: {
-      path: string;
-      type: 'config';
-    };
-    aiContext: string;
-    artifactRules: Array<{
-      artifactId: string;
-      title: string;
-      content: string;
-      items: Array<{
-        label: string;
-        value: string;
-      }>;
-    }>;
-    workflowSchema: string;
-  };
+  planningContext:
+    | {
+        source: {
+          path: string;
+          type: 'config';
+        };
+        status: 'parsed';
+        aiContext: string;
+        artifactRules: Array<{
+          artifactId: string;
+          title: string;
+          content: string;
+          items: Array<{
+            label: string;
+            value: string;
+          }>;
+        }>;
+        workflowSchema: string;
+      }
+    | {
+        source: {
+          path: string;
+          type: 'config';
+        };
+        status: 'invalid';
+        rawConfig: string;
+        parseErrors: string[];
+      };
   legacyProjectDoc: {
     path: string;
     content: string;

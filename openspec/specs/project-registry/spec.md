@@ -2,7 +2,6 @@
 
 ## Purpose
 Define persistent project registration, active-project selection, and project-scoped API context for the WebUI server.
-
 ## Requirements
 ### Requirement: Project registry persistence
 The system SHALL maintain a project registry file at `${XDG_CONFIG_HOME:-~/.config}/openspec-webui/projects.json`. The file SHALL contain a versioned JSON object with a `version` field, a `projects` array, and an `activeProjectId` string or null. Each project entry SHALL include `id` (UUID), `path` (absolute normalized project-root path), `label` (auto-derived from directory name), `addedAt` (timestamp), and `lastOpenedAt` (timestamp). The system SHALL create the config directory and file if they do not exist at server startup. The system SHALL NOT allow duplicate paths in the registry. The system SHALL write the file atomically.
@@ -85,7 +84,7 @@ The system SHALL provide a `DELETE /api/projects/:id` endpoint that removes the 
 - **THEN** the server responds with status 404
 
 ### Requirement: Switch active project via API
-The system SHALL provide a `POST /api/projects/:id/activate` endpoint that activates the target project as the global default. The system SHALL parse and prepare the target project's OpenSpec data before committing the switch, SHALL start a new file watcher for the target project (or reuse an existing session if one exists), SHALL NOT close any other project's watcher, SHALL update `activeProjectId` as the global default, and SHALL persist the registry. Client-local binding remains the responsibility of the WebSocket `project:bind` flow. If activation fails, the system SHALL keep the previous state intact.
+The system SHALL provide a `POST /api/projects/:id/activate` endpoint that activates the target project as the global default. The system SHALL parse and prepare the target project's OpenSpec data before committing the switch, SHALL start a new file watcher for the target project (or reuse an existing session if one exists), SHALL NOT close any other project's watcher, SHALL update `activeProjectId` as the global default, and SHALL persist the registry. Client-local binding remains the responsibility of the WebSocket `project:bind` flow. If activation fails, the system SHALL keep the previous state intact. A malformed but readable `openspec/config.yaml` SHALL NOT by itself count as an activation failure when the system can still build degraded project data for the viewer.
 
 #### Scenario: Switch to a different project
 - **WHEN** a POST request is sent to `/api/projects/def456/activate`
@@ -95,6 +94,14 @@ The system SHALL provide a `POST /api/projects/:id/activate` endpoint that activ
 - **AND** other projects' watchers remain active
 - **AND** `activeProjectId` is updated to `def456` as the global default
 - **AND** the registry is persisted
+
+#### Scenario: Switch to a project with malformed config.yaml
+- **WHEN** a POST request is sent to `/api/projects/def456/activate`
+- **AND** `def456` is registered
+- **AND** `def456/openspec/config.yaml` is readable but malformed
+- **THEN** the system activates the project successfully
+- **AND** exposes project data with invalid planning context diagnostics
+- **AND** does not return `ACTIVATION_FAILED`
 
 #### Scenario: Switch to the already active project
 - **WHEN** a POST request is sent to `/api/projects/abc123/activate`
@@ -108,7 +115,7 @@ The system SHALL provide a `POST /api/projects/:id/activate` endpoint that activ
 #### Scenario: Keep prior state when activation fails
 - **WHEN** a POST request is sent to `/api/projects/def456/activate`
 - **AND** `def456` is registered
-- **AND** parsing or watcher setup for `def456` fails
+- **AND** parsing or watcher setup for `def456` fails in a way that prevents degraded project data from being prepared
 - **THEN** the server responds with an activation error
 - **AND** the global default project remains unchanged
 - **AND** all existing sessions remain intact
@@ -165,3 +172,4 @@ The system SHALL send a WebSocket message with `type: 'connection:init'` and the
 - **WHEN** a client reconnects after the global default project changed while it was disconnected
 - **THEN** the first WebSocket message includes the current `activeProjectId`
 - **AND** the client can reinitialize project-scoped state against that id
+

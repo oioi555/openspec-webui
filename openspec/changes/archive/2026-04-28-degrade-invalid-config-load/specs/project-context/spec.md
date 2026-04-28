@@ -1,8 +1,5 @@
-# project-context Specification
+## MODIFIED Requirements
 
-## Purpose
-Define project identity, dashboard context, and navigation behavior for the Activity Bar, Explorer Pane, and tabbed Main Viewer.
-## Requirements
 ### Requirement: Expose project identity and documentation
 The system SHALL derive the displayed project name from the parent directory name of the loaded OpenSpec directory, SHALL read `config.yaml` from that directory, and SHALL expose project context even when `config.yaml` is malformed. When `config.yaml` parses successfully, the system SHALL expose a structured planning context containing `AI Context`, `Artifact Rules`, and `Workflow Schema`, and SHALL derive the short description from the first non-empty line of `context:` when present. When `config.yaml` cannot be parsed, the system SHALL still expose the derived project name, SHALL mark the planning context as invalid, SHALL include parse diagnostics plus the raw `config.yaml` text for inspection, and SHALL NOT fabricate structured planning fields from repaired or rewritten YAML. The system SHALL identify `config.yaml` as the active planning source for the currently active project. When a readable `project.md` exists, the system SHALL expose its content as deprecated supplemental documentation rather than as the active planning source. The system SHALL NOT use a missing `project.md` warning string as the project description. When no project is active, the `/api/project` endpoint SHALL respond with status 503.
 
@@ -132,28 +129,3 @@ The web UI SHALL provide an Obsidian-like three-pane layout with Activity Bar, E
 - **THEN** the Dashboard icon in the Activity Bar is highlighted
 - **WHEN** the operator is viewing the Dashboard
 - **THEN** the Dashboard icon in the Activity Bar is highlighted
-
-### Requirement: Expose a shared application favicon
-The app shell SHALL reference `/app-icon.svg` as the browser favicon so the same branding asset is used for the navigation and browser chrome.
-
-#### Scenario: Browser loads the shared favicon reference
-- **WHEN** the browser loads the application HTML shell
-- **THEN** the document includes a `rel="icon"` link whose `href` is `/app-icon.svg`
-- **AND** the app shell does not require a separate `/favicon.svg` asset for branding
-
-### Requirement: Change viewer back navigation
-The ChangeViewer SHALL NOT display a standalone back link. Navigation SHALL be handled by the Explorer Pane and tab system. The operator SHALL return to the Dashboard or Changes list via the Explorer Pane or by closing the tab.
-
-#### Scenario: Navigate away from a change via Explorer
-- **WHEN** the operator views a change and clicks a different item in the Explorer Pane
-- **THEN** the new item opens in a tab
-- **AND** the previous change tab remains open unless explicitly closed
-
-### Requirement: Spec viewer back navigation
-The SpecViewer SHALL NOT display a standalone back link. Navigation SHALL be handled by the Explorer Pane and tab system.
-
-#### Scenario: Navigate away from a spec via Explorer
-- **WHEN** the operator views a spec and clicks a different item in the Explorer Pane
-- **THEN** the new item opens in a tab
-- **AND** the previous spec tab remains open unless explicitly closed
-
