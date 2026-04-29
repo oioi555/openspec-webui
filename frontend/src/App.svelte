@@ -7,6 +7,7 @@
   import { commandPreferencesStore } from '$lib/state/commandPreferences.svelte.ts';
   import { themeStore } from '$lib/state/theme.svelte.ts';
   import { uiPreferencesStore } from '$lib/state/uiPreferences.svelte.ts';
+  import { versionStatusStore } from '$lib/state/versionStatus.svelte.ts';
   import AppLayout from '$lib/components/layout/AppLayout.svelte';
   import { Toaster } from '$lib/components/ui/sonner';
 
@@ -21,6 +22,7 @@
     themeStore.initialize();
     uiPreferencesStore.initialize();
     void commandPreferencesStore.initialize();
+    versionStatusStore.initialize();
 
     void (async () => {
       await initializeData();
@@ -36,6 +38,7 @@
       disposed = true;
       unsubscribe();
       themeStore.destroy();
+      versionStatusStore.destroy();
     };
   });
 </script>

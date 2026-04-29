@@ -3,6 +3,11 @@ import { twMerge } from 'tailwind-merge';
 import { getLocale } from './paraglide/runtime.js';
 import * as m from './paraglide/messages.js';
 
+interface ToastLike {
+  success(message: string): void;
+  error(message: string): void;
+}
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -56,13 +61,23 @@ export function formatDate(iso: string | null | undefined, locale: string = getL
   }).format(date);
 }
 
+async function loadToast(): Promise<ToastLike> {
+  const testToast = (globalThis as { __OPENSPEC_TEST_TOAST__?: ToastLike }).__OPENSPEC_TEST_TOAST__;
+  if (testToast) {
+    return testToast;
+  }
+
+  const { toast } = await import('svelte-sonner');
+  return toast;
+}
+
 export async function copyToClipboard(text: string, label: string) {
   try {
     await navigator.clipboard.writeText(text);
-    const { toast } = await import('svelte-sonner');
+    const toast = await loadToast();
     toast.success(m.common_copied({ label }));
   } catch {
-    const { toast } = await import('svelte-sonner');
+    const toast = await loadToast();
     toast.error(m.common_failed_to_copy());
   }
 }

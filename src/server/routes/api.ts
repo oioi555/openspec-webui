@@ -11,6 +11,7 @@ import {
   createStructuredApiError,
   type ProjectRegistry,
 } from '../project-registry.js';
+import type { VersionSnapshotService } from '../version-status.js';
 import { readdirSync, statSync, existsSync } from 'fs';
 import { join, resolve, dirname } from 'path';
 import { homedir } from 'os';
@@ -33,6 +34,7 @@ interface RegisterApiRoutesOptions {
     | 'removeProject'
     | 'setCommandAvailabilityCache'
   >;
+  versionSnapshotService: Pick<VersionSnapshotService, 'getSnapshot'>;
   onProjectRemoved?: (removedProjectId: string, nextProjectId: string | null) => Promise<void> | void;
 }
 
@@ -47,7 +49,7 @@ export async function registerApiRoutes(
   fastify: FastifyInstance,
   options: RegisterApiRoutesOptions
 ) {
-  const { registry, onProjectRemoved } = options;
+  const { registry, versionSnapshotService, onProjectRemoved } = options;
 
   function readProjectIdHeader(request: FastifyRequest): string | null {
     const rawValue = request.headers['x-project-id'];
@@ -281,6 +283,8 @@ export async function registerApiRoutes(
     const availability = await getCommandAvailability(projectId);
     return { availability };
   });
+
+  fastify.get('/api/version-status', async () => versionSnapshotService.getSnapshot());
 
   // Search
   fastify.get<{ Querystring: { q: string } }>('/api/search', async (request, reply) => {

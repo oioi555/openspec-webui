@@ -4,7 +4,7 @@
 Persist operator preferences for command syntax, expanded-command visibility, and theme selection in a settings dialog launched from the Activity Bar.
 ## Requirements
 ### Requirement: Launch command settings from Activity Bar
-The web UI SHALL provide a Settings icon in the Activity Bar. Clicking the Settings icon SHALL open a settings dialog for command preferences, theme settings, and preview-tab behavior settings.
+The web UI SHALL provide a Settings icon in the Activity Bar. Clicking the Settings icon SHALL open a settings dialog for command preferences, theme settings, preview-tab behavior settings, and version/update information for OpenSpec WebUI and OpenSpec CLI.
 
 #### Scenario: Open command settings from Activity Bar
 - **WHEN** the operator clicks the Settings icon in the Activity Bar
@@ -12,6 +12,7 @@ The web UI SHALL provide a Settings icon in the Activity Bar. Clicking the Setti
 - **AND** shows the current command preference values
 - **AND** shows the current theme selection
 - **AND** shows whether preview tabs are enabled
+- **AND** makes the `Versions` category available in the settings sidebar
 
 #### Scenario: Return to the current view after closing settings
 - **WHEN** the operator dismisses the settings dialog
@@ -26,7 +27,7 @@ The system SHALL replace the custom `Icon` Svelte component with `@lucide/svelte
 - **AND** the custom `Icon.svelte` is not used
 
 ### Requirement: Two-column settings layout
-The settings dialog SHALL use a two-column layout with a left sidebar listing setting categories (General, Workflow, Commands) and a right content area showing the selected category's settings. Selecting a category in the sidebar SHALL update the right content area without closing the dialog. The General category SHALL include both theme settings and preview-tab behavior settings.
+The settings dialog SHALL use a two-column layout with a left sidebar listing setting categories (General, Workflow, Commands, Versions) and a right content area showing the selected category's settings. Selecting a category in the sidebar SHALL update the right content area without closing the dialog. The General category SHALL include both theme settings and preview-tab behavior settings. The Versions category SHALL show version and update information for OpenSpec WebUI and OpenSpec CLI.
 
 #### Scenario: Show General settings by default
 - **WHEN** the settings dialog opens
@@ -37,6 +38,10 @@ The settings dialog SHALL use a two-column layout with a left sidebar listing se
 #### Scenario: Switch to Workflow settings
 - **WHEN** the user clicks the Workflow category in the sidebar navigation
 - **THEN** the right content area shows the Workflow settings
+
+#### Scenario: Switch to Versions settings
+- **WHEN** the user clicks the Versions category in the sidebar navigation
+- **THEN** the right content area shows version and update information for OpenSpec WebUI and OpenSpec CLI
 
 ### Requirement: Provide theme selection in settings dialog
 The settings dialog SHALL include an Appearance section with three radio options: Light, Dark, and System. The selected option SHALL immediately apply the corresponding theme without requiring page reload. The theme options SHALL be rendered as shared selection cards that align with the application's Card surface pattern.
@@ -130,4 +135,3 @@ The settings dialog SHALL render each available workflow format option as a card
 - **THEN** that card becomes visually highlighted as the selected option
 - **AND** the system stores the corresponding workflow preference value
 - **AND** the Workflow section continues to show the command preview and help callout content
-

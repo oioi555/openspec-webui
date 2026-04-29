@@ -205,6 +205,26 @@ export interface CommandAvailability {
   error: string | null;
 }
 
+export type VersionToolStatus = 'up-to-date' | 'update-available' | 'unavailable' | 'unknown';
+
+export interface ToolVersionStatus {
+  currentVersion: string | null;
+  latestVersion: string | null;
+  updateAvailable: boolean;
+  status: VersionToolStatus;
+  error: string | null;
+  notInstalled: boolean;
+}
+
+export interface VersionStatusResponse {
+  loading: boolean;
+  checkedAt: string | null;
+  tools: {
+    webui: ToolVersionStatus;
+    openspec: ToolVersionStatus;
+  };
+}
+
 export interface BrowseDirEntry {
   name: string;
   path: string;

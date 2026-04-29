@@ -6,6 +6,7 @@ import { homedir, tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 import { createServer } from './index.js';
+import { createVersionSnapshotService, type VersionSnapshotService } from './version-status.js';
 
 const WS_OPEN = 1;
 
@@ -68,19 +69,27 @@ async function createBrokenProjectFixture(name: string): Promise<string> {
 async function installFakeOpenSpecCommand(config: {
   readyProjectRoots: Set<string>;
   unavailableProjectRoots?: Set<string>;
+  version?: string;
 }) {
   const binDir = await createTempDir('openspec-webui-fake-bin-');
   const scriptPath = join(binDir, 'openspec');
   const readyRoots = JSON.stringify([...config.readyProjectRoots]);
   const unavailableRoots = JSON.stringify([...(config.unavailableProjectRoots ?? new Set())]);
+  const version = JSON.stringify(config.version ?? '1.3.1');
 
   await writeFile(
     scriptPath,
     `#!/usr/bin/env node
 const readyRoots = new Set(${readyRoots});
 const unavailableRoots = new Set(${unavailableRoots});
+const version = ${version};
 const cwd = process.cwd();
 const key = process.argv[4];
+
+if (process.argv.includes('--version')) {
+  process.stdout.write(version + '\\n');
+  process.exit(0);
+}
 
 if (unavailableRoots.has(cwd)) {
   process.stderr.write('workflow unavailable');
@@ -111,7 +120,12 @@ process.exit(1);
   process.env.PATH = `${binDir}:${process.env.PATH ?? ''}`;
 }
 
-async function startServer(options: { port?: number; host?: string; cwd?: string } = {}) {
+async function startServer(options: {
+  port?: number;
+  host?: string;
+  cwd?: string;
+  versionSnapshotService?: VersionSnapshotService;
+} = {}) {
   const { cwd = await createTempDir('openspec-webui-server-cwd-'), ...serverOptions } = options;
   const previousCwd = process.cwd();
   process.chdir(cwd);
@@ -649,6 +663,48 @@ test('startup from a non-project cwd succeeds without auto-adding a project or b
   } finally {
     console.warn = originalWarn;
     await runtime?.close();
+  }
+});
+
+test('version status endpoint returns current, latest, and registered project guidance data', async () => {
+  const configHome = await createTempDir('openspec-webui-server-config-');
+  process.env.XDG_CONFIG_HOME = configHome;
+  const projectRoot = await createProjectFixture('alpha-project');
+  await installFakeOpenSpecCommand({
+    readyProjectRoots: new Set([projectRoot]),
+    version: '1.3.1',
+  });
+
+  const versionSnapshotService = createVersionSnapshotService({
+    autoStart: false,
+    deps: {
+      getWebUiCurrentVersion: () => '0.1.0',
+      fetchLatestPackageVersion: async (packageName: string) => packageName === 'openspec-webui' ? '0.2.0' : '1.4.0',
+      readOpenSpecVersion: async () => '1.3.1',
+      now: () => new Date('2026-04-29T00:00:00.000Z'),
+    },
+  });
+  await versionSnapshotService.refresh();
+
+  const runtime = await startServer({ versionSnapshotService });
+
+  try {
+    await apiJson(runtime.baseUrl, '/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: projectRoot }),
+    });
+
+    const result = await apiJson(runtime.baseUrl, '/api/version-status');
+    assert.equal(result.response.status, 200);
+    assert.equal(typeof result.body.checkedAt, 'string');
+    assert.equal(result.body.loading, false);
+    assert.equal(result.body.tools.webui.currentVersion, '0.1.0');
+    assert.equal(result.body.tools.webui.latestVersion, '0.2.0');
+    assert.equal(result.body.tools.openspec.currentVersion, '1.3.1');
+    assert.equal(result.body.tools.openspec.latestVersion, '1.4.0');
+  } finally {
+    await runtime.close();
   }
 });
 

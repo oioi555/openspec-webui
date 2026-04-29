@@ -14,6 +14,8 @@ import {
   type SpecSummary,
   type Stats,
   type StructuredApiError,
+  type ToolVersionStatus,
+  type VersionStatusResponse,
 } from './types/api';
 const API_BASE = '/api';
 let activeProjectContextId: string | null = null;
@@ -41,6 +43,8 @@ export type {
   StructuredApiError,
   Task,
   TaskProgress,
+  ToolVersionStatus,
+  VersionStatusResponse,
 } from './types/api';
 
 function isStructuredApiError(value: unknown): value is StructuredApiError {
@@ -217,6 +221,10 @@ export async function search(query: string): Promise<SearchResult[]> {
 export async function getCommandAvailability(): Promise<CommandAvailability> {
   const data = await fetchApi<{ availability: CommandAvailability }>('/commands/availability');
   return data.availability;
+}
+
+export async function getVersionStatus(): Promise<VersionStatusResponse> {
+  return fetchApi<VersionStatusResponse>('/version-status');
 }
 
 export async function browseDirectory(dirPath?: string): Promise<BrowseResult> {

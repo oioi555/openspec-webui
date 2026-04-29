@@ -1,14 +1,21 @@
 <script lang="ts">
-  import { Command, ListChecks, Settings, Sun, Moon, Monitor, Terminal, Sparkles, Wrench, Info, ChevronDown } from '@lucide/svelte';
+  import { Command, Copy, ExternalLink, Info, ListChecks, Monitor, Moon, Settings, Sparkles, Sun, Terminal, Wrench } from '@lucide/svelte';
   import { Callout } from '$lib/components/shared/callout';
   import { DialogHeader as SharedDialogHeader } from '$lib/components/shared/dialog-header';
   import { OptionCard } from '$lib/components/shared/option-card';
+  import { Badge } from '$lib/components/ui/badge';
+  import { Button } from '$lib/components/ui/button';
   import * as Dialog from '$lib/components/ui/dialog';
   import * as Select from '$lib/components/ui/select';
   import { t } from '$lib/i18n';
+  import { projectStore } from '$lib/state/projects.svelte.ts';
   import { LOCALE_LABELS, localeStore, type AppLocale } from '$lib/state/locale.svelte.ts';
   import * as m from '$lib/paraglide/messages.js';
   import { FIXED_LABELS, getWorkflowCommandLabel } from '$lib/uiText';
+  import { copyToClipboard } from '$lib/utils';
+  import { versionStatusStore } from '$lib/state/versionStatus.svelte.ts';
+  import { RELEASE_PAGE_URLS, UPDATE_COMMANDS, type VersionedToolId } from '$lib/state/versionStatusCore';
+  import type { ToolVersionStatus } from '$lib/types/api';
   import type { CommandFormat, WorkflowCommand } from '$lib/types/commandTypes';
   import {
     CORE_COMMANDS,
@@ -30,7 +37,7 @@
 
   let { open = false, onClose = () => {} }: Props = $props();
 
-  type Section = 'general' | 'workflow' | 'commands';
+  type Section = 'general' | 'workflow' | 'commands' | 'versions';
 
   let sections = $derived([
     {
@@ -47,6 +54,11 @@
       id: 'commands' as const,
       label: FIXED_LABELS.settings.sections.commands,
       icon: ListChecks
+    },
+    {
+      id: 'versions' as const,
+      label: FIXED_LABELS.settings.sections.versions,
+      icon: Info
     }
   ]);
 
@@ -87,8 +99,51 @@
   let previewWorkspaceCommand = $derived(buildCommand('propose', commandPreferencesStore.format));
   let previewChangeCommand = $derived(buildCommand('apply', commandPreferencesStore.format, 'my-change'));
   let availabilityReady = $derived(commandPreferencesStore.availability.status === 'ready');
+  let versionSnapshot = $derived(versionStatusStore.snapshot);
   function getLocaleHeadingLabel() {
     return FIXED_LABELS.settings.headings.language;
+  }
+
+  function getVersionStatusLabel(status: ToolVersionStatus) {
+    if (status.notInstalled) {
+      return FIXED_LABELS.settings.versions.notInstalled;
+    }
+
+    switch (status.status) {
+      case 'up-to-date':
+        return FIXED_LABELS.settings.versions.upToDate;
+      case 'update-available':
+        return FIXED_LABELS.settings.versions.updateAvailable;
+      case 'unavailable':
+        return FIXED_LABELS.settings.versions.unavailable;
+      case 'unknown':
+      default:
+        return FIXED_LABELS.settings.versions.unknown;
+    }
+  }
+
+  function getVersionStatusVariant(status: ToolVersionStatus): 'success' | 'warning' | 'secondary' {
+    if (status.status === 'up-to-date') {
+      return 'success';
+    }
+
+    if (status.status === 'update-available') {
+      return 'warning';
+    }
+
+    return 'secondary';
+  }
+
+  function getReleasePageUrl(toolId: VersionedToolId) {
+    return RELEASE_PAGE_URLS[toolId];
+  }
+
+  function getUpdateCommand(toolId: VersionedToolId) {
+    return UPDATE_COMMANDS[toolId];
+  }
+
+  async function handleCopyCommand(command: string, label: string) {
+    await copyToClipboard(command, label);
   }
 </script>
 
@@ -180,16 +235,12 @@
               </div>
               <div class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_12rem] sm:items-start">
                 <p class="text-sm text-muted-foreground pt-1.5">{t(m.settings_language_description)}</p>
-                <Select.Root
-                  value={localeStore.value}
-                  onValueChange={(v) => setLocale(v as AppLocale)}
-                >
+                <Select.Root value={localeStore.value} onValueChange={(v) => setLocale(v as AppLocale)}>
                   <Select.Trigger
                     class="sm:justify-self-end w-full"
                     aria-label={getLocaleHeadingLabel()}
                   >
                     {LOCALE_LABELS[localeStore.value]}
-                    <ChevronDown class="h-4 w-4 text-muted-foreground" />
                   </Select.Trigger>
                   <Select.Content>
                     {#each localeStore.supportedLocales as locale}
@@ -385,6 +436,137 @@
                 {/each}
               </div>
             </div>
+          </section>
+        {:else if activeSection === 'versions'}
+          <section class="space-y-6">
+            <div>
+              <h3 class="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{FIXED_LABELS.settings.headings.versions}</h3>
+              <p class="mt-1 text-sm text-muted-foreground">{t(m.settings_versions_description)}</p>
+            </div>
+
+            {#if versionStatusStore.loading && !versionSnapshot}
+              <Callout variant="info">{t(m.settings_versions_checking)}</Callout>
+            {/if}
+
+            {#if versionStatusStore.error}
+              <Callout variant="warning">{versionStatusStore.error}</Callout>
+            {/if}
+
+            {#if versionSnapshot}
+              <div class="space-y-4">
+                {#each [
+                  {
+                    id: 'webui' as const,
+                    title: FIXED_LABELS.settings.versions.webui,
+                    description: t(m.settings_versions_webui_description),
+                    status: versionSnapshot.tools.webui,
+                  },
+                  {
+                    id: 'openspec' as const,
+                    title: FIXED_LABELS.settings.versions.openspecCli,
+                    description: t(m.settings_versions_openspec_description),
+                    status: versionSnapshot.tools.openspec,
+                  },
+                ] as const as Array<{
+                  id: VersionedToolId;
+                  title: string;
+                  description: string;
+                  status: ToolVersionStatus;
+                }> as tool}
+                  <div class="rounded-lg border border-border bg-secondary/40 p-4 space-y-3">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <div class="flex items-center gap-2">
+                          <h4 class="font-medium text-foreground">{tool.title}</h4>
+                          <Badge variant={getVersionStatusVariant(tool.status)}>{getVersionStatusLabel(tool.status)}</Badge>
+                        </div>
+                        <p class="mt-1 text-sm text-muted-foreground">{tool.description}</p>
+                        {#if tool.status.error}
+                          <p class="mt-1 text-xs text-warning">{tool.status.error}</p>
+                        {/if}
+                      </div>
+
+                      <a
+                        href={getReleasePageUrl(tool.id)}
+                        target="_blank"
+                        rel="noreferrer"
+                        class="inline-flex items-center gap-1 text-sm text-muted-foreground underline hover:text-foreground"
+                      >
+                        {FIXED_LABELS.settings.versions.releases}
+                        <ExternalLink class="h-3.5 w-3.5" />
+                      </a>
+                    </div>
+
+                    <dl class="grid gap-3 sm:grid-cols-3">
+                      <div>
+                        <dt class="text-xs uppercase tracking-wide text-muted-foreground">{FIXED_LABELS.settings.versions.current}</dt>
+                        <dd class="mt-1 text-sm text-foreground">{tool.status.currentVersion ?? '—'}</dd>
+                      </div>
+                      <div>
+                        <dt class="text-xs uppercase tracking-wide text-muted-foreground">{FIXED_LABELS.settings.versions.latest}</dt>
+                        <dd class="mt-1 text-sm text-foreground">{tool.status.latestVersion ?? '—'}</dd>
+                      </div>
+                      <div>
+                        <dt class="text-xs uppercase tracking-wide text-muted-foreground">{FIXED_LABELS.settings.versions.status}</dt>
+                        <dd class="mt-1 text-sm text-foreground">{getVersionStatusLabel(tool.status)}</dd>
+                      </div>
+                    </dl>
+
+                    <div>
+                      <div class="text-xs uppercase tracking-wide text-muted-foreground">{FIXED_LABELS.settings.versions.updateCommand}</div>
+                      <div class="mt-1 flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2">
+                        <code class="min-w-0 flex-1 overflow-x-auto text-xs text-primary">{getUpdateCommand(tool.id)}</code>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          class="size-8 shrink-0 text-muted-foreground hover:text-foreground"
+                          aria-label={`${FIXED_LABELS.common.copy} ${tool.title}`}
+                          onclick={() => handleCopyCommand(getUpdateCommand(tool.id), tool.title)}
+                        >
+                          <Copy class="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                {/each}
+              </div>
+
+              <div class="rounded-lg border border-border bg-secondary/40 p-4 space-y-3">
+                <div>
+                  <h4 class="font-medium text-foreground">{FIXED_LABELS.settings.versions.afterUpdatingOpenSpec}</h4>
+                  <p class="mt-1 text-sm text-muted-foreground">{t(m.settings_versions_post_update_description)}</p>
+                </div>
+
+                <div>
+                  <div class="text-xs uppercase tracking-wide text-muted-foreground">{FIXED_LABELS.settings.versions.projectCommand}</div>
+                  <div class="mt-1 flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2">
+                    <code class="min-w-0 flex-1 overflow-x-auto text-xs text-primary">{UPDATE_COMMANDS.project}</code>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      class="size-8 shrink-0 text-muted-foreground hover:text-foreground"
+                      aria-label={`${FIXED_LABELS.common.copy} ${FIXED_LABELS.settings.versions.projectCommand}`}
+                      onclick={() => handleCopyCommand(UPDATE_COMMANDS.project, FIXED_LABELS.settings.versions.projectCommand)}
+                    >
+                      <Copy class="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div>
+                  <div class="text-xs uppercase tracking-wide text-muted-foreground">{FIXED_LABELS.settings.versions.projectsToUpdate}</div>
+                  {#if projectStore.projects.length > 0}
+                    <ul class="mt-2 space-y-1 text-sm text-foreground">
+                      {#each projectStore.projects as project}
+                        <li class="truncate" title={project.path}>{project.path}</li>
+                      {/each}
+                    </ul>
+                  {:else}
+                    <p class="mt-2 text-sm text-muted-foreground">{t(m.settings_versions_no_registered_projects)}</p>
+                  {/if}
+                </div>
+              </div>
+            {/if}
           </section>
         {/if}
       </div>
