@@ -14,7 +14,6 @@ import {
   type SpecSummary,
   type Stats,
   type StructuredApiError,
-  type ToolVersionStatus,
   type VersionStatusResponse,
 } from './types/api';
 const API_BASE = '/api';
@@ -43,7 +42,6 @@ export type {
   StructuredApiError,
   Task,
   TaskProgress,
-  ToolVersionStatus,
   VersionStatusResponse,
 } from './types/api';
 

@@ -131,6 +131,7 @@ function createLayoutStore() {
     narrowDrawerOpen: false,
     overlay: null as LayoutOverlay,
     searchInitialQuery: '',
+    settingsInitialSection: null as string | null,
   });
 
   let initialized = false;
@@ -212,6 +213,10 @@ function createLayoutStore() {
       return state.searchInitialQuery;
     },
 
+    get settingsInitialSection() {
+      return state.settingsInitialSection;
+    },
+
     initialize,
 
     setExplorerCollapsed(collapsed: boolean) {
@@ -280,14 +285,16 @@ function createLayoutStore() {
       this.setNarrowDrawerOpen(!state.narrowDrawerOpen);
     },
 
-    openOverlay(overlay: Exclude<LayoutOverlay, null>, options?: { initialQuery?: string }) {
+    openOverlay(overlay: Exclude<LayoutOverlay, null>, options?: { initialQuery?: string; settingsSection?: string }) {
       state.overlay = overlay;
       state.searchInitialQuery = options?.initialQuery ?? '';
+      state.settingsInitialSection = overlay === 'settings' ? (options?.settingsSection ?? null) : null;
     },
 
     closeOverlay() {
       state.overlay = null;
       state.searchInitialQuery = '';
+      state.settingsInitialSection = null;
     },
 
     toggleOverlay(overlay: Exclude<LayoutOverlay, null>) {

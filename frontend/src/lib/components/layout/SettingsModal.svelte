@@ -27,6 +27,7 @@
   } from '$lib/commandShortcuts';
   import { commandPreferencesStore } from '$lib/state/commandPreferences.svelte.ts';
   import { tabStore } from '$lib/state/tabs.svelte.ts';
+  import { layoutStore } from '$lib/state/layout.svelte.ts';
   import { themeStore, type Theme } from '$lib/state/theme.svelte.ts';
   import { uiPreferencesStore } from '$lib/state/uiPreferences.svelte.ts';
 
@@ -92,7 +93,8 @@
 
   $effect(() => {
     if (open) {
-      activeSection = 'general';
+      const initialSection = layoutStore.settingsInitialSection;
+      activeSection = (initialSection && sections.some(s => s.id === initialSection) ? initialSection : 'general') as Section;
     }
   });
 
