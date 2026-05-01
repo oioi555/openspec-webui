@@ -1,0 +1,134 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { test } from 'node:test';
+
+import { isActivityBarExplorerOpen, shouldToggleCurrentPreset } from './activityBarController';
+
+test('same-section clicks only toggle when the explorer surface is currently open', () => {
+  assert.equal(
+    shouldToggleCurrentPreset({
+      preset: 'home',
+      activeSection: 'home',
+      hasActiveProject: true,
+      responsiveMode: 'wide',
+      explorerCollapsed: false,
+      narrowDrawerOpen: false,
+    }),
+    true
+  );
+
+  assert.equal(
+    shouldToggleCurrentPreset({
+      preset: 'archive',
+      activeSection: 'archive',
+      hasActiveProject: true,
+      responsiveMode: 'narrow',
+      explorerCollapsed: false,
+      narrowDrawerOpen: true,
+    }),
+    true
+  );
+
+  assert.equal(
+    shouldToggleCurrentPreset({
+      preset: 'specs',
+      activeSection: 'specs',
+      hasActiveProject: true,
+      responsiveMode: 'wide',
+      explorerCollapsed: true,
+      narrowDrawerOpen: false,
+    }),
+    false
+  );
+
+  assert.equal(
+    shouldToggleCurrentPreset({
+      preset: 'home',
+      activeSection: 'home',
+      hasActiveProject: true,
+      responsiveMode: 'narrow',
+      explorerCollapsed: false,
+      narrowDrawerOpen: false,
+    }),
+    false
+  );
+
+  assert.equal(
+    shouldToggleCurrentPreset({
+      preset: 'home',
+      activeSection: 'home',
+      hasActiveProject: false,
+      responsiveMode: 'wide',
+      explorerCollapsed: false,
+      narrowDrawerOpen: false,
+    }),
+    false
+  );
+});
+
+test('activity bar explorer-open helper ignores persisted explorer state when no project is active', () => {
+  assert.equal(
+    isActivityBarExplorerOpen({
+      hasActiveProject: false,
+      responsiveMode: 'wide',
+      explorerCollapsed: false,
+      narrowDrawerOpen: true,
+    }),
+    false
+  );
+});
+
+test('isActivityBarExplorerOpen returns correct state for narrow and wide modes with active project', () => {
+  // narrow + drawer open → explorer visible
+  assert.equal(
+    isActivityBarExplorerOpen({
+      hasActiveProject: true,
+      responsiveMode: 'narrow',
+      explorerCollapsed: false,
+      narrowDrawerOpen: true,
+    }),
+    true
+  );
+
+  // narrow + drawer closed → explorer hidden
+  assert.equal(
+    isActivityBarExplorerOpen({
+      hasActiveProject: true,
+      responsiveMode: 'narrow',
+      explorerCollapsed: false,
+      narrowDrawerOpen: false,
+    }),
+    false
+  );
+
+  // wide + pane expanded → explorer visible
+  assert.equal(
+    isActivityBarExplorerOpen({
+      hasActiveProject: true,
+      responsiveMode: 'wide',
+      explorerCollapsed: false,
+      narrowDrawerOpen: false,
+    }),
+    true
+  );
+
+  // wide + pane collapsed → explorer hidden
+  assert.equal(
+    isActivityBarExplorerOpen({
+      hasActiveProject: true,
+      responsiveMode: 'wide',
+      explorerCollapsed: true,
+      narrowDrawerOpen: false,
+    }),
+    false
+  );
+});
+
+test('activity bar no longer wires the bottom control to the project selector overlay', async () => {
+  const source = await readFile(new URL('./ActivityBar.svelte', import.meta.url), 'utf8');
+
+  assert.equal(source.includes("layoutStore.openOverlay('project-selector')"), false);
+  assert.equal(source.includes("layoutStore.overlay === 'project-selector'"), false);
+  assert.match(source, /shouldToggleCurrentPreset/);
+  assert.match(source, /FIXED_LABELS\.appName/);
+});

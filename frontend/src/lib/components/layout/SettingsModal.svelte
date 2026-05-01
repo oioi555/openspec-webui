@@ -8,6 +8,12 @@
   import * as Dialog from '$lib/components/ui/dialog';
   import * as Select from '$lib/components/ui/select';
   import { t } from '$lib/i18n';
+  import {
+    OPENSPEC_COMMANDS_DOCS_URL,
+    OPENSPEC_OPSX_REFERENCE_DOCS_URL,
+    OPENSPEC_SUPPORTED_TOOLS_DOCS_URL,
+    OPENSPEC_WORKFLOWS_DOCS_URL,
+  } from '$lib/openspecDocs';
   import { projectStore } from '$lib/state/projects.svelte.ts';
   import { LOCALE_LABELS, localeStore, type AppLocale } from '$lib/state/locale.svelte.ts';
   import * as m from '$lib/paraglide/messages.js';
@@ -283,9 +289,9 @@
               <p class="mt-1 text-sm text-muted-foreground">{t(m.settings_workflow_description)}</p>
               <p class="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
                 <Info class="h-5 w-5 text-info" />
-                {t(m.settings_docs_intro)}
-                <a href="https://github.com/Fission-AI/OpenSpec/blob/main/docs/opsx.md" target="_blank" class="underline hover:text-foreground">{FIXED_LABELS.settings.docs.opsxReference}</a> ·
-                <a href="https://github.com/Fission-AI/OpenSpec/blob/main/docs/supported-tools.md" target="_blank" class="underline hover:text-foreground">{FIXED_LABELS.settings.docs.supportedTools}</a>
+                {t(m.docs_intro)}
+                <a href={OPENSPEC_OPSX_REFERENCE_DOCS_URL} target="_blank" class="underline hover:text-foreground">{FIXED_LABELS.settings.docs.opsxReference}</a> ·
+                <a href={OPENSPEC_SUPPORTED_TOOLS_DOCS_URL} target="_blank" class="underline hover:text-foreground">{FIXED_LABELS.settings.docs.supportedTools}</a>
               </p>
             </div>
 
@@ -351,9 +357,9 @@
                 <p class="mt-1 text-sm text-muted-foreground">{t(m.settings_commands_description)}</p>
                 <p class="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
                   <Info class="h-5 w-5 text-info" />
-                  {t(m.settings_docs_intro)}
-                  <a href="https://github.com/Fission-AI/OpenSpec/blob/main/docs/commands.md" target="_blank" class="underline hover:text-foreground">{FIXED_LABELS.settings.docs.commands}</a> ·
-                  <a href="https://github.com/Fission-AI/OpenSpec/blob/main/docs/workflows.md" target="_blank" class="underline hover:text-foreground">{FIXED_LABELS.settings.docs.workflows}</a>
+                  {t(m.docs_intro)}
+                  <a href={OPENSPEC_COMMANDS_DOCS_URL} target="_blank" class="underline hover:text-foreground">{FIXED_LABELS.settings.docs.commands}</a> ·
+                  <a href={OPENSPEC_WORKFLOWS_DOCS_URL} target="_blank" class="underline hover:text-foreground">{FIXED_LABELS.settings.docs.workflows}</a>
                 </p>
               </div>
 

@@ -7,6 +7,10 @@
   import { t } from '$lib/i18n';
   import * as m from '$lib/paraglide/messages.js';
   import { browseDirectory } from '$lib/api';
+  import { OPENSPEC_INSTALL_DOCS_URL, OPENSPEC_SETUP_DOCS_URL } from '$lib/openspecDocs';
+  import {
+    shouldShowProjectInitGuidance,
+  } from '$lib/projectOnboarding';
   import { layoutStore } from '$lib/state/layout.svelte.ts';
   import { projectStore } from '$lib/state/projects.svelte.ts';
   import type { BrowseResult } from '$lib/types/api';
@@ -23,6 +27,8 @@
   let manualEntryOpen = $state(false);
   let loading = $derived(projectStore.loading);
   let error = $derived(projectStore.error);
+  let addProjectErrorCause = $state<unknown>(null);
+  let showInvalidProjectGuidance = $derived(shouldShowProjectInitGuidance(addProjectErrorCause, error));
 
   // Directory browser state
   let browseResult = $state<BrowseResult | null>(null);
@@ -68,8 +74,10 @@
 
     try {
       await projectStore.addProject(browseResult.path);
+      addProjectErrorCause = null;
       onClose();
-    } catch {
+    } catch (cause) {
+      addProjectErrorCause = cause;
       // Error handled by store
     }
   }
@@ -80,9 +88,11 @@
 
     try {
       await projectStore.addProject(manualPath.trim());
+      addProjectErrorCause = null;
       manualPath = '';
       onClose();
-    } catch {
+    } catch (cause) {
+      addProjectErrorCause = cause;
       // Error handled by store
     }
   }
@@ -93,6 +103,8 @@
       history = [];
       manualEntryOpen = false;
       manualPath = '';
+      addProjectErrorCause = null;
+      projectStore.clearError();
       loadBrowse();
     }
   });
@@ -109,6 +121,30 @@
     />
 
     <div class="flex flex-col gap-4 px-6 py-4">
+      <div class="rounded-lg border border-border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
+        <p>{t(m.add_project_init_hint)}</p>
+        <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+          <span>{t(m.docs_intro)}</span>
+          <a
+            class="font-medium text-primary underline underline-offset-4 transition-opacity hover:opacity-85"
+            href={OPENSPEC_INSTALL_DOCS_URL}
+            target="_blank"
+            rel="noreferrer"
+          >
+            {t(m.docs_install_label)}
+          </a>
+          <span aria-hidden="true">·</span>
+          <a
+            class="font-medium text-primary underline underline-offset-4 transition-opacity hover:opacity-85"
+            href={OPENSPEC_SETUP_DOCS_URL}
+            target="_blank"
+            rel="noreferrer"
+          >
+            {t(m.docs_setup_label)}
+          </a>
+        </div>
+      </div>
+
       <!-- Path bar with navigation -->
       <div class="flex items-center gap-1 rounded-lg border border-border bg-muted/30 px-2 py-2">
         <Button
@@ -247,9 +283,17 @@
       </Collapsible.Root>
 
       {#if error}
-        <div class="flex items-center gap-2 rounded-md bg-destructive/15 p-3 text-sm text-destructive">
-          <CircleAlert class="h-4 w-4 shrink-0" />
-          <p>{error}</p>
+        <div class="rounded-md bg-destructive/15 p-3 text-sm text-destructive">
+          <div class="flex items-center gap-2">
+            <CircleAlert class="h-4 w-4 shrink-0" />
+            <p>{error}</p>
+          </div>
+
+          {#if showInvalidProjectGuidance}
+            <p class="mt-2 text-destructive/90">
+              {t(m.add_project_invalid_project_guidance)}
+            </p>
+          {/if}
         </div>
       {/if}
     </div>

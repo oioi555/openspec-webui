@@ -211,6 +211,10 @@ function createProjectsStore() {
       return state.error;
     },
 
+    clearError() {
+      state.error = null;
+    },
+
     get hasPendingBind() {
       return pendingBind !== null;
     },

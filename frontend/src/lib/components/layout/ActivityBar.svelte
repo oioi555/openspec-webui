@@ -7,6 +7,11 @@
   import { layoutStore, type ActivityPreset } from '$lib/state/layout.svelte.ts';
   import { tabStore } from '$lib/state/tabs.svelte.ts';
   import { FIXED_LABELS } from '$lib/uiText';
+  import {
+    isActivityBarExplorerOpen,
+    shouldToggleCurrentPreset,
+    type ActivityBarActiveSection,
+  } from './activityBarController';
 
   function sectionFromPath(path: string): ActivityPreset {
     if (path === '/specs' || path.startsWith('/specs/')) {
@@ -40,7 +45,7 @@
     layoutStore.syncActivityPreset(sectionFromPath(path));
   });
 
-  let activeSection = $derived.by(() => {
+  let activeSection = $derived.by((): ActivityBarActiveSection => {
     if (layoutStore.overlay === 'search') {
       return 'search';
     }
@@ -53,12 +58,22 @@
   });
 
   function openPreset(preset: ActivityPreset) {
-    const isCurrentSection = activeSection === preset;
-
     layoutStore.closeOverlay();
 
-    if (isCurrentSection && layoutStore.responsiveMode !== 'narrow' && !layoutStore.explorerCollapsed) {
-      layoutStore.toggleExplorerCollapsed();
+    if (shouldToggleCurrentPreset({
+      preset,
+      activeSection,
+      hasActiveProject: Boolean(projectStore.activeProjectId),
+      responsiveMode: layoutStore.responsiveMode,
+      explorerCollapsed: layoutStore.explorerCollapsed,
+      narrowDrawerOpen: layoutStore.narrowDrawerOpen,
+    })) {
+      if (layoutStore.responsiveMode === 'narrow') {
+        layoutStore.toggleNarrowDrawer();
+      } else {
+        layoutStore.toggleExplorerCollapsed();
+      }
+
       return;
     }
 
@@ -76,12 +91,11 @@
   }
 
   function toggleExplorer() {
-    layoutStore.closeOverlay();
-
     if (!projectStore.activeProjectId) {
-      layoutStore.openOverlay('project-selector');
       return;
     }
+
+    layoutStore.closeOverlay();
 
     if (layoutStore.responsiveMode === 'narrow') {
       layoutStore.toggleNarrowDrawer();
@@ -92,19 +106,20 @@
   }
 
   let explorerOpen = $derived(
-    projectStore.activeProjectId
-      ? layoutStore.responsiveMode === 'narrow'
-        ? layoutStore.narrowDrawerOpen
-        : !layoutStore.explorerCollapsed
-      : false
+    isActivityBarExplorerOpen({
+      hasActiveProject: Boolean(projectStore.activeProjectId),
+      responsiveMode: layoutStore.responsiveMode,
+      explorerCollapsed: layoutStore.explorerCollapsed,
+      narrowDrawerOpen: layoutStore.narrowDrawerOpen,
+    })
   );
 
   let topControlLabel = $derived(
-    !projectStore.activeProjectId
-      ? FIXED_LABELS.activityBar.openProjectSelector
-      : explorerOpen
+    projectStore.activeProjectId
+      ? explorerOpen
         ? FIXED_LABELS.activityBar.collapseExplorer
         : FIXED_LABELS.activityBar.expandExplorer
+      : FIXED_LABELS.appName
   );
 </script>
 
@@ -173,8 +188,9 @@
 
     <Tooltip.Root>
       <Tooltip.Trigger
-        class={`flex h-10 w-10 items-center justify-center rounded-lg bg-transparent transition-colors ${projectStore.activeProjectId && explorerOpen ? 'text-foreground' : 'text-muted-foreground'} hover:text-foreground ${layoutStore.overlay === 'project-selector' ? 'text-primary' : ''}`}
+        class={`flex h-10 w-10 items-center justify-center rounded-lg bg-transparent transition-colors ${projectStore.activeProjectId ? `${explorerOpen ? 'text-foreground' : 'text-muted-foreground'} hover:text-foreground` : 'text-muted-foreground/70'}`}
         aria-label={topControlLabel}
+        aria-disabled={!projectStore.activeProjectId}
         onclick={toggleExplorer}
       >
         {#if projectStore.activeProjectId}

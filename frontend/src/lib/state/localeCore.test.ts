@@ -100,7 +100,7 @@ test('initialize syncs runtime locale and document lang/dir', () => {
 
 test('setLocale updates runtime without reload, increments version, and syncs document lang', async () => {
   const documentElement = installDocumentMock();
-  const setLocaleCalls: Array<{ locale: 'en' | 'ja'; options?: { reload?: boolean } }> = [];
+  const setLocaleCalls: Array<{ locale: AppLocale; options?: { reload?: boolean } }> = [];
   const runtime: LocaleRuntimeAdapter = {
     getLocale: () => 'en',
     setLocale: async (locale, options) => {
