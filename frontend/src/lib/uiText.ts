@@ -38,9 +38,15 @@ export const FIXED_LABELS = {
     explorer: 'Explorer',
   },
   search: {
+    clear: 'Clear search',
+    explorerDescription: 'Keep results here while opening matching documents in the main tabs.',
+    explorerHeading: 'Workspace Search',
+    noResults: (query: string) => `No results for "${query}"`,
     title: 'Search',
     placeholder: 'Search workspace...',
     relatedChanges: 'Search changes related to this spec',
+    resultCount: (count: number) => `${count} result${count === 1 ? '' : 's'}`,
+    startTyping: 'Type at least 2 characters to search.',
     types: {
       change: 'Change',
       project: 'Project',

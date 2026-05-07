@@ -5,6 +5,7 @@
   import { ItemContextMenu } from '$lib/components/shared/item-context-menu';
   import { createItemContextMenuItems, type ItemContextMenuKind } from '$lib/itemContextMenu';
   import { layoutStore, type ExplorerSection } from '$lib/state/layout.svelte.ts';
+  import { searchStore } from '$lib/state/search.svelte.ts';
   import { tabStore } from '$lib/state/tabs.svelte.ts';
   import { uiPreferencesStore } from '$lib/state/uiPreferences.svelte.ts';
   import { cn } from '$lib/utils';
@@ -49,7 +50,7 @@
             tabStore.openConfirmed(path);
           },
           onSearchRelatedChanges: () => {
-            layoutStore.openOverlay('search', { initialQuery: name });
+            searchStore.open(name);
             onItemSelected();
           },
         })

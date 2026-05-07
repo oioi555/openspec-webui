@@ -1,8 +1,5 @@
-# search Specification
+## MODIFIED Requirements
 
-## Purpose
-Provide workspace search through the Activity Bar so operators can open matching content in the tabbed Main Viewer.
-## Requirements
 ### Requirement: Provide debounced workspace search from Activity Bar
 The system SHALL expose a search interface accessible from the Activity Bar's Search icon. The search SHALL wait briefly before issuing a search request and SHALL suppress result queries until the operator has entered at least two characters. When the query becomes shorter than two characters, the system SHALL clear any previously displayed results. The system SHALL ignore stale debounced timers and asynchronous search responses whose query no longer matches the current input. Search results SHALL be displayed in a persistent Search panel in the Explorer Pane.
 
@@ -32,17 +29,6 @@ The system SHALL expose a search interface accessible from the Activity Bar's Se
 - **THEN** only the latest matching query may update the visible search results
 - **AND** any older response is ignored
 
-### Requirement: Search the supported content sources only
-The system SHALL search project markdown, spec markdown, and change proposal markdown, and SHALL return each hit with a result type, result name, and excerpt.
-
-#### Scenario: Return a project match
-- **WHEN** the query matches the project document
-- **THEN** the system returns a `project` result with a project excerpt
-
-#### Scenario: Return a spec match
-- **WHEN** the query matches a capability specification document
-- **THEN** the system returns a `spec` result whose display name is the capability name
-
 ### Requirement: Navigate directly from search results
 Selecting a search result SHALL open a tab in the Main Viewer for the matching spec, change, or dashboard view while preserving the current search query and visible results in the Explorer Pane Search panel.
 
@@ -55,6 +41,8 @@ Selecting a search result SHALL open a tab in the Main Viewer for the matching s
 - **WHEN** the operator selects a search result of type `change`
 - **THEN** a tab opens for that change's detail view
 - **AND** the Search panel remains visible with the current query and results
+
+## ADDED Requirements
 
 ### Requirement: Search requests from contextual entry points use Explorer search
 The system SHALL route search requests initiated from context menu actions and `Spec.md` keyword search affordances into the Explorer Pane Search panel using the same query, debounce, result display, and result selection behavior as Activity Bar search.

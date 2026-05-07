@@ -1,7 +1,7 @@
-export type ActivityPreset = 'home' | 'archive' | 'specs';
-export type ExplorerSection = 'active-changes' | 'archive' | 'specs';
+export type ActivityPreset = 'home' | 'archive' | 'specs' | 'search';
+export type ExplorerSection = 'active-changes' | 'archive' | 'specs' | 'search';
 export type ResponsiveMode = 'narrow' | 'wide';
-export type LayoutOverlay = 'search' | 'project-selector' | 'add-project' | null;
+export type LayoutOverlay = 'project-selector' | 'add-project' | null;
 
 const STORAGE_KEY = 'openspec-layout';
 const DEFAULT_EXPLORER_WIDTH = 280;
@@ -13,12 +13,14 @@ const PRESET_SECTION_MAP: Record<ActivityPreset, ExplorerSection> = {
   home: 'active-changes',
   archive: 'archive',
   specs: 'specs',
+  search: 'search',
 };
 
 const SECTION_PRESET_MAP: Record<ExplorerSection, ActivityPreset> = {
   'active-changes': 'home',
   archive: 'archive',
   specs: 'specs',
+  search: 'search',
 };
 
 type PersistedLayoutState = {
@@ -44,6 +46,7 @@ function createDefaultSectionState() {
     'active-changes': false,
     archive: true,
     specs: true,
+    search: true,
   } as Record<ExplorerSection, boolean>;
 }
 
@@ -52,6 +55,7 @@ function createPresetSectionState(section: ExplorerSection) {
     'active-changes': section !== 'active-changes',
     archive: section !== 'archive',
     specs: section !== 'specs',
+    search: section !== 'search',
   } as Record<ExplorerSection, boolean>;
 }
 
@@ -130,7 +134,6 @@ function createLayoutStore() {
     responsiveMode: initialResponsiveMode,
     narrowDrawerOpen: false,
     overlay: null as LayoutOverlay,
-    searchInitialQuery: '',
   });
 
   let initialized = false;
@@ -208,10 +211,6 @@ function createLayoutStore() {
       return state.overlay;
     },
 
-    get searchInitialQuery() {
-      return state.searchInitialQuery;
-    },
-
     initialize,
 
     setExplorerCollapsed(collapsed: boolean) {
@@ -254,6 +253,10 @@ function createLayoutStore() {
     },
 
     syncActivityPreset(preset: ActivityPreset) {
+      if (state.activityPreset === 'search') {
+        return;
+      }
+
       state.activityPreset = preset;
       state.focusedSection = PRESET_SECTION_MAP[preset];
     },
@@ -280,14 +283,12 @@ function createLayoutStore() {
       this.setNarrowDrawerOpen(!state.narrowDrawerOpen);
     },
 
-    openOverlay(overlay: Exclude<LayoutOverlay, null>, options?: { initialQuery?: string }) {
+    openOverlay(overlay: Exclude<LayoutOverlay, null>) {
       state.overlay = overlay;
-      state.searchInitialQuery = options?.initialQuery ?? '';
     },
 
     closeOverlay() {
       state.overlay = null;
-      state.searchInitialQuery = '';
     },
 
     toggleOverlay(overlay: Exclude<LayoutOverlay, null>) {

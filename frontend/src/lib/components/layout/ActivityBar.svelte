@@ -5,6 +5,7 @@
   import { archivedChanges, project } from '$lib/state/appData.svelte.ts';
   import { projectStore } from '$lib/state/projects.svelte.ts';
   import { layoutStore, type ActivityPreset } from '$lib/state/layout.svelte.ts';
+  import { searchStore } from '$lib/state/search.svelte.ts';
   import { tabStore } from '$lib/state/tabs.svelte.ts';
   import { FIXED_LABELS } from '$lib/uiText';
   import {
@@ -46,10 +47,6 @@
   });
 
   let activeSection = $derived.by((): ActivityBarActiveSection => {
-    if (layoutStore.overlay === 'search') {
-      return 'search';
-    }
-
     if (tabStore.activeTab.type === 'settings') {
       return 'settings';
     }
@@ -82,6 +79,33 @@
     if (preset === 'home') {
       tabStore.focus('/');
     }
+  }
+
+  function openSearch() {
+    if (!projectStore.activeProjectId) {
+      return;
+    }
+
+    layoutStore.closeOverlay();
+
+    if (shouldToggleCurrentPreset({
+      preset: 'search',
+      activeSection,
+      hasActiveProject: Boolean(projectStore.activeProjectId),
+      responsiveMode: layoutStore.responsiveMode,
+      explorerCollapsed: layoutStore.explorerCollapsed,
+      narrowDrawerOpen: layoutStore.narrowDrawerOpen,
+    })) {
+      if (layoutStore.responsiveMode === 'narrow') {
+        layoutStore.toggleNarrowDrawer();
+      } else {
+        layoutStore.toggleExplorerCollapsed();
+      }
+
+      return;
+    }
+
+    searchStore.open();
   }
 
   function buttonClass(section: string) {
@@ -166,7 +190,7 @@
       <Tooltip.Trigger
         class={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${buttonClass('search')}`}
         aria-label={FIXED_LABELS.common.search}
-        onclick={() => layoutStore.toggleOverlay('search')}
+        onclick={openSearch}
       >
         <Search class="h-5 w-5" />
       </Tooltip.Trigger>

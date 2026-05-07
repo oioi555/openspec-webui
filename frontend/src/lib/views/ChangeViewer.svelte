@@ -20,7 +20,7 @@
   } from '$lib/contextCopy';
   import { changesRefreshTrigger } from '$lib/state/appData.svelte.ts';
   import { commandPreferencesStore } from '$lib/state/commandPreferences.svelte.ts';
-  import { layoutStore } from '$lib/state/layout.svelte.ts';
+  import { searchStore } from '$lib/state/search.svelte.ts';
   import type { Change } from '$lib/types/api';
   import { getChangeCommands } from '$lib/commandShortcuts';
   import MarkdownRenderer from '$lib/components/shared/MarkdownRenderer.svelte';
@@ -308,7 +308,7 @@
                         type="button"
                         class="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary/60 hover:text-foreground"
                         title={FIXED_LABELS.search.relatedChanges}
-                        onclick={(e: MouseEvent) => { e.stopPropagation(); layoutStore.openOverlay('search', { initialQuery: delta.capability }); }}
+                        onclick={(e: MouseEvent) => { e.stopPropagation(); searchStore.open(delta.capability); }}
                       >
                         <Search class="h-4 w-4" />
                       </button>

@@ -4,6 +4,7 @@
     ActiveChangesExplorerSection,
     ArchiveExplorerSection,
     ExplorerSortControl,
+    SearchExplorerSection,
     SpecsExplorerSection,
     type ExplorerSortMode,
   } from '$lib/components/shared/explorer-section';
@@ -49,50 +50,53 @@
 </script>
 
 <aside class="flex h-full min-h-0 flex-col bg-card">
+  {#snippet activeChangesExtra()}
+    {#if workspaceCommands.length > 0}
+      <CommandShortcutBar commands={workspaceCommands} />
+    {/if}
+  {/snippet}
 
-  <ScrollArea.Root class="min-h-0 flex-1" viewportClass="h-full">
-    <div class="space-y-4 p-3">
-      {#snippet activeChangesExtra()}
-        {#if workspaceCommands.length > 0}
-          <CommandShortcutBar commands={workspaceCommands} />
-        {/if}
-      {/snippet}
+  {#snippet activeChangesRight()}
+    <ExplorerSortControl value={activeChangesSortMode} onValueChange={(value) => (activeChangesSortMode = value)} ariaLabel={`${FIXED_LABELS.explorer.activeChanges} ${FIXED_LABELS.explorer.sortBy}`} />
+  {/snippet}
 
-      {#snippet activeChangesRight()}
-        <ExplorerSortControl value={activeChangesSortMode} onValueChange={(value) => (activeChangesSortMode = value)} ariaLabel={`${FIXED_LABELS.explorer.activeChanges} ${FIXED_LABELS.explorer.sortBy}`} />
-      {/snippet}
+  {#snippet archiveRight()}
+    <ExplorerSortControl value={archiveSortMode} onValueChange={(value) => (archiveSortMode = value)} ariaLabel={`${FIXED_LABELS.explorer.archive} ${FIXED_LABELS.explorer.sortBy}`} />
+  {/snippet}
 
-      {#snippet archiveRight()}
-        <ExplorerSortControl value={archiveSortMode} onValueChange={(value) => (archiveSortMode = value)} ariaLabel={`${FIXED_LABELS.explorer.archive} ${FIXED_LABELS.explorer.sortBy}`} />
-      {/snippet}
+  {#snippet specsRight()}
+    <ExplorerSortControl value={specsSortMode} onValueChange={(value) => (specsSortMode = value)} ariaLabel={`${FIXED_LABELS.explorer.specs} ${FIXED_LABELS.explorer.sortBy}`} />
+  {/snippet}
 
-      {#snippet specsRight()}
-        <ExplorerSortControl value={specsSortMode} onValueChange={(value) => (specsSortMode = value)} ariaLabel={`${FIXED_LABELS.explorer.specs} ${FIXED_LABELS.explorer.sortBy}`} />
-      {/snippet}
+  {#if layoutStore.activityPreset === 'search'}
+    <SearchExplorerSection {onItemSelected} />
+  {:else}
+    <ScrollArea.Root class="min-h-0 flex-1" viewportClass="h-full">
+      <div class="space-y-4 p-3">
+        <ActiveChangesExplorerSection
+          changes={activeChanges.value}
+          {onItemSelected}
+          headerRight={activeChangesRight}
+          headerExtra={activeChangesExtra}
+          sortMode={activeChangesSortMode}
+        />
 
-      <ActiveChangesExplorerSection
-        changes={activeChanges.value}
-        {onItemSelected}
-        headerRight={activeChangesRight}
-        headerExtra={activeChangesExtra}
-        sortMode={activeChangesSortMode}
-      />
+        <ArchiveExplorerSection
+          changes={archivedChanges.value}
+          {onItemSelected}
+          headerRight={archiveRight}
+          sortMode={archiveSortMode}
+        />
 
-      <ArchiveExplorerSection
-        changes={archivedChanges.value}
-        {onItemSelected}
-        headerRight={archiveRight}
-        sortMode={archiveSortMode}
-      />
-
-      <SpecsExplorerSection
-        specs={specs.value}
-        {onItemSelected}
-        headerRight={specsRight}
-        sortMode={specsSortMode}
-      />
-    </div>
-  </ScrollArea.Root>
+        <SpecsExplorerSection
+          specs={specs.value}
+          {onItemSelected}
+          headerRight={specsRight}
+          sortMode={specsSortMode}
+        />
+      </div>
+    </ScrollArea.Root>
+  {/if}
   <div class={`gap-3 border-t border-border px-3 py-2 ${!temporary ? 'bg-secondary/70' : ''}`}>
     <div class="flex min-w-0 items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
         <Folder class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />

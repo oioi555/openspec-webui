@@ -1,6 +1,6 @@
 import type { ActivityPreset, ResponsiveMode } from '../../state/layout.svelte.ts';
 
-export type ActivityBarActiveSection = ActivityPreset | 'search' | 'settings';
+export type ActivityBarActiveSection = ActivityPreset | 'settings';
 
 interface ExplorerVisibilityContext {
   hasActiveProject: boolean;

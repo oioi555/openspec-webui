@@ -7,7 +7,6 @@
   import ActivityBar from './ActivityBar.svelte';
   import ExplorerPane from './ExplorerPane.svelte';
   import MainViewer from './MainViewer.svelte';
-  import SearchDialog from './SearchDialog.svelte';
   import ProjectSelector from './ProjectSelector.svelte';
   import AddProjectDialog from './AddProjectDialog.svelte';
   import EmptyProjectState from './EmptyProjectState.svelte';
@@ -79,7 +78,6 @@
     </div>
   {/if}
 
-  <SearchDialog open={layoutStore.overlay === 'search'} onClose={() => layoutStore.closeOverlay()} />
   <ProjectSelector open={layoutStore.overlay === 'project-selector'} onClose={() => layoutStore.closeOverlay()} />
   <AddProjectDialog open={layoutStore.overlay === 'add-project'} onClose={() => layoutStore.closeOverlay()} />
 </div>

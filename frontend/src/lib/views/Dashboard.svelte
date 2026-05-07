@@ -19,6 +19,7 @@
   import * as m from '$lib/paraglide/messages.js';
   import { localeStore } from '$lib/state/locale.svelte.ts';
   import { layoutStore } from '$lib/state/layout.svelte.ts';
+  import { searchStore } from '$lib/state/search.svelte.ts';
   import { tabStore } from '$lib/state/tabs.svelte.ts';
   import MarkdownRenderer from '$lib/components/shared/MarkdownRenderer.svelte';
   import VersionBadge from '$lib/components/shared/VersionBadge.svelte';
@@ -174,7 +175,7 @@
   }
 
   function searchForSpec(specName: string) {
-    layoutStore.openOverlay('search', { initialQuery: specName });
+    searchStore.open(specName);
   }
 
   function openHomeSurface() {

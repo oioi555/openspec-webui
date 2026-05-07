@@ -16,7 +16,7 @@
     getSpecViewerContextLabel,
   } from '$lib/contextCopy';
   import { specsRefreshTrigger } from '$lib/state/appData.svelte.ts';
-  import { layoutStore } from '$lib/state/layout.svelte.ts';
+  import { searchStore } from '$lib/state/search.svelte.ts';
   import type { Spec } from '$lib/types/api';
   import MarkdownRenderer from '$lib/components/shared/MarkdownRenderer.svelte';
   import { formatDate } from '$lib/utils';
@@ -91,7 +91,7 @@
   }
 
   function searchRelatedChanges() {
-    layoutStore.openOverlay('search', { initialQuery: specName });
+    searchStore.open(specName);
   }
 
   $effect(() => {
