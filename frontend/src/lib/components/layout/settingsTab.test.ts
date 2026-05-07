@@ -122,3 +122,12 @@ test('AppLayout.svelte no longer renders a SettingsModal component', async () =>
   assert.equal(source.includes('SettingsModal'), false);
   assert.equal(source.includes('SettingsView'), false, 'AppLayout should not directly render SettingsView (that is MainViewer\'s job)');
 });
+
+test('App.svelte keeps one-time app bootstrap untracked from locale-dependent translations', async () => {
+  const source = await readFile(new URL('../../../App.svelte', import.meta.url), 'utf8');
+
+  assert.match(source, /import \{ untrack \} from 'svelte'/);
+  assert.match(source, /\$effect\(\(\) => \{\s*return untrack\(\(\) => \{/s);
+  assert.match(source, /await initializeData\(\)/);
+  assert.match(source, /unsubscribe = setupWebSocket\(\)/);
+});

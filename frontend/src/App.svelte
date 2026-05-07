@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import {
     initializeData,
     setupWebSocket,
@@ -12,34 +13,36 @@
   import { Toaster } from '$lib/components/ui/sonner';
 
   $effect(() => {
-    let disposed = false;
-    let unsubscribe = () => {};
+    return untrack(() => {
+      let disposed = false;
+      let unsubscribe = () => {};
 
-    if (!localeStore.initialized) {
-      localeStore.initialize();
-    }
-
-    themeStore.initialize();
-    uiPreferencesStore.initialize();
-    void commandPreferencesStore.initialize();
-    versionStatusStore.initialize();
-
-    void (async () => {
-      await initializeData();
-
-      if (disposed) {
-        return;
+      if (!localeStore.initialized) {
+        localeStore.initialize();
       }
 
-      unsubscribe = setupWebSocket();
-    })();
+      themeStore.initialize();
+      uiPreferencesStore.initialize();
+      void commandPreferencesStore.initialize();
+      versionStatusStore.initialize();
 
-    return () => {
-      disposed = true;
-      unsubscribe();
-      themeStore.destroy();
-      versionStatusStore.destroy();
-    };
+      void (async () => {
+        await initializeData();
+
+        if (disposed) {
+          return;
+        }
+
+        unsubscribe = setupWebSocket();
+      })();
+
+      return () => {
+        disposed = true;
+        unsubscribe();
+        themeStore.destroy();
+        versionStatusStore.destroy();
+      };
+    });
   });
 </script>
 
