@@ -1,4 +1,4 @@
-import type { ValidationResult } from '$lib/types/api';
+import type { ValidationItem, ValidationItemType, ValidationResult } from '$lib/types/api';
 
 export interface ValidationState {
   projectId: string | null;
@@ -35,6 +35,21 @@ export interface ValidationDashboardSummary {
 export interface ValidationDashboardSummaryOptions {
   copy: ValidationDashboardCopy;
   formatLastRun?: (runAt: string | null) => string | null;
+}
+
+export type ValidationTargetState = 'not-run' | 'passed' | 'warning' | 'failed' | 'stale' | 'unknown';
+
+export interface ValidationTarget {
+  type: ValidationItemType;
+  name: string;
+}
+
+export interface ValidationTargetSummary {
+  state: ValidationTargetState;
+  item: ValidationItem | null;
+  issueCount: number;
+  issues: ValidationItem['issues'];
+  lastRunAt: string | null;
 }
 
 export interface ValidationControllerDependencies {
@@ -139,6 +154,66 @@ export function deriveValidationDashboardSummary(
     description: copy.passedDescription(lastRun),
     failedCount: 0,
     iconVariant: 'success',
+  };
+}
+
+export function findValidationItemByTypeAndName(
+  result: ValidationResult | null,
+  target: ValidationTarget,
+): ValidationItem | null {
+  if (!result || !target.name) {
+    return null;
+  }
+
+  return result.items.find((item) => item.type === target.type && item.name === target.name) ?? null;
+}
+
+function hasErrorIssue(item: ValidationItem): boolean {
+  return item.issues.some((issue) => issue.level === 'ERROR');
+}
+
+function hasNonErrorIssue(item: ValidationItem): boolean {
+  return item.issues.some((issue) => issue.level === 'WARNING' || issue.level === 'INFO');
+}
+
+export function deriveValidationTargetSummary(
+  state: Pick<ValidationState, 'result' | 'error' | 'latestRunAt'>,
+  target: ValidationTarget,
+): ValidationTargetSummary {
+  const lastRunAt = state.latestRunAt ?? state.result?.runAt ?? null;
+
+  if (!state.result) {
+    return {
+      state: state.error ? 'unknown' : 'not-run',
+      item: null,
+      issueCount: 0,
+      issues: [],
+      lastRunAt,
+    };
+  }
+
+  const item = findValidationItemByTypeAndName(state.result, target);
+  if (!item) {
+    return {
+      state: 'stale',
+      item: null,
+      issueCount: 0,
+      issues: [],
+      lastRunAt,
+    };
+  }
+
+  const issueCount = Math.max(item.issueCount, item.issues.length);
+  const hasFailures = !item.valid || issueCount > 0;
+  const hasErrors = hasErrorIssue(item);
+  const hasWarningsOnly = !hasErrors && hasNonErrorIssue(item);
+
+  return {
+    state: hasErrors || (hasFailures && !hasWarningsOnly) ? 'failed' : hasWarningsOnly ? 'warning' : 'passed',
+    item,
+    issueCount,
+    issues: item.issues,
+    lastRunAt,
   };
 }
 

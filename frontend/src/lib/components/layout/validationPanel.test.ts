@@ -34,7 +34,7 @@ test('Dashboard renders a validation summary card in the five-card top grid and 
   assert.match(source, /FIXED_LABELS\.validation\.title/);
   assert.match(source, /validationStore\.dashboardSummary\.primaryValue/);
   assert.match(source, /validationStore\.dashboardSummary\.description/);
-  assert.match(source, /validationStore\.dashboardSummary\.failedCount > 0/);
+  assert.match(source, /onclick=\{openValidationPanel\}/);
   assert.match(source, /layoutStore\.setActivityPreset\('validate'\)/);
   assert.match(source, /IconBox icon=\{FlaskConical\} variant=\{validationStore\.dashboardSummary\.iconVariant\}/);
 });
@@ -91,4 +91,49 @@ test('validation store getters do not mutate state during render', async () => {
   const gettersBlock = source.slice(source.indexOf('export const validationStore = {'), source.indexOf('  reset(projectId?: string | null)'));
 
   assert.doesNotMatch(gettersBlock, /controller\.syncProject\(\)/);
+});
+
+test('validation core exposes item lookup and target summaries for viewer-local status', async () => {
+  const source = await readFile(new URL('../../state/validationCore.ts', import.meta.url), 'utf8');
+
+  assert.match(source, /export function findValidationItemByTypeAndName/);
+  assert.match(source, /export function deriveValidationTargetSummary/);
+  assert.match(source, /hasWarningsOnly \? 'warning' : 'passed'/);
+  assert.match(source, /state: 'stale'/);
+  assert.match(source, /state: state\.error \? 'unknown' : 'not-run'/);
+});
+
+test('shared viewer validation status renders labels, last-run metadata, details toggle, and accessibility labels', async () => {
+  const source = await readFile(new URL('../shared/ValidationViewerStatus.svelte', import.meta.url), 'utf8');
+
+  assert.match(source, /deriveValidationTargetSummary/);
+  assert.match(source, /FIXED_LABELS\.validation\.lastRun/);
+  assert.match(source, /FIXED_LABELS\.validation\.viewer\.details/);
+  assert.match(source, /FIXED_LABELS\.validation\.viewer\.hideDetails/);
+  assert.match(source, /FIXED_LABELS\.validation\.viewer\.labels\.warning/);
+  assert.match(source, /case 'stale':\s*\n\s*case 'not-run':\s*\n\s*return 'secondary'/);
+  assert.match(source, /case 'stale':\s*\n\s*case 'not-run':\s*\n\s*return 'muted'/);
+  assert.match(source, /role="status"/);
+  assert.match(source, /aria-label=\{statusAriaLabel\}/);
+  assert.match(source, /aria-label=\{hasDetails \? detailsAriaLabel : statusAriaLabel\}/);
+  assert.match(source, /<Collapsible\.Trigger/);
+  assert.match(source, /disabled=\{!hasDetails\}/);
+  assert.match(source, /summary\.issues as issue/);
+});
+
+test('SpecViewer places validation status between metadata and markdown content for the current spec', async () => {
+  const source = await readFile(new URL('../../views/SpecViewer.svelte', import.meta.url), 'utf8');
+
+  assert.match(source, /import ValidationViewerStatus from '\$lib\/components\/shared\/ValidationViewerStatus\.svelte';/);
+  assert.match(source, /<\/div>\s*\n\s*<ValidationViewerStatus itemType="spec" itemName=\{specName\} \/>\s*\n\s*\{#if loading\}/);
+  assert.match(source, /<MarkdownRenderer content=\{spec\.specContent\} \/>/);
+});
+
+test('ChangeViewer places validation status between metadata and tabs for the current change', async () => {
+  const source = await readFile(new URL('../../views/ChangeViewer.svelte', import.meta.url), 'utf8');
+
+  assert.match(source, /import ValidationViewerStatus from '\$lib\/components\/shared\/ValidationViewerStatus\.svelte';/);
+  assert.match(source, /<\/div>\s*\n\s*<ValidationViewerStatus itemType="change" itemName=\{changeName\} \/>\s*\n\s*\{#if loading\}/);
+  assert.match(source, /<UnderlineTabs tabs=\{primaryTabs\} activeId=\{activePrimaryTabId\} onSelect=\{handlePrimaryTabSelect\} \/>/);
+  assert.match(source, /FIXED_LABELS\.viewer\.specDeltas/);
 });

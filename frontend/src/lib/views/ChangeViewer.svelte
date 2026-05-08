@@ -6,6 +6,7 @@
   import { IconBox } from '$lib/components/shared/icon-box';
   import { LoadingState } from '$lib/components/shared/loading-state';
   import { InteractiveCard, SurfaceCard } from '$lib/components/shared/surface';
+  import ValidationViewerStatus from '$lib/components/shared/ValidationViewerStatus.svelte';
   import { UnderlineTabs } from '$lib/components/shared/underline-tabs';
   import * as Collapsible from '$lib/components/ui/collapsible';
   import * as ContextMenu from '$lib/components/ui/context-menu';
@@ -264,6 +265,8 @@
       {/if}
     </div>
   </div>
+
+  <ValidationViewerStatus itemType="change" itemName={changeName} />
 
   {#if loading}
     <LoadingState />

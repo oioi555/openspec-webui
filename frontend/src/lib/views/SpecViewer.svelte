@@ -4,6 +4,7 @@
   import { IconBox } from '$lib/components/shared/icon-box';
   import { LoadingState } from '$lib/components/shared/loading-state';
   import { SurfaceCard } from '$lib/components/shared/surface';
+  import ValidationViewerStatus from '$lib/components/shared/ValidationViewerStatus.svelte';
   import { Button } from '$lib/components/ui/button';
   import * as ContextMenu from '$lib/components/ui/context-menu';
   import { toast } from 'svelte-sonner';
@@ -141,6 +142,8 @@
       </p>
     </div>
   </div>
+
+  <ValidationViewerStatus itemType="spec" itemName={specName} />
 
   {#if loading}
     <LoadingState />

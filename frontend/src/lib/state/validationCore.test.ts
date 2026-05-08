@@ -8,6 +8,8 @@ import {
   createValidationController,
   createValidationRequestTracker,
   deriveValidationDashboardSummary,
+  deriveValidationTargetSummary,
+  findValidationItemByTypeAndName,
   shouldResetValidationState,
 } from './validationCore';
 
@@ -293,4 +295,153 @@ test('validation item paths are navigable by name for specs and changes', () => 
   assert.equal(changePath, '/changes/add-validation-panel');
   assert.equal(unknownItem.type === 'spec' || unknownItem.type === 'change', false);
   assert.equal(Boolean(unknownItem.name), false);
+});
+
+test('validation item lookup matches type and name for specs and changes', () => {
+  const specItem = createValidationItem({ id: 'spec-1', name: 'activity-bar', type: 'spec', valid: false });
+  const changeItem = createValidationItem({ id: 'change-1', name: 'add-validation-panel', type: 'change', valid: true, issueCount: 0, issues: [] });
+  const result: ValidationResult = {
+    status: 'failed',
+    items: [specItem, changeItem],
+    failedItems: [specItem],
+    summary: {
+      totalItems: 2,
+      passed: 1,
+      failed: 1,
+    },
+    runAt: '2026-05-08T00:03:00.000Z',
+  };
+
+  assert.equal(findValidationItemByTypeAndName(result, { type: 'spec', name: 'activity-bar' }), specItem);
+  assert.equal(findValidationItemByTypeAndName(result, { type: 'change', name: 'add-validation-panel' }), changeItem);
+  assert.equal(findValidationItemByTypeAndName(result, { type: 'change', name: 'activity-bar' }), null);
+});
+
+test('validation target summary supports failed, warning, passed, stale, and not-run states', () => {
+  const failedSpec = createValidationItem({
+    id: 'spec-1',
+    name: 'activity-bar',
+    type: 'spec',
+    valid: false,
+    issueCount: 2,
+    issues: [
+      { level: 'ERROR', path: 'spec.md', message: 'Missing requirement' },
+      { level: 'WARNING', path: 'spec.md', message: 'Needs scenario' },
+    ],
+  });
+  const passedChange = createValidationItem({
+    id: 'change-1',
+    name: 'add-validation-panel',
+    type: 'change',
+    valid: true,
+    issueCount: 0,
+    issues: [],
+  });
+  const warningSpec = createValidationItem({
+    id: 'spec-2',
+    name: 'signal-parity-rcicombin',
+    type: 'spec',
+    valid: false,
+    issueCount: 1,
+    issues: [
+      { level: 'WARNING', path: 'overview', message: 'Purpose section is too brief' },
+    ],
+  });
+  const result: ValidationResult = {
+    status: 'failed',
+    items: [failedSpec, passedChange, warningSpec],
+    failedItems: [failedSpec, warningSpec],
+    summary: {
+      totalItems: 3,
+      passed: 1,
+      failed: 2,
+    },
+    runAt: '2026-05-08T00:04:00.000Z',
+  };
+
+  assert.deepEqual(
+    deriveValidationTargetSummary(
+      { result, error: null, latestRunAt: result.runAt },
+      { type: 'spec', name: 'activity-bar' },
+    ),
+    {
+      state: 'failed',
+      item: failedSpec,
+      issueCount: 2,
+      issues: failedSpec.issues,
+      lastRunAt: '2026-05-08T00:04:00.000Z',
+    },
+  );
+
+  assert.deepEqual(
+    deriveValidationTargetSummary(
+      { result, error: null, latestRunAt: result.runAt },
+      { type: 'spec', name: 'signal-parity-rcicombin' },
+    ),
+    {
+      state: 'warning',
+      item: warningSpec,
+      issueCount: 1,
+      issues: warningSpec.issues,
+      lastRunAt: '2026-05-08T00:04:00.000Z',
+    },
+  );
+
+  assert.deepEqual(
+    deriveValidationTargetSummary(
+      { result, error: null, latestRunAt: result.runAt },
+      { type: 'change', name: 'add-validation-panel' },
+    ),
+    {
+      state: 'passed',
+      item: passedChange,
+      issueCount: 0,
+      issues: [],
+      lastRunAt: '2026-05-08T00:04:00.000Z',
+    },
+  );
+
+  assert.deepEqual(
+    deriveValidationTargetSummary(
+      { result, error: null, latestRunAt: result.runAt },
+      { type: 'spec', name: 'missing-spec' },
+    ),
+    {
+      state: 'stale',
+      item: null,
+      issueCount: 0,
+      issues: [],
+      lastRunAt: '2026-05-08T00:04:00.000Z',
+    },
+  );
+
+  assert.deepEqual(
+    deriveValidationTargetSummary(
+      { result: null, error: null, latestRunAt: null },
+      { type: 'spec', name: 'activity-bar' },
+    ),
+    {
+      state: 'not-run',
+      item: null,
+      issueCount: 0,
+      issues: [],
+      lastRunAt: null,
+    },
+  );
+});
+
+test('validation target summary returns unknown when no result is available because validation failed to load', () => {
+  assert.deepEqual(
+    deriveValidationTargetSummary(
+      { result: null, error: 'CLI unavailable', latestRunAt: null },
+      { type: 'change', name: 'add-validation-panel' },
+    ),
+    {
+      state: 'unknown',
+      item: null,
+      issueCount: 0,
+      issues: [],
+      lastRunAt: null,
+    },
+  );
 });

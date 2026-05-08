@@ -194,6 +194,28 @@ export const FIXED_LABELS = {
       project: 'Project',
       unknown: 'Other',
     },
+    viewer: {
+      details: 'Details',
+      hideDetails: 'Hide details',
+      labels: {
+        notRun: 'Not run',
+        passed: 'Passed',
+        warning: 'Warning',
+        failed: 'Failed',
+        stale: 'Stale',
+        unknown: 'Unknown',
+      },
+      descriptions: {
+        notRun: 'Run validation from the Validation panel to view this item status.',
+        passed: 'No validation issues in the latest run.',
+        stale: 'The latest validation run did not include this item.',
+        unknown: 'Validation status is unavailable right now.',
+      },
+      issueCount: (count: number) => `${count} issue${count === 1 ? '' : 's'}`,
+      statusAria: (typeLabel: string, name: string, stateLabel: string) => `${typeLabel} ${name} validation status: ${stateLabel}`,
+      detailsAria: (typeLabel: string, name: string, expanded: boolean) =>
+        `${expanded ? 'Hide' : 'Show'} validation details for ${typeLabel} ${name}`,
+    },
   },
   viewer: {
     specification: 'Specification',
