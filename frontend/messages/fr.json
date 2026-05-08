@@ -39,6 +39,11 @@
   "settings_workflow_description": "Choisissez le format du texte de workflow OpenSpec copié pour votre outil de développement.",
   "settings_profile_unknown": "inconnu",
   "settings_commands_description": "Activez ou désactivez les raccourcis de workflow affichés dans les lignes de commandes de l’espace de travail et des changements.",
+  "settings_validation_description": "Configurez l’exécution de la validation depuis le panneau Validation.",
+  "settings_validation_strict_description": "Exécute la validation avec --strict. Cette option reste activée par défaut pour les vérifications OpenSpec complètes.",
+  "settings_validation_auto_run_description": "Exécute automatiquement la validation lorsque le panneau Validation s’ouvre pour un projet actif sans résultat courant.",
+  "settings_validation_concurrency_description": "Entier positif facultatif passé comme --concurrency <n>. Laissez vide pour l’omettre.",
+  "settings_validation_command_preview": "Aperçu de la commande",
   "settings_versions_description": "Vérifiez les versions installées et les dernières versions de OpenSpec WebUI et de l’OpenSpec CLI.",
   "settings_versions_webui_description": "Chemin de mise à jour représentatif d’une installation globale npm pour le package WebUI.",
   "settings_versions_openspec_description": "Chemin de mise à jour représentatif d’une installation globale npm pour le package OpenSpec CLI.",
@@ -142,5 +147,8 @@
   "copy_label_text": "Texte",
   "copy_label_quoted_text": "Texte cité",
   "copy_label_tab_name": "Nom",
-  "copy_label_tab_path": "Chemin"
+  "copy_label_tab_path": "Chemin",
+  "validation_strict": "Strict",
+  "validation_auto_run": "Exécution automatique",
+  "validation_concurrency": "Concurrence"
 }

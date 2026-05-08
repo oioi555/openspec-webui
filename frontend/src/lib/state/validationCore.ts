@@ -56,7 +56,8 @@ export interface ValidationControllerDependencies {
   /** Optional external state object. When provided (e.g. a Svelte $state proxy), mutations trigger reactivity. */
   state?: ValidationState;
   getProjectId: () => string | null;
-  runValidation: () => Promise<ValidationResult>;
+  runValidation: (options?: { strict: boolean; concurrency: number | null }) => Promise<ValidationResult>;
+  getValidationOptions?: () => { strict: boolean; concurrency: number | null };
   getErrorMessage?: (cause: unknown) => string;
 }
 
@@ -258,7 +259,8 @@ export function createValidationController(
     state.error = null;
 
     try {
-      const result = await dependencies.runValidation();
+      const options = dependencies.getValidationOptions?.();
+      const result = await dependencies.runValidation(options);
 
       if (!requestTracker.isCurrent(token) || dependencies.getProjectId() !== projectId) {
         return null;

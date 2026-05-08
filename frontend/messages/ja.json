@@ -39,6 +39,11 @@
   "settings_workflow_description": "コピーした OpenSpec workflow text の形式を選択します。",
   "settings_profile_unknown": "不明",
   "settings_commands_description": "Workspace と Change の command row に表示する shortcut を切り替えます。",
+  "settings_validation_description": "Validation panel から実行する validation の動作を設定します。",
+  "settings_validation_strict_description": "--strict 付きで validation を実行します。完全な OpenSpec checks のため、既定では有効です。",
+  "settings_validation_auto_run_description": "Active project に現在の結果がない状態で Validation panel を開いた時、自動で validation を実行します。",
+  "settings_validation_concurrency_description": "--concurrency <n> として渡す正の整数です。空欄の場合は指定しません。",
+  "settings_validation_command_preview": "Command preview",
   "settings_versions_description": "OpenSpec WebUI と OpenSpec CLI の現在バージョンと最新バージョンを確認します。",
   "settings_versions_webui_description": "WebUI package を更新するための代表的な npm global install コマンドです。",
   "settings_versions_openspec_description": "OpenSpec CLI package を更新するための代表的な npm global install コマンドです。",
@@ -142,5 +147,8 @@
   "copy_label_text": "テキスト",
   "copy_label_quoted_text": "引用テキスト",
   "copy_label_tab_name": "名前",
-  "copy_label_tab_path": "パス"
+  "copy_label_tab_path": "パス",
+  "validation_strict": "Strict",
+  "validation_auto_run": "自動実行",
+  "validation_concurrency": "並列数"
 }

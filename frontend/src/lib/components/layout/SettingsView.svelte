@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Command, Copy, ExternalLink, Info, ListChecks, Monitor, Moon, Settings, Sparkles, Sun, Terminal, Wrench } from '@lucide/svelte';
+  import { Command, Copy, ExternalLink, FlaskConical, Info, ListChecks, Monitor, Moon, Settings, Sparkles, Sun, Terminal, Wrench } from '@lucide/svelte';
   import { Callout } from '$lib/components/shared/callout';
   import { OptionCard } from '$lib/components/shared/option-card';
   import { InsetPanel, SectionHeader, SurfaceCard } from '$lib/components/shared/surface';
@@ -34,8 +34,9 @@
   import { tabStore } from '$lib/state/tabs.svelte.ts';
   import { themeStore, type Theme } from '$lib/state/theme.svelte.ts';
   import { uiPreferencesStore } from '$lib/state/uiPreferences.svelte.ts';
+  import { validationPreferencesStore } from '$lib/state/validationPreferences.svelte.ts';
 
-  type Section = 'general' | 'workflow' | 'commands' | 'versions';
+  type Section = 'general' | 'workflow' | 'commands' | 'validation' | 'versions';
 
   interface Props {
     initialSection?: Section;
@@ -48,6 +49,7 @@
     general: 'settings-general',
     workflow: 'settings-workflow',
     commands: 'settings-commands',
+    validation: 'settings-validation',
     versions: 'settings-versions',
   };
 
@@ -66,6 +68,11 @@
       id: 'commands' as const,
       label: FIXED_LABELS.settings.sections.commands,
       icon: ListChecks
+    },
+    {
+      id: 'validation' as const,
+      label: FIXED_LABELS.settings.sections.validation,
+      icon: FlaskConical
     },
     {
       id: 'versions' as const,
@@ -101,6 +108,45 @@
   function toggleCommand(command: WorkflowCommand, event: Event) {
     const target = event.currentTarget as HTMLInputElement;
     commandPreferencesStore.setCommandVisibility(command, target.checked);
+  }
+
+  let validationConcurrencyInput = $state<string>(
+    validationPreferencesStore.concurrency !== null
+      ? String(validationPreferencesStore.concurrency)
+      : ''
+  );
+
+  let validationCommandPreview = $derived.by(() => {
+    const parts = ['openspec validate --all'];
+    if (validationPreferencesStore.strict) {
+      parts.push('--strict');
+    }
+    if (validationPreferencesStore.concurrency !== null) {
+      parts.push(`--concurrency ${validationPreferencesStore.concurrency}`);
+    }
+    parts.push('--json');
+    return parts.join(' ');
+  });
+
+  function toggleValidationStrict(event: Event) {
+    const target = event.currentTarget as HTMLInputElement;
+    validationPreferencesStore.setStrict(target.checked);
+  }
+
+  function toggleValidationAutoRun(event: Event) {
+    const target = event.currentTarget as HTMLInputElement;
+    validationPreferencesStore.setAutoRun(target.checked);
+  }
+
+  function handleValidationConcurrencyInput(value: string) {
+    validationConcurrencyInput = value;
+    const parsed = parseInt(value, 10);
+    if (value.trim() === '' || Number.isNaN(parsed) || parsed < 1) {
+      validationPreferencesStore.setConcurrency(null);
+      return;
+    }
+
+    validationPreferencesStore.setConcurrency(parsed);
   }
 
   let previewWorkspaceCommand = $derived(buildCommand('propose', commandPreferencesStore.format));
@@ -491,6 +537,70 @@
             {/each}
           </div>
         </div>
+      </div>
+    </SurfaceCard>
+
+    <!-- validation section -->
+    <SurfaceCard id="settings-validation" data-settings-section="validation">
+      <SectionHeader>
+        <h2 class="text-lg font-semibold text-foreground">{FIXED_LABELS.settings.sections.validation}</h2>
+        <p class="mt-1 text-sm text-muted-foreground">{t(m.settings_validation_description)}</p>
+      </SectionHeader>
+
+      <div class="space-y-4 p-4">
+        <div class="divide-y divide-border overflow-hidden rounded-lg border border-border bg-secondary/50">
+          <label class="flex items-start justify-between gap-4 px-4 py-3 text-sm text-card-foreground">
+            <div>
+              <div class="font-medium text-foreground">{t(m.validation_strict)}</div>
+              <div class="mt-1 text-xs text-muted-foreground">{t(m.settings_validation_strict_description)}</div>
+            </div>
+
+            <input
+              type="checkbox"
+              checked={validationPreferencesStore.strict}
+              aria-label={t(m.validation_strict)}
+              onchange={toggleValidationStrict}
+            />
+          </label>
+
+          <label class="flex items-start justify-between gap-4 px-4 py-3 text-sm text-card-foreground">
+            <div>
+              <div class="font-medium text-foreground">{t(m.validation_auto_run)}</div>
+              <div class="mt-1 text-xs text-muted-foreground">{t(m.settings_validation_auto_run_description)}</div>
+            </div>
+
+            <input
+              type="checkbox"
+              checked={validationPreferencesStore.autoRun}
+              aria-label={t(m.validation_auto_run)}
+              onchange={toggleValidationAutoRun}
+            />
+          </label>
+
+          <label class="grid gap-3 px-4 py-3 text-sm text-card-foreground sm:grid-cols-[minmax(0,1fr)_8rem] sm:items-start">
+            <div>
+              <div class="font-medium text-foreground">{t(m.validation_concurrency)}</div>
+              <div class="mt-1 text-xs text-muted-foreground">{t(m.settings_validation_concurrency_description)}</div>
+            </div>
+
+            <input
+              type="number"
+              min="1"
+              value={validationConcurrencyInput}
+              aria-label={t(m.validation_concurrency)}
+              oninput={(event) => handleValidationConcurrencyInput((event.currentTarget as HTMLInputElement).value)}
+              placeholder="—"
+              class="w-full rounded border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60"
+            />
+          </label>
+        </div>
+
+        <Callout variant="info">
+          <div class="space-y-1 text-sm">
+            <div class="font-medium text-foreground">{t(m.settings_validation_command_preview)}</div>
+            <code class="block overflow-x-auto rounded bg-background px-3 py-2 text-xs text-primary">{validationCommandPreview}</code>
+          </div>
+        </Callout>
       </div>
     </SurfaceCard>
 

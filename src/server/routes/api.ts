@@ -50,6 +50,54 @@ interface AddProjectRequestBody {
   path?: string;
 }
 
+export interface ValidationOptions {
+  strict?: boolean;
+  concurrency?: number | null;
+}
+
+export interface NormalizedValidationOptions {
+  strict: boolean;
+  concurrency: number | null;
+}
+
+export function normalizeValidationOptions(value: unknown): NormalizedValidationOptions {
+  const defaults: NormalizedValidationOptions = { strict: true, concurrency: null };
+
+  if (!value || typeof value !== 'object') {
+    return defaults;
+  }
+
+  const candidate = value as Partial<ValidationOptions>;
+
+  return {
+    strict: typeof candidate.strict === 'boolean' ? candidate.strict : defaults.strict,
+    concurrency:
+      typeof candidate.concurrency === 'number' && Number.isInteger(candidate.concurrency) && candidate.concurrency > 0
+        ? candidate.concurrency
+        : defaults.concurrency,
+  };
+}
+
+export function buildValidationArgs(options: NormalizedValidationOptions): string[] {
+  const args = ['validate', '--all'];
+
+  if (options.strict) {
+    args.push('--strict');
+  }
+
+  if (options.concurrency !== null) {
+    args.push('--concurrency', String(options.concurrency));
+  }
+
+  args.push('--json');
+
+  return args;
+}
+
+export function buildValidationCommandString(args: string[]): string {
+  return `openspec ${args.join(' ')}`;
+}
+
 /**
  * Register API routes
  */
@@ -318,7 +366,8 @@ export async function registerApiRoutes(
       return reply;
     }
 
-    const result = await runValidation(context.projectRoot);
+    const options = normalizeValidationOptions(request.body);
+    const result = await runValidation(context.projectRoot, options);
     return result;
   });
 
@@ -358,8 +407,8 @@ export async function registerApiRoutes(
 }
 
 /**
- * Execute `openspec validate --all --strict --json` in the project root and
- * normalize the output into a ValidationResult.
+ * Execute `openspec validate --all [--strict] [--concurrency n] --json` in the
+ * project root and normalize the output into a ValidationResult.
  *
  * Three outcome paths:
  * 1. CLI exits 0 with valid JSON → status 'passed' or 'failed' (from JSON)
@@ -367,9 +416,12 @@ export async function registerApiRoutes(
  * 3. CLI exits non-0 with unparseable output → structured API error thrown
  */
 async function runValidation(
-  projectRoot: string
+  projectRoot: string,
+  options: NormalizedValidationOptions = { strict: true, concurrency: null }
 ): Promise<ValidationResult> {
-  const { stdout, stderr, exitCode } = await execValidate(projectRoot);
+  const args = buildValidationArgs(options);
+  const commandString = buildValidationCommandString(args);
+  const { stdout, stderr, exitCode } = await execValidate(projectRoot, args);
 
   const parsed = tryParseValidationJson(stdout);
 
@@ -382,7 +434,7 @@ async function runValidation(
     'ACTIVATION_FAILED',
     `Validation command failed with exit code ${exitCode ?? 'null'}: ${stderr || stdout || 'unknown error'}`,
     {
-      command: 'openspec validate --all --strict --json',
+      command: commandString,
       exitCode: exitCode ?? null,
       stderr,
     } satisfies ValidationErrorContext as Record<string, unknown>,
@@ -390,12 +442,13 @@ async function runValidation(
 }
 
 function execValidate(
-  projectRoot: string
+  projectRoot: string,
+  args: string[] = ['validate', '--all', '--strict', '--json']
 ): Promise<{ stdout: string; stderr: string; exitCode: number | null }> {
   return new Promise((resolve) => {
     execFile(
       'openspec',
-      ['validate', '--all', '--strict', '--json'],
+      args,
       { cwd: projectRoot, timeout: 120_000 },
       (error, stdout, stderr) => {
         if (error && error.code === 'ENOENT') {
@@ -405,7 +458,7 @@ function execValidate(
         resolve({
           stdout: stdout ?? '',
           stderr: (stderr ?? '').trim(),
-          exitCode: error ? 1 : 0,
+          exitCode: error ? (typeof error.code === 'number' ? error.code : 1) : 0,
         });
       }
     );

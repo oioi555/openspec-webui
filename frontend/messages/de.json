@@ -39,6 +39,11 @@
   "settings_workflow_description": "Wähle, wie kopierter OpenSpec-Workflow-Text für dein Coding-Tool formatiert werden soll.",
   "settings_profile_unknown": "unbekannt",
   "settings_commands_description": "Lege fest, welche Workflow-Kurzbefehle in den Befehlszeilen für Workspace und Änderungen angezeigt werden.",
+  "settings_validation_description": "Lege fest, wie die Validierung aus dem Validation-Panel ausgeführt wird.",
+  "settings_validation_strict_description": "Führt die Validierung mit --strict aus. Dies bleibt standardmäßig für vollständige OpenSpec-Prüfungen aktiviert.",
+  "settings_validation_auto_run_description": "Startet die Validierung automatisch, wenn das Validation-Panel für ein aktives Projekt ohne aktuelles Ergebnis geöffnet wird.",
+  "settings_validation_concurrency_description": "Optionaler positiver Integer für --concurrency <n>. Leer lassen, um ihn wegzulassen.",
+  "settings_validation_command_preview": "Befehlsvorschau",
   "settings_versions_description": "Prüfe installierte und neueste Versionen für OpenSpec WebUI und die OpenSpec CLI.",
   "settings_versions_webui_description": "Typischer npm-Pfad für globale Updates des WebUI-Pakets.",
   "settings_versions_openspec_description": "Typischer npm-Pfad für globale Updates des OpenSpec CLI-Pakets.",
@@ -142,5 +147,8 @@
   "copy_label_text": "Text",
   "copy_label_quoted_text": "Zitierter Text",
   "copy_label_tab_name": "Name",
-  "copy_label_tab_path": "Pfad"
+  "copy_label_tab_path": "Pfad",
+  "validation_strict": "Strikt",
+  "validation_auto_run": "Automatisch ausführen",
+  "validation_concurrency": "Parallelität"
 }

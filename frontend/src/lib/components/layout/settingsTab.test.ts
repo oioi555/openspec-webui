@@ -30,19 +30,21 @@ test('tabs.svelte.ts keeps browser history handling compatible with non-routable
   assert.match(source, /normalizePath\(tabInput\.path, \{ preserveSettings: tabInput\.type === 'settings' \}\)/);
 });
 
-test('SettingsView.svelte includes four section anchors, IntersectionObserver, smooth scroll, and responsive layout', async () => {
+test('SettingsView.svelte includes five section anchors, IntersectionObserver, smooth scroll, and responsive layout', async () => {
   const source = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
 
-  // Four section ids
+  // Five section ids
   assert.match(source, /id="settings-general"/);
   assert.match(source, /id="settings-workflow"/);
   assert.match(source, /id="settings-commands"/);
+  assert.match(source, /id="settings-validation"/);
   assert.match(source, /id="settings-versions"/);
 
   // data-settings-section anchors for IntersectionObserver
   assert.match(source, /data-settings-section="general"/);
   assert.match(source, /data-settings-section="workflow"/);
   assert.match(source, /data-settings-section="commands"/);
+  assert.match(source, /data-settings-section="validation"/);
   assert.match(source, /data-settings-section="versions"/);
 
   // IntersectionObserver usage
@@ -61,6 +63,9 @@ test('SettingsView.svelte preserves existing settings control wiring across all 
   assert.match(source, /themeStore\.value/);
   assert.match(source, /localeStore\.value/);
   assert.match(source, /commandPreferencesStore\.format/);
+  assert.match(source, /validationPreferencesStore\.strict/);
+  assert.match(source, /validationPreferencesStore\.autoRun/);
+  assert.match(source, /validationPreferencesStore\.concurrency/);
   assert.match(source, /CORE_COMMANDS/);
   assert.match(source, /EXPANDED_COMMANDS/);
   assert.match(source, /versionStatusStore\.snapshot/);

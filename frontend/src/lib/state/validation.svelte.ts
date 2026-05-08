@@ -7,6 +7,7 @@ import { formatDate } from '$lib/utils';
 import type { ValidationItem } from '$lib/types/api';
 
 import { createDefaultValidationState, createValidationController, deriveValidationDashboardSummary } from './validationCore';
+import { validationPreferencesStore } from './validationPreferences.svelte.ts';
 
 const reactiveState = $state(createDefaultValidationState());
 
@@ -14,6 +15,10 @@ const controller = createValidationController({
   state: reactiveState,
   getProjectId: () => projectStore.activeProjectId,
   runValidation,
+  getValidationOptions: () => ({
+    strict: validationPreferencesStore.strict,
+    concurrency: validationPreferencesStore.concurrency,
+  }),
   getErrorMessage: (cause) => getApiErrorMessage(cause, 'Validation failed'),
 });
 
@@ -36,6 +41,10 @@ export const validationStore = {
 
   get failedCount() {
     return controller.state.result?.summary.failed ?? 0;
+  },
+
+  get autoRun() {
+    return validationPreferencesStore.autoRun;
   },
 
   get dashboardSummary() {

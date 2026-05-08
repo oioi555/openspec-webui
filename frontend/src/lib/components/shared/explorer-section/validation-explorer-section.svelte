@@ -6,6 +6,7 @@
   import * as ScrollArea from '$lib/components/ui/scroll-area';
   import { t } from '$lib/i18n';
   import * as m from '$lib/paraglide/messages.js';
+  import { projectStore } from '$lib/state/projects.svelte.ts';
   import { searchStore } from '$lib/state/search.svelte.ts';
   import { validationStore } from '$lib/state/validation.svelte.ts';
   import { uiPreferencesStore } from '$lib/state/uiPreferences.svelte.ts';
@@ -18,6 +19,27 @@
   }
 
   let { onItemSelected = () => {} }: Props = $props();
+  let autoRunStartedForProject: string | null = null;
+
+  $effect(() => {
+    const projectId = projectStore.activeProjectId;
+    const projectChanged = validationStore.syncProject();
+
+    if (projectChanged) {
+      autoRunStartedForProject = null;
+    }
+
+    if (!projectId || !validationStore.autoRun || validationStore.loading || validationStore.result || validationStore.error) {
+      return;
+    }
+
+    if (autoRunStartedForProject === projectId) {
+      return;
+    }
+
+    autoRunStartedForProject = projectId;
+    void validationStore.refresh();
+  });
 
   function isNavigable(item: ValidationItem) {
     return item.type === 'spec' || item.type === 'change';
@@ -123,7 +145,7 @@
 
     <p class="mb-3 text-xs leading-relaxed text-muted-foreground">{t(m.validation_panel_description)}</p>
 
-    <div class="flex flex-wrap items-center gap-2">
+    <div class="space-y-2">
       <Button onclick={() => validationStore.refresh()} disabled={validationStore.loading} size="sm">
         {#if validationStore.loading}
           <LoaderCircle class="h-3.5 w-3.5 animate-spin" />
@@ -147,8 +169,6 @@
         <span class="text-danger">{validationStore.error}</span>
       {:else if !validationStore.result}
         {t(m.validation_start)}
-      {:else}
-        {t(m.validation_summary_counts, validationStore.result.summary)}
       {/if}
     </div>
   </div>

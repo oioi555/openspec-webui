@@ -234,9 +234,16 @@ export async function getVersionStatus(): Promise<VersionStatusResponse> {
   return fetchApi<VersionStatusResponse>('/version-status');
 }
 
-export async function runValidation(): Promise<ValidationResult> {
+export interface RunValidationOptions {
+  strict: boolean;
+  concurrency: number | null;
+}
+
+export async function runValidation(options?: RunValidationOptions): Promise<ValidationResult> {
+  const body = options ? { strict: options.strict, concurrency: options.concurrency } : undefined;
   return fetchApi<ValidationResult>('/validate', {
     method: 'POST',
+    body: body !== undefined ? JSON.stringify(body) : undefined,
   });
 }
 

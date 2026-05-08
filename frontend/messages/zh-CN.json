@@ -39,6 +39,11 @@
   "settings_workflow_description": "选择复制的 OpenSpec 工作流文本在你的编码工具中应使用的格式。",
   "settings_profile_unknown": "未知",
   "settings_commands_description": "切换哪些工作流快捷方式应显示在工作区和变更命令区域中。",
+  "settings_validation_description": "配置从 Validation 面板运行验证的方式。",
+  "settings_validation_strict_description": "使用 --strict 运行验证。为完整的 OpenSpec 检查，默认保持启用。",
+  "settings_validation_auto_run_description": "当为活动项目打开 Validation 面板且没有当前结果时，自动运行验证。",
+  "settings_validation_concurrency_description": "作为 --concurrency <n> 传入的可选正整数。留空则省略。",
+  "settings_validation_command_preview": "命令预览",
   "settings_versions_description": "检查 OpenSpec WebUI 和 OpenSpec CLI 的已安装版本与最新版本。",
   "settings_versions_webui_description": "WebUI 包的典型 npm 全局安装更新路径。",
   "settings_versions_openspec_description": "OpenSpec CLI 包的典型 npm 全局安装更新路径。",
@@ -142,5 +147,8 @@
   "copy_label_text": "文本",
   "copy_label_quoted_text": "引用文本",
   "copy_label_tab_name": "名称",
-  "copy_label_tab_path": "路径"
+  "copy_label_tab_path": "路径",
+  "validation_strict": "严格",
+  "validation_auto_run": "自动运行",
+  "validation_concurrency": "并发数"
 }

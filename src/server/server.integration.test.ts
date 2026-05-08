@@ -92,6 +92,9 @@ if (process.argv.includes('--version')) {
 }
 
 if (process.argv[2] === 'validate') {
+  if (process.env.VALIDATE_ARGS_FILE) {
+    try { require('fs').appendFileSync(process.env.VALIDATE_ARGS_FILE, JSON.stringify(process.argv.slice(2)) + '\\n'); } catch {}
+  }
   process.stdout.write(process.env.VALIDATE_OUTPUT || '{"items":[],"summary":{"totals":{"items":0,"passed":0,"failed":0},"byType":{}},"version":"1.0"}');
   process.exit(Number(process.env.VALIDATE_EXIT_CODE || '0'));
 }
@@ -1243,6 +1246,8 @@ test('validate returns API error when CLI output is malformed', async () => {
     const result = await apiJson(runtime.baseUrl, '/api/validate', { method: 'POST' });
     assert.equal(result.response.status, 500);
     assert.equal(result.body.code, 'ACTIVATION_FAILED');
+    assert.equal(result.body.metadata.command, 'openspec validate --all --strict --json');
+    assert.equal(result.body.metadata.exitCode, 1);
   } finally {
     delete process.env.VALIDATE_OUTPUT;
     delete process.env.VALIDATE_EXIT_CODE;
@@ -1338,6 +1343,129 @@ test('validate honors X-Project-Id header for project scoping', async () => {
   } finally {
     delete process.env.VALIDATE_OUTPUT;
     delete process.env.VALIDATE_EXIT_CODE;
+    await runtime.close();
+  }
+});
+
+test('validate defaults to strict mode when body is empty', async () => {
+  const configHome = await createTempDir('openspec-webui-validate-strict-default-cfg-');
+  process.env.XDG_CONFIG_HOME = configHome;
+  const projectRoot = await createProjectFixture('strict-default-project');
+  await installFakeOpenSpecCommand({ readyProjectRoots: new Set([projectRoot]) });
+
+  const argsFile = join(await createTempDir('openspec-webui-validate-args-'), 'args.txt');
+  process.env.VALIDATE_ARGS_FILE = argsFile;
+  process.env.VALIDATE_OUTPUT = PASSING_VALIDATION_OUTPUT;
+  process.env.VALIDATE_EXIT_CODE = '0';
+
+  const runtime = await startServer();
+
+  try {
+    await apiJson(runtime.baseUrl, '/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: projectRoot }),
+    });
+
+    const result = await apiJson(runtime.baseUrl, '/api/validate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    assert.equal(result.response.status, 200);
+
+    const { readFile: readFileAsync } = await import('node:fs/promises');
+    const argsLines = (await readFileAsync(argsFile, 'utf8')).trim().split('\n');
+    const lastArgs = JSON.parse(argsLines[argsLines.length - 1]);
+    assert.ok(lastArgs.includes('--strict'));
+    assert.ok(lastArgs.includes('--json'));
+  } finally {
+    delete process.env.VALIDATE_OUTPUT;
+    delete process.env.VALIDATE_EXIT_CODE;
+    delete process.env.VALIDATE_ARGS_FILE;
+    await runtime.close();
+  }
+});
+
+test('validate omits --strict and includes --concurrency when options specify strict=false and concurrency=4', async () => {
+  const configHome = await createTempDir('openspec-webui-validate-no-strict-cfg-');
+  process.env.XDG_CONFIG_HOME = configHome;
+  const projectRoot = await createProjectFixture('no-strict-project');
+  await installFakeOpenSpecCommand({ readyProjectRoots: new Set([projectRoot]) });
+
+  const argsFile = join(await createTempDir('openspec-webui-validate-args-2-'), 'args.txt');
+  process.env.VALIDATE_ARGS_FILE = argsFile;
+  process.env.VALIDATE_OUTPUT = PASSING_VALIDATION_OUTPUT;
+  process.env.VALIDATE_EXIT_CODE = '0';
+
+  const runtime = await startServer();
+
+  try {
+    await apiJson(runtime.baseUrl, '/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: projectRoot }),
+    });
+
+    const result = await apiJson(runtime.baseUrl, '/api/validate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ strict: false, concurrency: 4 }),
+    });
+    assert.equal(result.response.status, 200);
+    assert.equal(result.body.status, 'passed');
+
+    const { readFile: readFileAsync } = await import('node:fs/promises');
+    const argsLines = (await readFileAsync(argsFile, 'utf8')).trim().split('\n');
+    const lastArgs = JSON.parse(argsLines[argsLines.length - 1]);
+    assert.equal(lastArgs.includes('--strict'), false);
+    assert.ok(lastArgs.includes('--concurrency'));
+    assert.ok(lastArgs.includes('4'));
+    assert.ok(lastArgs.includes('--json'));
+  } finally {
+    delete process.env.VALIDATE_OUTPUT;
+    delete process.env.VALIDATE_EXIT_CODE;
+    delete process.env.VALIDATE_ARGS_FILE;
+    await runtime.close();
+  }
+});
+
+test('validate ignores invalid concurrency values and falls back to default', async () => {
+  const configHome = await createTempDir('openspec-webui-validate-invalid-conc-cfg-');
+  process.env.XDG_CONFIG_HOME = configHome;
+  const projectRoot = await createProjectFixture('invalid-conc-project');
+  await installFakeOpenSpecCommand({ readyProjectRoots: new Set([projectRoot]) });
+
+  const argsFile = join(await createTempDir('openspec-webui-validate-args-3-'), 'args.txt');
+  process.env.VALIDATE_ARGS_FILE = argsFile;
+  process.env.VALIDATE_OUTPUT = PASSING_VALIDATION_OUTPUT;
+  process.env.VALIDATE_EXIT_CODE = '0';
+
+  const runtime = await startServer();
+
+  try {
+    await apiJson(runtime.baseUrl, '/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: projectRoot }),
+    });
+
+    const result = await apiJson(runtime.baseUrl, '/api/validate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ strict: true, concurrency: -1 }),
+    });
+    assert.equal(result.response.status, 200);
+
+    const { readFile: readFileAsync } = await import('node:fs/promises');
+    const argsLines = (await readFileAsync(argsFile, 'utf8')).trim().split('\n');
+    const lastArgs = JSON.parse(argsLines[argsLines.length - 1]);
+    assert.ok(lastArgs.includes('--strict'));
+    assert.equal(lastArgs.includes('--concurrency'), false);
+  } finally {
+    delete process.env.VALIDATE_OUTPUT;
+    delete process.env.VALIDATE_EXIT_CODE;
+    delete process.env.VALIDATE_ARGS_FILE;
     await runtime.close();
   }
 });

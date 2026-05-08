@@ -39,6 +39,11 @@
   "settings_workflow_description": "Choose how copied OpenSpec workflow text should be formatted for your coding tool.",
   "settings_profile_unknown": "unknown",
   "settings_commands_description": "Toggle which workflow shortcuts should appear in workspace and change command rows.",
+  "settings_validation_description": "Configure how validation runs from the Validation panel.",
+  "settings_validation_strict_description": "Run validation with --strict. This remains enabled by default for full OpenSpec checks.",
+  "settings_validation_auto_run_description": "Automatically run validation when the Validation panel opens for an active project with no current result.",
+  "settings_validation_concurrency_description": "Optional positive integer passed as --concurrency <n>. Leave blank to omit it.",
+  "settings_validation_command_preview": "Command preview",
   "settings_versions_description": "Check installed and latest versions for OpenSpec WebUI and the OpenSpec CLI.",
   "settings_versions_webui_description": "Representative npm global-install update path for the WebUI package.",
   "settings_versions_openspec_description": "Representative npm global-install update path for the OpenSpec CLI package.",
@@ -142,5 +147,8 @@
   "copy_label_text": "Text",
   "copy_label_quoted_text": "Quoted text",
   "copy_label_tab_name": "Name",
-  "copy_label_tab_path": "Path"
+  "copy_label_tab_path": "Path",
+  "validation_strict": "Strict",
+  "validation_auto_run": "Auto-run",
+  "validation_concurrency": "Concurrency"
 }

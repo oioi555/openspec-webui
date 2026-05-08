@@ -80,10 +80,30 @@ test('validation panel text is localized through Paraglide messages', async () =
   const messages = await readFile(new URL('../../../../messages/ja.json', import.meta.url), 'utf8');
 
   assert.match(source, /t\(m\.validation_panel_title\)/);
-  assert.match(source, /t\(m\.validation_panel_description\)/);
-  assert.match(source, /t\(m\.validation_summary_counts/);
+  assert.match(source, /t\(m\.validation_passed_count/);
+  assert.match(source, /t\(m\.validation_failed_count/);
+  assert.match(source, /t\(m\.validation_total_count/);
   assert.match(messages, /"validation_panel_title"/);
   assert.match(messages, /"copy_label_validation_item_name"/);
+});
+
+test('validation preferences live in Settings rather than the Validation panel header', async () => {
+  const panelSource = await readFile(new URL('../shared/explorer-section/validation-explorer-section.svelte', import.meta.url), 'utf8');
+  const settingsSource = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
+
+  assert.equal(panelSource.includes('validationPreferencesStore'), false);
+  assert.equal(panelSource.includes('settings-validation'), false);
+  assert.match(panelSource, /\$effect\(\(\) => \{/);
+  assert.match(panelSource, /validationStore\.autoRun/);
+  assert.match(panelSource, /autoRunStartedForProject === projectId/);
+  assert.match(panelSource, /void validationStore\.refresh\(\)/);
+  assert.match(panelSource, /\{t\(m\.validation_last_run\)\}: \{formatDate\(validationStore\.latestRunAt\)\}/);
+  assert.doesNotMatch(panelSource, /validation_summary_counts/);
+  assert.match(settingsSource, /settings-validation/);
+  assert.match(settingsSource, /validationPreferencesStore\.setStrict/);
+  assert.match(settingsSource, /validationPreferencesStore\.setAutoRun/);
+  assert.match(settingsSource, /validationPreferencesStore\.setConcurrency/);
+  assert.match(settingsSource, /settings_validation_command_preview/);
 });
 
 test('validation store getters do not mutate state during render', async () => {

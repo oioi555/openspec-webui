@@ -39,6 +39,11 @@
   "settings_workflow_description": "Elige cómo debe formatearse el texto del flujo de trabajo de OpenSpec copiado para tu herramienta de programación.",
   "settings_profile_unknown": "desconocido",
   "settings_commands_description": "Activa o desactiva qué accesos directos del flujo de trabajo deben aparecer en las filas de comandos del espacio de trabajo y de cambios.",
+  "settings_validation_description": "Configura cómo se ejecuta la validación desde el panel Validation.",
+  "settings_validation_strict_description": "Ejecuta la validación con --strict. Permanece activado por defecto para comprobaciones completas de OpenSpec.",
+  "settings_validation_auto_run_description": "Ejecuta automáticamente la validación cuando se abre el panel Validation para un proyecto activo sin resultado actual.",
+  "settings_validation_concurrency_description": "Entero positivo opcional pasado como --concurrency <n>. Déjalo vacío para omitirlo.",
+  "settings_validation_command_preview": "Vista previa del comando",
   "settings_versions_description": "Consulta las versiones instaladas y más recientes de OpenSpec WebUI y OpenSpec CLI.",
   "settings_versions_webui_description": "Ruta representativa de actualización mediante instalación global con npm para el paquete WebUI.",
   "settings_versions_openspec_description": "Ruta representativa de actualización mediante instalación global con npm para el paquete OpenSpec CLI.",
@@ -142,5 +147,8 @@
   "copy_label_text": "Texto",
   "copy_label_quoted_text": "Texto citado",
   "copy_label_tab_name": "Nombre",
-  "copy_label_tab_path": "Ruta"
+  "copy_label_tab_path": "Ruta",
+  "validation_strict": "Estricto",
+  "validation_auto_run": "Ejecución automática",
+  "validation_concurrency": "Concurrencia"
 }

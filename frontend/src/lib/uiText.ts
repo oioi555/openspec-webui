@@ -80,6 +80,7 @@ export const FIXED_LABELS = {
       general: 'General',
       workflow: 'Workflow',
       commands: 'Commands',
+      validation: 'Validation',
       versions: 'Versions',
     },
     headings: {
@@ -88,6 +89,7 @@ export const FIXED_LABELS = {
       explorer: 'Explorer',
       workflow: 'Workflow',
       commands: 'Commands',
+      validation: 'Validation',
       versions: 'Versions',
       coreCommands: 'Core Commands',
       expandedCommands: 'Expanded Commands',
@@ -186,6 +188,10 @@ export const FIXED_LABELS = {
     commandError: 'Command Error',
     noFailedItems: 'No failed validation items.',
     nonNavigable: 'This item is visible for review but does not open a spec or change tab.',
+    strict: 'Strict',
+    autoRun: 'Auto-run',
+    concurrency: 'Concurrency',
+    commandPreview: (args: string) => args,
     issueCount: (count: number) => `${count} issue${count === 1 ? '' : 's'}`,
     summaryCounts: (passed: number, failed: number, total: number) => `${passed} passed • ${failed} failed • ${total} total`,
     typeLabels: {
