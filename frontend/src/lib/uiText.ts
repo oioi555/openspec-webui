@@ -16,6 +16,7 @@ export const FIXED_LABELS = {
     dashboard: 'Dashboard',
     design: 'Design',
     error: 'Error',
+    info: 'Info',
     loading: 'Loading...',
     name: 'Name',
     nextStep: 'Next Step',

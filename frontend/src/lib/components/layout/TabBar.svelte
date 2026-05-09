@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Pin, X, LayoutDashboard, FileText, Archive, SquarePen, Clipboard, ClipboardCopy, Settings } from '@lucide/svelte';
+  import { Pin, X, LayoutDashboard, Clipboard, ClipboardCopy, Settings } from '@lucide/svelte';
   import * as ContextMenu from '$lib/components/ui/context-menu';
   import * as ScrollArea from '$lib/components/ui/scroll-area';
   import { t } from '$lib/i18n';
@@ -9,16 +9,19 @@
   import { formatChangeName } from '$lib/utils.ts';
   import { toast } from 'svelte-sonner';
   import { FIXED_LABELS, getPinnedTabAriaLabel, getPreviewTabAriaLabel, getRegularTabAriaLabel } from '$lib/uiText';
+  import { getEntityVisual, type IconComponent } from '$lib/visualSemantics';
 
-  // --- File-type icon mapping ---
-  const TAB_ICONS: Record<TabType, { icon: typeof LayoutDashboard; color: string }> = {
+  const TAB_ICONS: Record<TabType, { icon: IconComponent; color: string }> = {
     dashboard: { icon: LayoutDashboard, color: 'text-muted-foreground' },
-    spec: { icon: FileText, color: 'text-success' },
-    change: { icon: SquarePen, color: 'text-info' },
+    spec: { icon: getEntityVisual('spec').icon, color: getEntityVisual('spec').iconClass },
+    change: { icon: getEntityVisual('active-change').icon, color: getEntityVisual('active-change').iconClass },
     settings: { icon: Settings, color: 'text-muted-foreground' },
   };
 
-  const ARCHIVED_CHANGE_ICON = { icon: Archive, color: 'text-muted-foreground' };
+  const ARCHIVED_CHANGE_ICON = {
+    icon: getEntityVisual('archived-change').icon,
+    color: getEntityVisual('archived-change').iconClass,
+  };
 
   function getTabIcon(tab: { type: string; name: string }) {
     if (tab.type === 'change') {

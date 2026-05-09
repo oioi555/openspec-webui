@@ -2,7 +2,6 @@
 
 ## Purpose
 Define sorting behavior for dashboard Active Changes and Recent Activity lists.
-
 ## Requirements
 ### Requirement: Dashboard Active Changes supports date and name sorting
 The system SHALL allow operators to sort the dashboard Active Changes list by Date or Name. Date sorting SHALL be the default and SHALL order active changes by most recent modification first. Name sorting SHALL order active changes alphabetically by change name.
@@ -37,3 +36,17 @@ The system SHALL use a shared sorting base for dashboard and explorer date/name 
 - **WHEN** dashboard and explorer lists are sorted by Date or Name
 - **THEN** shared sorting helpers define the ordering behavior
 - **AND** explorer section defaults remain unchanged
+
+### Requirement: Dashboard Recent Activity distinguishes archived entries
+The system SHALL preserve mixed Dashboard Recent Activity ordering while rendering active changes, archived changes, and specs with shared entity visual semantics. Archived change entries SHALL be visually distinguishable from active change entries before selection by using the shared archived-change icon and muted archive treatment.
+
+#### Scenario: Render mixed recent activity with shared semantics
+- **WHEN** the Dashboard renders Recent Activity containing active changes, archived changes, and specs
+- **THEN** each item uses the shared entity visual semantics for its entity kind
+- **AND** archived changes are visually distinguishable from active changes
+
+#### Scenario: Preserve recent activity sorting behavior
+- **WHEN** the operator sorts Dashboard Recent Activity by Date or Name
+- **THEN** the existing Date and Name ordering behavior is preserved
+- **AND** the visual distinction for archived entries does not change the sorted order
+

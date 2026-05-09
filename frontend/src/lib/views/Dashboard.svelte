@@ -1,6 +1,6 @@
 <script lang="ts">
   import { tick } from 'svelte';
-  import { Archive, ArrowRight, Bookmark, ChevronDown, ChevronRight, LayoutDashboard, Calendar, CircleCheckBig, FileText, FolderPen, History, SquarePen, FlaskConical } from '@lucide/svelte';
+  import { ArrowRight, Bookmark, ChevronDown, ChevronRight, LayoutDashboard, Calendar, CircleCheckBig, FileText, FolderPen, History, SquarePen, FlaskConical } from '@lucide/svelte';
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
   import { Callout } from '$lib/components/shared/callout';
@@ -10,6 +10,7 @@
   import { EmptyState } from '$lib/components/shared/empty-state';
   import { IconBox } from '$lib/components/shared/icon-box';
   import { ItemContextMenu } from '$lib/components/shared/item-context-menu';
+  import { TypeIndicator } from '$lib/components/shared/type-indicator';
   import { createItemContextMenuItems, type ItemContextMenuKind } from '$lib/itemContextMenu';
   import { activeChanges, archivedChanges, project, specs, stats } from '$lib/state/appData.svelte.ts';
   import { commandPreferencesStore } from '$lib/state/commandPreferences.svelte.ts';
@@ -243,7 +244,7 @@
   <div>
     <div class="flex items-start justify-between gap-4">
       <h1 class="flex items-center gap-2 text-2xl font-bold text-foreground">
-        <IconBox icon={LayoutDashboard} variant="info" />
+        <IconBox icon={LayoutDashboard} variant="info" size="lg"/>
         {project.value?.name ?? FIXED_LABELS.appName}
         <Button
           variant="ghost"
@@ -276,7 +277,7 @@
             <div class="mt-2 text-3xl font-semibold text-foreground">{stats.value?.activeChanges ?? activeChanges.value.length}</div>
             <div class="mt-1 text-sm text-muted-foreground">{t(m.dashboard_active_changes_summary)}</div>
           </div>
-          <IconBox icon={SquarePen} variant="info" />
+          <TypeIndicator kind="active-change" format="icon-box" size="lg"/>
         </div>
       </button>
     </InteractiveCard>
@@ -289,7 +290,7 @@
             <div class="mt-2 text-3xl font-semibold text-foreground">{stats.value?.archivedChanges ?? archivedChanges.value.length}</div>
             <div class="mt-1 text-sm text-muted-foreground">{t(m.dashboard_archive_summary)}</div>
           </div>
-          <IconBox icon={Archive} variant="muted" />
+          <TypeIndicator kind="archived-change" format="icon-box" size="lg" />
         </div>
       </button>
     </InteractiveCard>
@@ -302,7 +303,7 @@
             <div class="mt-2 text-3xl font-semibold text-foreground">{stats.value?.totalSpecs ?? specs.value.length}</div>
             <div class="mt-1 text-sm text-muted-foreground">{t(m.dashboard_specs_summary)}</div>
           </div>
-          <IconBox icon={FileText} variant="success" />
+          <TypeIndicator kind="spec" format="icon-box" size="lg" />
         </div>
       </button>
     </InteractiveCard>
@@ -317,7 +318,7 @@
             </div>
             <div class="mt-1 text-sm text-muted-foreground">{validationStore.dashboardSummary.description}</div>
           </div>
-          <IconBox icon={FlaskConical} variant={validationStore.dashboardSummary.iconVariant} />
+          <IconBox icon={FlaskConical} variant={validationStore.dashboardSummary.iconVariant} size="lg" />
         </div>
       </button>
     </InteractiveCard>
@@ -333,7 +334,7 @@
             </div>
             <div class="mt-3"><Progress value={overallTaskProgress.percentage} /></div>
           </div>
-          <IconBox icon={CircleCheckBig} variant="warning" />
+          <IconBox icon={CircleCheckBig} variant="warning" size="lg" />
         </div>
       </button>
     </InteractiveCard>
@@ -386,7 +387,7 @@
               >
                 <div class="flex items-start gap-3">
                   <div class="flex min-w-0 flex-1 items-center gap-3">
-                    <IconBox icon={SquarePen} size="sm" variant="info" />
+                    <TypeIndicator kind="active-change" format="icon-box" size="md" />
                     <div class="min-w-0 flex-1">
                       <div class="flex flex-wrap items-center gap-2">
                         <div class="truncate font-medium text-foreground">{change.name}</div>
@@ -473,17 +474,13 @@
                   },
             )}
           >
-            <InteractiveCard tone="inset" class="overflow-hidden p-0">
+            <InteractiveCard tone="inset" class="overflow-hidden p-0 {item.kind === 'archived-change' ? 'bg-muted/20' : ''}">
               <button
                 type="button"
                 class="group flex w-full items-center gap-3 px-4 py-3 text-left"
                 onclick={item.open}
               >
-                <IconBox
-                  icon={item.kind === 'spec' ? FileText : item.kind === 'archived-change' ? Archive : SquarePen}
-                  size="sm"
-                  variant={item.kind === 'spec' ? 'success' : item.kind === 'archived-change' ? 'muted' : 'info'}
-                />
+                <TypeIndicator kind={item.kind} format="icon-box" size="md" />
                 <div class="min-w-0 flex-1">
                   <div class="truncate font-medium text-foreground" title={item.title}>{item.title}</div>
                   <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">

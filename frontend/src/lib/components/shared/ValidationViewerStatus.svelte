@@ -1,25 +1,15 @@
 <script lang="ts">
-  import type { Component } from 'svelte';
-  import {
-    AlertTriangle,
-    CheckCircle2,
-    ChevronDown,
-    ChevronRight,
-    CircleHelp,
-    Clock3,
-  } from '@lucide/svelte';
-  import { IconBox } from '$lib/components/shared/icon-box';
+  import { ChevronDown, ChevronRight } from '@lucide/svelte';
   import { InsetPanel, SurfaceCard } from '$lib/components/shared/surface';
-  import { Badge } from '$lib/components/ui/badge';
+  import { SeverityIndicator } from '$lib/components/shared/severity-indicator';
+  import { StatusIndicator } from '$lib/components/shared/status-indicator';
   import * as Collapsible from '$lib/components/ui/collapsible';
   import { validationStore } from '$lib/state/validation.svelte.ts';
-  import {
-    deriveValidationTargetSummary,
-    type ValidationTargetState,
-  } from '$lib/state/validationCore';
+  import { deriveValidationTargetSummary } from '$lib/state/validationCore';
   import type { ValidationItemType } from '$lib/types/api';
   import { FIXED_LABELS, getValidationItemTypeLabel } from '$lib/uiText';
   import { cn, formatDate } from '$lib/utils';
+  import { getValidationStatusVisual } from '$lib/visualSemantics';
 
   interface Props {
     itemType: Extract<ValidationItemType, 'spec' | 'change'>;
@@ -47,7 +37,7 @@
 
   const itemTypeLabel = $derived(getValidationItemTypeLabel(itemType));
   const hasDetails = $derived(summary.issues.length > 0);
-  const statusLabel = $derived(getStatusLabel(summary.state));
+  const statusLabel = $derived(getValidationStatusVisual(summary.state).label);
   const statusAriaLabel = $derived(FIXED_LABELS.validation.viewer.statusAria(itemTypeLabel, itemName, statusLabel));
   const detailsAriaLabel = $derived(
     FIXED_LABELS.validation.viewer.detailsAria(itemTypeLabel, itemName, detailsOpen),
@@ -59,79 +49,6 @@
     }
   });
 
-  function getStatusLabel(state: ValidationTargetState): string {
-    switch (state) {
-      case 'not-run':
-        return FIXED_LABELS.validation.viewer.labels.notRun;
-      case 'passed':
-        return FIXED_LABELS.validation.viewer.labels.passed;
-      case 'warning':
-        return FIXED_LABELS.validation.viewer.labels.warning;
-      case 'failed':
-        return FIXED_LABELS.validation.viewer.labels.failed;
-      case 'stale':
-        return FIXED_LABELS.validation.viewer.labels.stale;
-      case 'unknown':
-        return FIXED_LABELS.validation.viewer.labels.unknown;
-    }
-  }
-
-  function getStatusBadgeVariant(state: ValidationTargetState): 'success' | 'destructive' | 'warning' | 'secondary' {
-    switch (state) {
-      case 'passed':
-        return 'success';
-      case 'failed':
-        return 'destructive';
-      case 'warning':
-      case 'unknown':
-        return 'warning';
-      case 'stale':
-      case 'not-run':
-        return 'secondary';
-    }
-  }
-
-  function getStatusIcon(state: ValidationTargetState): Component<{ class?: string }> {
-    switch (state) {
-      case 'passed':
-        return CheckCircle2;
-      case 'warning':
-      case 'failed':
-        return AlertTriangle;
-      case 'unknown':
-        return CircleHelp;
-      case 'stale':
-      case 'not-run':
-        return Clock3;
-    }
-  }
-
-  function getStatusIconVariant(state: ValidationTargetState): 'success' | 'danger' | 'warning' | 'muted' {
-    switch (state) {
-      case 'passed':
-        return 'success';
-      case 'failed':
-        return 'danger';
-      case 'warning':
-      case 'unknown':
-        return 'warning';
-      case 'stale':
-      case 'not-run':
-        return 'muted';
-    }
-  }
-
-  function getIssueBadgeVariant(level: 'ERROR' | 'WARNING' | 'INFO'): 'destructive' | 'warning' | 'secondary' {
-    if (level === 'WARNING') {
-      return 'warning';
-    }
-
-    if (level === 'INFO') {
-      return 'secondary';
-    }
-
-    return 'destructive';
-  }
 </script>
 
 <SurfaceCard shadow="sm" class={cn('overflow-hidden', className)}>
@@ -146,15 +63,14 @@
         aria-label={hasDetails ? detailsAriaLabel : statusAriaLabel}
         title={hasDetails ? (detailsOpen ? FIXED_LABELS.validation.viewer.hideDetails : FIXED_LABELS.validation.viewer.details) : undefined}
       >
-        <IconBox icon={getStatusIcon(summary.state)} size="sm" variant={getStatusIconVariant(summary.state)} />
+        <StatusIndicator state={summary.state} format="icon-box" />
 
         <div class="min-w-0 flex-1">
           <div class="flex min-w-0 flex-wrap items-center gap-2">
-            <Badge variant="outline">{itemTypeLabel}</Badge>
-            <Badge variant={getStatusBadgeVariant(summary.state)}>{statusLabel}</Badge>
+            <span class="text-sm font-medium text-foreground">{statusLabel}</span>
 
             {#if summary.issueCount > 0}
-              <Badge variant={summary.state === 'warning' ? 'warning' : 'destructive'}>{FIXED_LABELS.validation.issueCount(summary.issueCount)}</Badge>
+              <span class="text-xs text-muted-foreground">{FIXED_LABELS.validation.issueCount(summary.issueCount)}</span>
             {/if}
 
             {#if summary.lastRunAt}
@@ -185,7 +101,7 @@
               <li>
                 <InsetPanel class="px-3 py-3">
                   <div class="flex flex-wrap items-center gap-2">
-                    <Badge variant={getIssueBadgeVariant(issue.level)}>{issue.level}</Badge>
+                    <SeverityIndicator level={issue.level} format="icon-box" />
 
                     {#if issue.path}
                       <span class="text-xs text-muted-foreground">{issue.path}</span>

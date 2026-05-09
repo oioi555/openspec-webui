@@ -72,3 +72,23 @@ The system SHALL route search requests initiated from context menu actions and `
 - **AND** the Explorer Pane switches to the Search panel
 - **AND** the search input contains the requested keyword
 - **AND** matching results appear in the Search panel
+
+### Requirement: Search results distinguish archived changes
+The system SHALL distinguish archived change results from active change results when rendering mixed Search panel output. A change search result whose name corresponds to an archived change SHALL use archived-change visual semantics; a change search result whose name corresponds to an active change SHALL use active-change visual semantics. Search result selection and tab-opening behavior SHALL remain unchanged.
+
+#### Scenario: Render active change search result
+- **WHEN** the Search panel displays a `change` result whose name belongs to an active change
+- **THEN** the result uses the shared active-change indicator semantics
+- **AND** selecting the result opens or focuses the change detail tab as before
+
+#### Scenario: Render archived change search result
+- **WHEN** the Search panel displays a `change` result whose name belongs to an archived change
+- **THEN** the result uses the shared archived-change indicator semantics
+- **AND** the result is visually distinguishable from active change results before selection
+- **AND** selecting the result opens or focuses the change detail tab as before
+
+#### Scenario: Preserve non-change result semantics
+- **WHEN** the Search panel displays a spec, project, or unknown result
+- **THEN** the result uses the corresponding shared entity visual semantics
+- **AND** search query, result preservation, context menu, and clear behavior remain unchanged
+

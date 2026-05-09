@@ -195,3 +195,59 @@ The system SHALL provide reusable Card surface primitives in `$lib/components/ui
 - **WHEN** a reusable feature-neutral card wrapper is added under `$lib/components/shared/`
 - **THEN** it composes the shared Card primitives or their class pattern
 - **AND** it does not reintroduce a separate feature-local card foundation
+
+### Requirement: Shared entity visual semantics
+The system SHALL provide shared entity visual semantics for `spec`, `active-change`, `archived-change`, `project`, and `unknown` entities. The shared semantics SHALL define the canonical icon, display label, icon-box tone, badge tone, and muted/background treatment for each entity kind. Components that render these entity kinds SHALL consume the shared semantics instead of defining local icon or tone mappings.
+
+#### Scenario: Render spec entity consistently
+- **WHEN** any UI surface renders a `spec` entity using the shared semantics
+- **THEN** it uses the canonical spec label, icon, and success-oriented visual tone
+
+#### Scenario: Render active and archived changes distinctly
+- **WHEN** any UI surface renders an `active-change` or `archived-change` entity using the shared semantics
+- **THEN** the active change uses the canonical active-change icon and tone
+- **AND** the archived change uses the canonical archive icon and muted archive treatment
+
+#### Scenario: Avoid local entity icon mappings
+- **WHEN** a dashboard list, tab label, change viewer header, search result, validation result, or explorer item needs entity kind presentation
+- **THEN** it derives the icon and tone from the shared entity semantics
+- **AND** it does not maintain an equivalent local kind-to-icon mapping
+
+### Requirement: Shared entity type indicator
+The system SHALL provide a reusable entity type indicator that renders shared entity semantics in density-appropriate formats such as icon-box, badge, or minimal inline presentation. Explorer/sidebar list contexts SHALL prefer icon-box presentation over text badges so entity kind is communicated by icon and color without consuming horizontal label space. The indicator SHALL preserve accessible text for the entity kind even when the visual format is icon-forward.
+
+#### Scenario: Render compact type indicator in a list row
+- **WHEN** a compact Explorer-style row renders an entity type indicator
+- **THEN** the indicator can render as a compact icon box using shared entity semantics
+- **AND** the row remains scannable without requiring a text badge for every entity type
+
+#### Scenario: Render dashboard type indicator
+- **WHEN** a dashboard card or activity item renders an entity type indicator
+- **THEN** the indicator can use the icon-box format with the same canonical icon and tone as compact contexts
+
+### Requirement: Shared validation severity semantics
+The system SHALL provide shared validation severity semantics for error, warning, and info issue levels. The shared semantics SHALL define the canonical icon, label, icon-box tone, and badge tone for each severity. Components that render validation issue severity SHALL consume the shared semantics instead of defining local severity-to-variant functions.
+
+#### Scenario: Render validation error severity
+- **WHEN** a validation issue with error severity is rendered
+- **THEN** it uses the shared error severity icon, label, and destructive or danger visual tone
+
+#### Scenario: Render validation warning severity
+- **WHEN** a validation issue with warning severity is rendered
+- **THEN** it uses the shared warning severity icon, label, and warning visual tone
+
+#### Scenario: Render validation info severity
+- **WHEN** a validation issue with info severity is rendered
+- **THEN** it uses the shared info severity icon, label, and neutral or informational visual tone
+
+### Requirement: Shared validation status semantics
+The system SHALL provide shared validation status semantics for target and result states including not-run, passed, failed, warning, stale, and unknown. The shared semantics SHALL define the canonical label, icon, icon-box tone, and badge tone for each state. Components that render validation status SHALL consume the shared semantics instead of defining local status icon or badge mappings.
+
+#### Scenario: Render inline validation target status
+- **WHEN** an inline validation target status renders a passed, failed, warning, stale, not-run, or unknown state
+- **THEN** it uses the shared validation status semantics for icon, label, and tone
+
+#### Scenario: Render validation panel result status
+- **WHEN** the Validation panel renders the latest passed or failed result status
+- **THEN** it uses the same status semantics as inline validation status surfaces
+

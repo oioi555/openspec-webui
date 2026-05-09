@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { FileText, Calendar, Search, Clipboard, Quote } from '@lucide/svelte';
+  import { Calendar, Search, Clipboard, Quote } from '@lucide/svelte';
   import { ErrorBanner } from '$lib/components/shared/error-banner';
-  import { IconBox } from '$lib/components/shared/icon-box';
+  import { TypeIndicator } from '$lib/components/shared/type-indicator';
   import { LoadingState } from '$lib/components/shared/loading-state';
   import { SurfaceCard } from '$lib/components/shared/surface';
   import ValidationViewerStatus from '$lib/components/shared/ValidationViewerStatus.svelte';
@@ -117,19 +117,19 @@
   <div class="flex items-center gap-4">
     <div class="min-w-0 flex-1">
       <h1 class="flex items-center gap-2 text-2xl font-bold text-foreground">
-        <IconBox icon={FileText} variant="success" />
+        <TypeIndicator kind="spec" format="icon-box" size="lg" />
         {specName}
         <Button
           variant="ghost"
           size="icon"
-          class="size-7 shrink-0 text-muted-foreground hover:text-foreground"
+          class="rounded-md w-7 h-7 text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground border border-border/50"
           aria-label={FIXED_LABELS.search.relatedChanges}
           onclick={searchRelatedChanges}
         >
-          <Search class="h-4 w-4" />
+          <Search class="h-3.5 w-3.5" />
         </Button>
       </h1>
-      <p class="text-muted-foreground">
+      <div class="mt-2 flex flex-wrap items-center gap-3 text-muted-foreground">
         {#if spec?.lastModified}
           {@const lastModifiedLabel = formatDate(spec.lastModified)}
           <span class="inline-flex min-w-0 max-w-full items-center gap-1" title={lastModifiedLabel}>
@@ -139,7 +139,7 @@
         {:else}
           {FIXED_LABELS.viewer.specification}
         {/if}
-      </p>
+      </div>
     </div>
   </div>
 

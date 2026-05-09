@@ -275,27 +275,27 @@ body {
 }
 
 .markdown-body :where(h1):not(:where(.not-prose, .not-prose *)) {
-  @apply mb-4 text-3xl font-extrabold text-foreground;
+  @apply mb-4 text-2xl font-bold text-foreground;
 }
 
 .markdown-body :where(h2):not(:where(.not-prose, .not-prose *)) {
-  @apply mt-8 border-b border-border pb-2 text-2xl font-semibold text-foreground;
+  @apply mt-7 border-b border-border pb-2 text-xl font-semibold text-foreground;
 }
 
 .markdown-body :where(h3):not(:where(.not-prose, .not-prose *)) {
-  @apply mt-6 text-xl font-semibold text-foreground;
+  @apply mt-6 text-lg font-medium text-foreground;
 }
 
 .markdown-body :where(h4):not(:where(.not-prose, .not-prose *)) {
-  @apply mt-5 text-lg font-semibold text-foreground;
+  @apply mt-5 text-base font-medium text-foreground;
 }
 
 .markdown-body :where(h5):not(:where(.not-prose, .not-prose *)) {
-  @apply mt-4 text-base font-semibold text-foreground;
+  @apply mt-4 text-base font-medium text-foreground;
 }
 
 .markdown-body :where(h6):not(:where(.not-prose, .not-prose *)) {
-  @apply mt-3 text-base font-semibold text-muted-foreground;
+  @apply mt-3 text-base font-medium text-muted-foreground;
 }
 
 .markdown-body :where(p, li):not(:where(.not-prose, .not-prose *)) {
@@ -380,17 +380,17 @@ body {
 .markdown-body h2.diff-added,
 .markdown-body h2.diff-modified,
 .markdown-body h2.diff-removed {
-  @apply rounded-lg border px-3 py-2 text-xl text-foreground;
+  @apply rounded-lg border px-3 py-2 text-lg font-normal;
 } 
 
 .diff-added {
-  @apply border-success-border bg-success-bg;
+  @apply border-info-border bg-info-bg text-info;
 }
 
 .diff-modified {
-  @apply border-warning-border bg-warning-bg;
+  @apply border-warning-border bg-warning-bg text-warning;
 }
 
 .diff-removed {
-  @apply border-danger-border bg-danger-bg;
+  @apply border-danger-border bg-danger-bg text-danger;
 } 

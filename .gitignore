@@ -38,3 +38,5 @@ npm-debug.log*
 openspec/changes/*
 !openspec/changes/archive/
 *.tgz
+openspec/.cache
+.editorconfig

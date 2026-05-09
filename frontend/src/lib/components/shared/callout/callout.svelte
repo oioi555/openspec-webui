@@ -2,7 +2,7 @@
   import type { Snippet } from 'svelte';
   import { cn } from '$lib/utils';
 
-  type Variant = 'info' | 'warning' | 'error';
+  type Variant = 'info' | 'warning' | 'error' | 'success';
 
   interface Props {
     variant?: Variant;
@@ -15,6 +15,7 @@
     info: 'border-info-border bg-info-bg text-info',
     warning: 'border-warning-border bg-warning-bg text-warning',
     error: 'border-danger-border bg-danger-bg text-danger',
+    success: 'border-success-border bg-success-bg text-success',
   };
 
   let { variant = 'info', class: className = '', children, ...restProps }: Props = $props();

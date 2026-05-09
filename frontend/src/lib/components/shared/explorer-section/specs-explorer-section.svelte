@@ -57,7 +57,6 @@
       path={specPath}
       section="specs"
       kind="spec"
-      class="items-center"
       {onItemSelected}
       name={spec.name}
       date={spec.lastModified ? formatDate(spec.lastModified) : null}

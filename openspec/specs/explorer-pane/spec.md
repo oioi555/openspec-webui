@@ -2,7 +2,6 @@
 
 ## Purpose
 Define the Explorer Pane that organizes active changes, archives, and specs beside the Activity Bar.
-
 ## Requirements
 ### Requirement: Explorer Pane renders collapsible sections
 The system SHALL render an Explorer Pane between the Activity Bar and the Main Viewer. The Explorer Pane SHALL use the `ExplorerSection` component for each of its three sections (ACTIVE CHANGES, ARCHIVE, SPECS). Each section SHALL pass its title, item count, collapse state, focused state, and header icon as props, and SHALL render section-specific content via slots. The ACTIVE CHANGES section SHALL use the `headerExtra` slot to render `CommandShortcutBar` when workspace commands exist and SHALL render a sort control that lets the operator choose `Date` or `Name` ordering. The ARCHIVE and SPECS sections SHALL also render the same `Date` / `Name` sort control in their section headers. Explorer list items SHALL NOT render leading per-item icons on the first line. No inline collapsible section header markup SHALL remain in `ExplorerPane.svelte` outside of the `ExplorerSection` component usage. Each list item SHALL use the `ExplorerSectionItem` component, which internally uses `ItemContextMenu` to provide context menu actions and handles click interactions. Each section SHALL pass `emptyMessage` props to `ExplorerSection` to handle empty states internally; the `emptyIcon` is determined internally by each ExplorerSection component reusing its section header icon.
@@ -181,7 +180,7 @@ The system SHALL scroll the focused explorer section header to the top of the ex
 - **AND** the new reactive scroll does not produce a double-scroll
 
 ### Requirement: Explorer Pane renders a persistent Search panel
-The system SHALL render Search as a dedicated Explorer Pane panel separate from the Active Changes, Archive, and Specs section group. When Search is active, the Explorer Pane SHALL show only the Search panel above the existing project selector footer. The panel SHALL follow the existing Explorer visual language while using a larger fixed header, localized explanatory description, search input, and persistent result list. The panel SHALL show result counts, loading state, short-query guidance, empty results, and a clear control as appropriate.
+The system SHALL render Search as a dedicated Explorer Pane panel separate from the Active Changes, Archive, and Specs section group. When Search is active, the Explorer Pane SHALL show only the Search panel above the existing project selector footer. The panel SHALL follow the existing Explorer visual language while using a larger fixed header, localized explanatory description, search input, and persistent result list. The panel SHALL show result counts, loading state, short-query guidance, empty results, and a clear control as appropriate. Search result rows SHALL render as Explorer-style selectable list items using shared entity visual semantics, including distinct active-change and archived-change treatment when change results can be resolved to either state.
 
 #### Scenario: Search panel initial state
 - **WHEN** the Explorer Pane is switched to Search and no search query has been entered
@@ -193,7 +192,8 @@ The system SHALL render Search as a dedicated Explorer Pane panel separate from 
 #### Scenario: Search panel result list
 - **WHEN** a valid search query returns matches
 - **THEN** the Search panel displays the number of matches
-- **AND** it renders each result as a selectable Explorer-style list item with type, name, and excerpt
+- **AND** it renders each result as a selectable Explorer-style list item with shared type semantics, name, and excerpt
+- **AND** archived change results are visually distinguishable from active change results
 
 #### Scenario: Search result selection preserves panel
 - **WHEN** the operator selects a result in the Search panel
@@ -211,7 +211,7 @@ The system SHALL render Search as a dedicated Explorer Pane panel separate from 
 - **AND** activating the clear control clears the query and visible results without closing the Explorer Pane
 
 ### Requirement: Explorer Pane renders a persistent Validation panel
-The system SHALL render Validation as a dedicated Explorer Pane panel separate from the Active Changes, Archive, and Specs section group. When Validation is active, the Explorer Pane SHALL show only the Validation panel above the existing project selector footer. The panel SHALL follow the existing Explorer visual language while using a prominent header, explanatory description, Run Validate action, summary counts, validation status, and persistent failed-item list.
+The system SHALL render Validation as a dedicated Explorer Pane panel separate from the Active Changes, Archive, and Specs section group. When Validation is active, the Explorer Pane SHALL show only the Validation panel above the existing project selector footer. The panel SHALL follow the existing Explorer visual language while using a prominent header, explanatory description, Run Validate action, summary counts, validation status, and persistent failed-item list. Validation failed-item rows SHALL render as Explorer-style selectable list items using shared entity type semantics for the failed item and shared validation severity semantics for the primary issue.
 
 #### Scenario: Validation panel initial state
 - **WHEN** the Explorer Pane is switched to Validation and no validation result exists
@@ -227,7 +227,8 @@ The system SHALL render Validation as a dedicated Explorer Pane panel separate f
 #### Scenario: Validation panel result list
 - **WHEN** validation returns failed items
 - **THEN** the Validation panel displays the number of failed items
-- **AND** it renders each failed item as a selectable Explorer-style list item with type, name, severity, and issue count
+- **AND** it renders each failed item as a selectable Explorer-style list item whose first line shows a shared entity icon box and the item name
+- **AND** the next line shows the failed target status and issue count
 
 #### Scenario: Validation result selection preserves panel
 - **WHEN** the operator selects a failed validation item in the Validation panel
@@ -236,5 +237,6 @@ The system SHALL render Validation as a dedicated Explorer Pane panel separate f
 
 #### Scenario: Validation panel pass state
 - **WHEN** validation returns no failed items
-- **THEN** the Validation panel displays a passing status
+- **THEN** the Validation panel displays a passing status using shared validation status semantics
 - **AND** it does not render an obsolete failed-item list
+

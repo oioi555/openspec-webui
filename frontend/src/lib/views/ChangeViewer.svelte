@@ -1,9 +1,9 @@
 <script lang="ts">
   import { untrack } from 'svelte';
-  import { Archive, Calendar, ChevronDown, ChevronRight, CircleCheckBig, Clipboard, FileText, Quote, Search, SquarePen } from '@lucide/svelte';
+  import { Calendar, ChevronDown, ChevronRight, CircleCheckBig, Clipboard, FileText, Quote, Search } from '@lucide/svelte';
   import { Badge } from '$lib/components/ui/badge';
   import { ErrorBanner } from '$lib/components/shared/error-banner';
-  import { IconBox } from '$lib/components/shared/icon-box';
+  import { TypeIndicator } from '$lib/components/shared/type-indicator';
   import { LoadingState } from '$lib/components/shared/loading-state';
   import { InteractiveCard, SurfaceCard } from '$lib/components/shared/surface';
   import ValidationViewerStatus from '$lib/components/shared/ValidationViewerStatus.svelte';
@@ -227,11 +227,7 @@
   <div class="flex flex-wrap items-start gap-4">
     <div class="flex-1">
       <div class="flex items-center gap-3">
-        {#if change?.isArchived}
-          <IconBox icon={Archive} variant="muted" />
-        {:else}
-          <IconBox icon={SquarePen} variant="info" />
-        {/if}
+        <TypeIndicator kind={change?.isArchived ? 'archived-change' : 'active-change'} format="icon-box" size="lg" />
         <h1 class="text-2xl font-bold text-foreground">
           {change?.isArchived ? formatChangeName(changeName) : changeName}
         </h1>
@@ -302,24 +298,26 @@
               <ContextMenu.Root onOpenChange={handleMenuOpenChange}>
                 <InteractiveCard tone="inset" radius="xl" class="h-full overflow-hidden text-left hover:translate-y-0 hover:shadow-sm hover:border-border/70">
                   <Collapsible.Trigger class="flex w-full items-center justify-between gap-4 px-5 py-4 text-left">
-                    <h3 class="flex items-center gap-2 text-2xl font-bold text-foreground">
-                      <IconBox icon={FileText} variant="success" />
+                    <h3 class="flex items-center gap-2 text-xl font-medium text-foreground">
+                      <TypeIndicator kind="spec" format="icon-box" size="md" />
                       {delta.capability}
                     </h3>
                     <div class="flex shrink-0 items-center gap-2">
                       <button
                         type="button"
-                        class="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary/60 hover:text-foreground"
+                        class="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground border border-border/50"
                         title={FIXED_LABELS.search.relatedChanges}
                         onclick={(e: MouseEvent) => { e.stopPropagation(); searchStore.open(delta.capability); }}
                       >
-                        <Search class="h-4 w-4" />
+                        <Search class="h-3.5 w-3.5" />
                       </button>
-                      {#if deltaOpenStates[i] ?? false}
-                        <ChevronDown class="h-5 w-5 text-muted-foreground" />
-                      {:else}
-                        <ChevronRight class="h-5 w-5 text-muted-foreground" />
-                      {/if}
+                      <span class="flex p-1.5 items-center justify-center rounded-md border border-border/50 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
+                        {#if deltaOpenStates[i] ?? false}
+                          <ChevronDown class="h-3.5 w-3.5" />
+                        {:else}
+                          <ChevronRight class="h-3.5 w-3.5" />
+                        {/if}
+                      </span>
                     </div>
                   </Collapsible.Trigger>
                   <Collapsible.Content>
