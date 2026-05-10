@@ -16,6 +16,7 @@ test('tabs.svelte.ts includes settings in TabType and defines a regular closeabl
 
   // openSettings is exported via the store
   assert.match(source, /openSettings\s*\(/);
+  assert.match(source, /SettingsSection = 'general' \| 'workflow' \| 'commands' \| 'validation' \| 'versions'/);
 
   // normalizePath maps /settings to home (non-routable) when preserveSettings is not set
   assert.match(source, /!options\?\.preserveSettings\s*&&\s*withLeadingSlash\s*===\s*'\/settings'/);
@@ -100,6 +101,7 @@ test('MainViewer.svelte renders SettingsView for settings tabs inside the same m
   assert.equal(settingsBlock.includes('max-w-7xl'), true,
     'settings branch should wrap SettingsView in max-w-7xl, same as Dashboard');
   assert.match(settingsBlock, /<SettingsView/);
+  assert.match(source, /initialSection\?: 'general' \| 'workflow' \| 'commands' \| 'validation' \| 'versions'/);
 });
 
 test('TabBar.svelte includes a settings icon mapping in its TAB_ICONS record', async () => {

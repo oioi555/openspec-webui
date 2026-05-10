@@ -553,7 +553,7 @@ function deriveValidationItemStatus(
   valid: boolean,
   issues: Array<{ level: ValidationItemSeverity }>
 ): ValidationItemStatus {
-  if (!valid || issues.some((issue) => issue.level === 'ERROR')) {
+  if (issues.some((issue) => issue.level === 'ERROR')) {
     return 'failed';
   }
 
@@ -565,7 +565,7 @@ function deriveValidationItemStatus(
     return 'info';
   }
 
-  return 'passed';
+  return valid ? 'passed' : 'failed';
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

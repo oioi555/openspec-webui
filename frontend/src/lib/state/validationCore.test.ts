@@ -510,6 +510,69 @@ test('validation target summary supports failed, warning, passed, stale, and not
   );
 });
 
+test('deriveValidationItemStatus returns warning when valid=false but only WARNING issues exist', () => {
+  assert.equal(
+    deriveValidationItemStatus({
+      valid: false,
+      issues: [{ level: 'WARNING', path: 'requirements[0]', message: 'Needs review' }],
+    }),
+    'warning',
+  );
+});
+
+test('deriveValidationItemStatus returns info when valid=false but only INFO issues exist', () => {
+  assert.equal(
+    deriveValidationItemStatus({
+      valid: false,
+      issues: [{ level: 'INFO', path: 'overview', message: 'Consider expanding' }],
+    }),
+    'info',
+  );
+});
+
+test('deriveValidationItemStatus returns failed when valid=false with no issues', () => {
+  assert.equal(
+    deriveValidationItemStatus({
+      valid: false,
+      issues: [],
+    }),
+    'failed',
+  );
+});
+
+test('deriveValidationItemStatus returns failed when valid=false and ERROR issues exist', () => {
+  assert.equal(
+    deriveValidationItemStatus({
+      valid: false,
+      issues: [
+        { level: 'WARNING', path: 'requirements[0]', message: 'Needs review' },
+        { level: 'ERROR', path: 'file', message: 'Missing required section' },
+      ],
+    }),
+    'failed',
+  );
+});
+
+test('deriveValidationItemStatus returns warning when valid=true with only WARNING issues', () => {
+  assert.equal(
+    deriveValidationItemStatus({
+      valid: true,
+      issues: [{ level: 'WARNING', path: 'requirements[0]', message: 'Needs review' }],
+    }),
+    'warning',
+  );
+});
+
+test('deriveValidationItemStatus returns passed when valid=true with no issues', () => {
+  assert.equal(
+    deriveValidationItemStatus({
+      valid: true,
+      issues: [],
+    }),
+    'passed',
+  );
+});
+
 test('validation target summary returns unknown when no result is available because validation failed to load', () => {
   assert.deepEqual(
     deriveValidationTargetSummary(

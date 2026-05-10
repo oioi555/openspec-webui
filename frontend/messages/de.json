@@ -104,6 +104,7 @@
   "validation_summary": "Zusammenfassung",
   "validation_last_run": "Letzter Lauf",
   "validation_no_failed_items": "Keine fehlgeschlagenen Validierungselemente.",
+  "validation_no_matching_filters": "Keine Elemente entsprechen den ausgewählten Statusfiltern. Wähle ein Status-Badge aus, um Elemente anzuzeigen.",
   "validation_non_navigable": "Dieses Element ist zur Prüfung sichtbar, öffnet aber keinen Spec- oder Änderungs-Tab.",
   "validation_issue_count": "{count} Issues",
   "validation_summary_counts": "{passed} bestanden • {failed} fehlgeschlagen • {totalItems} gesamt",

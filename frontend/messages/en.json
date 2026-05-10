@@ -104,6 +104,7 @@
   "validation_summary": "Summary",
   "validation_last_run": "Last run",
   "validation_no_failed_items": "No failed validation items.",
+  "validation_no_matching_filters": "No items match the selected status filters. Select a status badge to show items.",
   "validation_non_navigable": "This item is visible for review but does not open a spec or change tab.",
   "validation_issue_count": "{count} issues",
   "validation_summary_counts": "{passed} passed • {failed} failed • {totalItems} total",

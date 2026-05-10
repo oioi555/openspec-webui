@@ -104,6 +104,7 @@
   "validation_summary": "Résumé",
   "validation_last_run": "Dernière exécution",
   "validation_no_failed_items": "Aucun élément de validation en échec.",
+  "validation_no_matching_filters": "Aucun élément ne correspond aux filtres d’état sélectionnés. Sélectionnez un badge d’état pour afficher des éléments.",
   "validation_non_navigable": "Cet élément est visible pour révision, mais n'ouvre pas d'onglet spec ou changement.",
   "validation_issue_count": "{count} issues",
   "validation_summary_counts": "{passed} réussis • {failed} échoués • {totalItems} total",

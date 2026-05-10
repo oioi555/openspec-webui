@@ -41,6 +41,13 @@ The system SHALL expose a project-scoped validation action that runs OpenSpec va
 - **AND** the result includes one or more failed validation items
 - **AND** the API response is treated as validation domain data rather than a generic server error
 
+#### Scenario: Validation returns warning issues without failing
+- **WHEN** the operator runs validation and the active project has no `ERROR` issues and has one or more `WARNING` issues
+- **THEN** the system returns a validation result with overall status `passed`
+- **AND** the failed item count is `0`
+- **AND** the issue item count is greater than `0`
+- **AND** at least one item-level status count is recorded as `warning`
+
 #### Scenario: Validation returns informational issues without failing
 - **WHEN** the operator runs validation and the active project has only valid items with `INFO` issues
 - **THEN** the system returns a validation result with overall status `passed`
@@ -117,44 +124,66 @@ The system SHALL render inline validation target status using the shared entity,
 - **AND** the issue path and message remain visible as before
 
 ### Requirement: Validation distinguishes file status from issue severity
-The system SHALL distinguish file-level validation status from issue-level severity. File-level status SHALL describe a validation target such as a spec, change, project, or unknown item. Issue-level severity SHALL describe an individual validation issue. The system SHALL NOT use issue severity labels as the file-level status label for a validation target.
+The system SHALL distinguish file-level validation status from issue-level severity. File-level status SHALL describe a validation target such as a spec, change, project, or unknown item. Issue-level severity SHALL describe an individual validation issue. The system SHALL NOT use issue severity labels as the file-level status label for a validation target. When issues exist, the derived file-level status SHALL follow the highest issue severity present before falling back to the raw validity flag.
 
 #### Scenario: Failed file with error issue
-- **WHEN** a validation item is invalid or contains an `ERROR` issue
+- **WHEN** a validation item contains an `ERROR` issue
 - **THEN** the item-level status is `failed`
 - **AND** the issue detail preserves the `ERROR` severity
 
 #### Scenario: Warning file with warning issue
-- **WHEN** a validation item is valid, contains no `ERROR` issues, and contains at least one `WARNING` issue
+- **WHEN** a validation item contains no `ERROR` issues and contains at least one `WARNING` issue
 - **THEN** the item-level status is `warning`
 - **AND** issue details preserve their `WARNING` severity
 
 #### Scenario: Info file with only info issues
-- **WHEN** a validation item is valid, contains no `ERROR` or `WARNING` issues, and contains at least one `INFO` issue
+- **WHEN** a validation item contains no `ERROR` or `WARNING` issues and contains at least one `INFO` issue
 - **THEN** the item-level status is `info`
 - **AND** issue details preserve their `INFO` severity
+
+#### Scenario: Invalid file without issues
+- **WHEN** a validation item is invalid and contains no issues
+- **THEN** the item-level status is `failed`
 
 #### Scenario: Passed file without issues
 - **WHEN** a validation item is valid and contains no issues
 - **THEN** the item-level status is `passed`
 
 ### Requirement: Validation result exposes issue-bearing items
-The validation result returned to the client SHALL expose invalid/failed items separately from issue-bearing items. `failedItems` SHALL contain items that are invalid or have failed item status. The result SHALL also expose `issueItems` or an equivalent field containing every item with one or more issues, including valid items with `WARNING` or `INFO` issues. Summary counts SHALL allow the client to render failed, warning, and info item counts without reinterpreting issue severities in each UI surface.
+The validation result returned to the client SHALL expose failed items separately from issue-bearing items. `failedItems` SHALL contain items whose derived item status is `failed`. The result SHALL also expose `issueItems` or an equivalent field containing every item with one or more issues, including items with `WARNING` or `INFO` issues even when the raw validity flag is `false`. Summary counts SHALL allow the client to render failed, warning, and info item counts without reinterpreting issue severities in each UI surface.
 
-#### Scenario: Invalid item appears in both failed and issue lists
-- **WHEN** a validation item is invalid and has at least one issue
+#### Scenario: Invalid error item appears in both failed and issue lists
+- **WHEN** a validation item is invalid and has at least one `ERROR` issue
 - **THEN** the result includes the item in `failedItems`
 - **AND** the result includes the item in `issueItems`
 
-#### Scenario: Valid warning item appears only in issue list
-- **WHEN** a validation item is valid and has a `WARNING` issue without an `ERROR` issue
+#### Scenario: Warning item appears only in issue list
+- **WHEN** a validation item has a `WARNING` issue without an `ERROR` issue
 - **THEN** the result does not include the item in `failedItems`
 - **AND** the result includes the item in `issueItems`
 - **AND** the item's derived status is `warning`
 
-#### Scenario: Valid info item appears only in issue list
-- **WHEN** a validation item is valid and has only `INFO` issues
+#### Scenario: Info item appears only in issue list
+- **WHEN** a validation item has only `INFO` issues
 - **THEN** the result does not include the item in `failedItems`
 - **AND** the result includes the item in `issueItems`
 - **AND** the item's derived status is `info`
 
+### Requirement: Validation exposes item status counts for compact summaries
+The system SHALL make file-level item status counts available to the Validation Explorer header so it can display compact `failed`, `warning`, and `info` counts after a validation run. Counts SHALL be based on item status so the header badges match the Validation list categories.
+
+#### Scenario: Count item statuses after validation
+- **WHEN** a validation result contains items with `failed`, `warning`, and `info` statuses
+- **THEN** the client can display separate counts for each item status
+- **AND** the counts are available without re-parsing issue messages
+
+#### Scenario: Counts remain distinct from file status counts
+- **WHEN** an item has multiple issues
+- **THEN** issue severity counts count the issues by severity
+- **AND** file-level status counts remain a separate concept
+
+#### Scenario: Header filters use item status counts
+- **WHEN** the Validation Explorer header displays failed, warning, and info badges
+- **THEN** each badge count matches the number of list items with that file-level status
+- **AND** excluding a badge hides the same item category represented by the badge count
+- **AND** multiple badges can remain included or excluded at the same time

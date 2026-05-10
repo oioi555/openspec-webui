@@ -1171,6 +1171,26 @@ const ATTENTION_VALIDATION_OUTPUT = JSON.stringify({
   version: '1.0',
 });
 
+const WARNING_ONLY_INVALID_OUTPUT = JSON.stringify({
+  items: [
+    {
+      id: 'warn-invalid-spec',
+      type: 'spec',
+      valid: false,
+      issues: [{ level: 'WARNING', path: 'requirements[0]', message: 'Needs review' }],
+    },
+    {
+      id: 'info-invalid-spec',
+      type: 'spec',
+      valid: false,
+      issues: [{ level: 'INFO', path: 'overview', message: 'Consider expanding' }],
+    },
+    { id: 'clean-change', type: 'change', valid: true, issues: [] },
+  ],
+  summary: { totals: { items: 3, passed: 1, failed: 2 }, byType: {} },
+  version: '1.0',
+});
+
 test('validate returns passed result when CLI reports all items valid', async () => {
   const configHome = await createTempDir('openspec-webui-validate-pass-cfg-');
   process.env.XDG_CONFIG_HOME = configHome;
@@ -1534,6 +1554,46 @@ test('validate ignores invalid concurrency values and falls back to default', as
     delete process.env.VALIDATE_OUTPUT;
     delete process.env.VALIDATE_EXIT_CODE;
     delete process.env.VALIDATE_ARGS_FILE;
+    await runtime.close();
+  }
+});
+
+test('validate classifies valid=false WARNING-only items as warning, not failed', async () => {
+  const configHome = await createTempDir('openspec-webui-validate-warn-invalid-cfg-');
+  process.env.XDG_CONFIG_HOME = configHome;
+  const projectRoot = await createProjectFixture('warn-invalid-project');
+  await installFakeOpenSpecCommand({ readyProjectRoots: new Set([projectRoot]) });
+
+  process.env.VALIDATE_OUTPUT = WARNING_ONLY_INVALID_OUTPUT;
+  process.env.VALIDATE_EXIT_CODE = '0';
+
+  const runtime = await startServer();
+
+  try {
+    await apiJson(runtime.baseUrl, '/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: projectRoot }),
+    });
+
+    const result = await apiJson(runtime.baseUrl, '/api/validate', { method: 'POST' });
+    assert.equal(result.response.status, 200);
+    assert.equal(result.body.status, 'passed');
+    assert.equal(result.body.summary.totalItems, 3);
+    assert.equal(result.body.summary.passed, 1);
+    assert.equal(result.body.summary.failed, 0);
+    assert.equal(result.body.summary.issueItems, 2);
+    assert.deepEqual(result.body.summary.statusCounts, { passed: 1, info: 1, warning: 1, failed: 0 });
+    assert.deepEqual(result.body.summary.severityCounts, { ERROR: 0, WARNING: 1, INFO: 1 });
+    assert.equal(result.body.failedItems.length, 0);
+    assert.equal(result.body.issueItems.length, 2);
+    assert.equal(result.body.issueItems[0].valid, false);
+    assert.equal(result.body.issueItems[0].status, 'warning');
+    assert.equal(result.body.issueItems[1].valid, false);
+    assert.equal(result.body.issueItems[1].status, 'info');
+  } finally {
+    delete process.env.VALIDATE_OUTPUT;
+    delete process.env.VALIDATE_EXIT_CODE;
     await runtime.close();
   }
 });

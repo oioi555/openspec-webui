@@ -15,7 +15,7 @@
   let specName = $derived(activePath.startsWith('/specs/') ? decodeName(activePath.slice('/specs/'.length)) : null);
   let changeName = $derived(activePath.startsWith('/changes/') ? decodeName(activePath.slice('/changes/'.length)) : null);
   let settingsState = $derived(
-    tabStore.getViewerState<{ initialSection?: 'general' | 'workflow' | 'commands' | 'versions'; requestKey?: number }>(activeTab.id)
+    tabStore.getViewerState<{ initialSection?: 'general' | 'workflow' | 'commands' | 'validation' | 'versions'; requestKey?: number }>(activeTab.id)
   );
 </script>
 

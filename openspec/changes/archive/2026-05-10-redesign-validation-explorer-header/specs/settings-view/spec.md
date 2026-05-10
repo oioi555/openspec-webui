@@ -1,3 +1,5 @@
+## MODIFIED Requirements
+
 ### Requirement: Settings view includes validation execution preferences
 The Settings view SHALL render as a main-tab page in the Main Viewer and include a Validation section alongside the existing settings sections. The Validation section SHALL include validation execution preferences for strict mode, optional concurrency, and automatic validation runs. The Validation section SHALL participate in the existing Settings section navigation, so selecting Validation updates the visible/scroll-targeted settings content without closing or replacing the Settings tab. Other UI surfaces, including the Validation Explorer panel, SHALL be able to open Settings directly to the Validation section.
 

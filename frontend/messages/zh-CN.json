@@ -104,6 +104,7 @@
   "validation_summary": "摘要",
   "validation_last_run": "上次运行",
   "validation_no_failed_items": "没有失败的验证项。",
+  "validation_no_matching_filters": "没有项目匹配所选状态筛选器。请选择一个状态徽章来显示项目。",
   "validation_non_navigable": "此项可供查看，但不会打开 Spec 或 Change 标签页。",
   "validation_issue_count": "{count} 个 issue",
   "validation_summary_counts": "通过 {passed} • 失败 {failed} • 总计 {totalItems}",

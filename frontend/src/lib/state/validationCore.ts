@@ -170,7 +170,7 @@ export function findValidationItemByTypeAndName(
 }
 
 export function deriveValidationItemStatus(item: Pick<ValidationItem, 'valid' | 'issues'>): ValidationItemStatus {
-  if (!item.valid || item.issues.some((issue) => issue.level === 'ERROR')) {
+  if (item.issues.some((issue) => issue.level === 'ERROR')) {
     return 'failed';
   }
 
@@ -182,7 +182,7 @@ export function deriveValidationItemStatus(item: Pick<ValidationItem, 'valid' | 
     return 'info';
   }
 
-  return 'passed';
+  return item.valid ? 'passed' : 'failed';
 }
 
 export function deriveValidationTargetSummary(

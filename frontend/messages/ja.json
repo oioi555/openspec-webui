@@ -104,6 +104,7 @@
   "validation_summary": "概要",
   "validation_last_run": "最終実行",
   "validation_no_failed_items": "失敗した validation 項目はありません。",
+  "validation_no_matching_filters": "選択中のステータスフィルターに一致する項目はありません。表示するステータスバッジを選択してください。",
   "validation_non_navigable": "この項目は確認用に表示されていますが、Spec または Change タブは開きません。",
   "validation_issue_count": "{count}件の issue",
   "validation_summary_counts": "成功 {passed} • 失敗 {failed} • 合計 {totalItems}",

@@ -104,6 +104,7 @@
   "validation_summary": "Resumen",
   "validation_last_run": "Última ejecución",
   "validation_no_failed_items": "No hay elementos de validación fallidos.",
+  "validation_no_matching_filters": "Ningún elemento coincide con los filtros de estado seleccionados. Selecciona una insignia de estado para mostrar elementos.",
   "validation_non_navigable": "Este elemento está visible para revisión, pero no abre una pestaña de spec o cambio.",
   "validation_issue_count": "{count} issues",
   "validation_summary_counts": "{passed} aprobados • {failed} fallidos • {totalItems} total",

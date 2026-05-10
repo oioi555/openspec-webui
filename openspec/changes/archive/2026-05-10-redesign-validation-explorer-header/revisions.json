@@ -1,0 +1,23 @@
+{
+  "changeId": "redesign-validation-explorer-header",
+  "revisions": [
+    {
+      "id": "rev-ff819dc3",
+      "description": "Clarified validation header counts to derive file status from highest issue severity before falling back to raw validity.",
+      "reason": "WARNING-only items with valid=false were being shown as failed, which contradicted the intended warning semantics and hid warning counts in the redesigned header.",
+      "author": "AI",
+      "createdAt": "2026-05-10T11:02:11.888Z",
+      "metadata": {
+        "type": "behavior",
+        "affectedField": "summary.statusCounts / item.status / failedItems",
+        "updateTarget": [
+          "specs"
+        ],
+        "source": {
+          "file": "src/server/routes/api.ts",
+          "function": "deriveValidationItemStatus"
+        }
+      }
+    }
+  ]
+}

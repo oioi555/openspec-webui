@@ -104,6 +104,7 @@
   "validation_summary": "Resumo",
   "validation_last_run": "Última execução",
   "validation_no_failed_items": "Nenhum item de validação com falha.",
+  "validation_no_matching_filters": "Nenhum item corresponde aos filtros de status selecionados. Selecione um badge de status para mostrar itens.",
   "validation_non_navigable": "Este item está visível para revisão, mas não abre uma aba de spec ou change.",
   "validation_issue_count": "{count} issues",
   "validation_summary_counts": "{passed} aprovados • {failed} falharam • {totalItems} total",

@@ -71,7 +71,8 @@ test('validation panel wiring keeps navigation in existing tabs and shows non-na
   assert.match(source, /t\(m\.validation_non_navigable\)/);
   assert.match(source, /t\(m\.validation_run\)/);
   assert.match(source, /attentionItems\(\)/);
-  assert.match(source, /validationStore\.result\?\.issueItems/);
+  assert.match(source, /validationStore\.result\?\.items\.filter\(\(item\) => item\.status !== 'passed'\)/);
+  assert.match(source, /tabStore\.openSettings\(\{ initialSection: 'validation' \}\)/);
   assert.match(storeSource, /tabStore\.openConfirmed/);
   assert.match(storeSource, /tabStore\.openPreview/);
   assert.match(storeSource, /item\.type !== 'spec' && item\.type !== 'change'/);
@@ -82,11 +83,37 @@ test('validation panel text is localized through Paraglide messages', async () =
   const messages = await readFile(new URL('../../../../messages/ja.json', import.meta.url), 'utf8');
 
   assert.match(source, /t\(m\.validation_panel_title\)/);
-  assert.match(source, /t\(m\.validation_passed_count/);
-  assert.match(source, /t\(m\.validation_failed_count/);
-  assert.match(source, /t\(m\.validation_total_count/);
+  assert.match(source, /t\(m\.validation_panel_description\)/);
+  assert.match(source, /t\(m\.settings_validation_description\)/);
+  assert.match(source, /t\(m\.validation_no_matching_filters\)/);
   assert.match(messages, /"validation_panel_title"/);
+  assert.match(messages, /"validation_no_matching_filters"/);
   assert.match(messages, /"copy_label_validation_item_name"/);
+});
+
+test('validation panel header is compact, links to settings, and renders status count filters', async () => {
+  const source = await readFile(new URL('../shared/explorer-section/validation-explorer-section.svelte', import.meta.url), 'utf8');
+
+  assert.doesNotMatch(source, /<p class="mb-3 text-xs leading-relaxed text-muted-foreground">\{t\(m\.validation_panel_description\)\}<\/p>/);
+  assert.doesNotMatch(source, /StatusIndicator state=\{validationStore\.result\.status\}/);
+  assert.equal(source.includes("$lib/components/ui/tooltip"), false);
+  assert.match(source, /const FILTER_STATUSES: AttentionStatus\[\] = \['failed', 'warning', 'info'\]/);
+  assert.match(source, /validationStore\.result\?\.summary\.statusCounts\[status\]/);
+  assert.match(source, /getValidationStatusVisual\(status\)/);
+  assert.match(source, /let excludedStatuses = \$state<Set<AttentionStatus>>\(new Set\(\)\)/);
+  assert.match(source, /aria-checked=\{!isStatusExcluded\(status\)\}/);
+  assert.match(source, /disabled=\{!validationStore\.result\}/);
+  assert.match(source, /onclick=\{\(\) => toggleStatus\(status\)\}/);
+  assert.match(source, /filteredAttentionItems\(\)/);
+  assert.match(source, /title=\{t\(m\.validation_panel_description\)\}/);
+  assert.match(source, /class=\{`flex min-w-0 items-center gap-2 \$\{validationStore\.result \? 'mb-3' : ''\}`\}/);
+  assert.match(source, /flex flex-wrap items-start justify-between gap-x-3 gap-y-1\.5/);
+  assert.match(source, /content-center text-right text-\[11px\] leading-5 text-muted-foreground/);
+  assert.match(source, /\{#if validationStore\.result\}\s*<button[\s\S]*onclick=\{\(\) => validationStore\.refresh\(\)\}[\s\S]*<\/button>\s*\{\/if\}\s*<button[\s\S]*openValidationSettings/);
+  assert.match(source, /\{#if !validationStore\.result\}/);
+  assert.match(source, /border-dashed border-border bg-secondary\/30 p-4 text-center/);
+  assert.match(source, /\{t\(m\.validation_panel_description\)\}/);
+  assert.match(source, /<FlaskConical class="h-3\.5 w-3\.5" \/>/);
 });
 
 test('validation preferences live in Settings rather than the Validation panel header', async () => {
@@ -94,7 +121,6 @@ test('validation preferences live in Settings rather than the Validation panel h
   const settingsSource = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
 
   assert.equal(panelSource.includes('validationPreferencesStore'), false);
-  assert.equal(panelSource.includes('settings-validation'), false);
   assert.match(panelSource, /\$effect\(\(\) => \{/);
   assert.match(panelSource, /validationStore\.autoRun/);
   assert.match(panelSource, /autoRunStartedForProject === projectId/);
