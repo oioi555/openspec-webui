@@ -1,6 +1,6 @@
 {
   "name": "openspec-webui",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Local-first browser UI for exploring OpenSpec projects",
   "type": "module",
   "packageManager": "npm@11.13.0",

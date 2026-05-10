@@ -1,23 +1,42 @@
 # OpenSpec WebUI
 
-Browser-based viewer for [OpenSpec](https://github.com/Fission-AI/OpenSpec) projects.
+OpenSpec WebUI helps you review OpenSpec artifacts, run validation, track change progress, and copy the next command into your AI coding tool — without manually navigating the OpenSpec folder structure.
 
 ![OpenSpec WebUI](https://raw.githubusercontent.com/oioi555/openspec-webui/main/screenshot.png)
 
 ## What is this?
 
-[OpenSpec](https://github.com/Fission-AI/OpenSpec) is a spec-driven development workflow that organizes project knowledge into directories — `config.yaml`, `specs/`, `changes/` with proposals, designs, and tasks.
+[OpenSpec](https://github.com/Fission-AI/OpenSpec) is a spec-driven development workflow for managing specs, proposals, designs, and tasks.
 
-OpenSpec WebUI gives you an interactive browser interface to explore those directories. Launch the app locally, select your projects, and browse specs, changes, and artifacts — all from the browser.
+OpenSpec WebUI is a local browser interface for projects that use OpenSpec. Your AI coding tool still creates and updates the files; OpenSpec WebUI helps you review the results, run validation, understand the current change state, and copy the next command to continue the workflow.
+
+## Features
+
+### Review OpenSpec projects
 
 - Multi-project support — add, switch, and remove projects from the UI
-- Browse `config.yaml`, `specs/`, `active changes`, and `archived changes`
-- Render Markdown artifacts with live preview
-- Track checkbox task progress
+- Browse `config.yaml`, specs, active changes, and archived changes from the browser
+- Review proposals, designs, tasks, and supplemental change files with Markdown preview
 - Search across all OpenSpec content
 - Live refresh when files change
 - Group supplemental change files by folder/tab
-- Contextual command actions — copy pre-filled workflow commands to paste into your AI tools
+
+### Validate and track progress
+
+- Run OpenSpec validation from the UI
+- View failed, warning, and info validation results in a dedicated panel
+- Jump from validation results to the related spec or change
+- Track checkbox task progress across changes
+
+### Work with AI coding tools
+
+- Copy context-aware next commands for the current workflow state
+- Switch between command formats for OpenSpec-supported AI coding tools
+- Copy selected text as attributed Markdown quotes for AI prompts
+
+### Other
+
+- UI available in 7 languages (English, Japanese, Portuguese, Spanish, Chinese, French, German)
 - Light / dark / system theme support
 
 ## Install
