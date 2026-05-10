@@ -91,6 +91,23 @@ test('shared badge and validation semantics support informational info tone', as
   assert.match(semanticsSource, /validationStatusVisuals:[\s\S]*info: \{[\s\S]*badgeVariant: 'info'/);
 });
 
+test('shared task-progress icon variant helper maps zero/incomplete/complete to muted/warning/success', async () => {
+  const semanticsSource = await readFile(new URL('../../visualSemantics.ts', import.meta.url), 'utf8');
+
+  assert.match(semanticsSource, /export function getTaskProgressIconVariant\(done: number, total: number\): IconBoxVariant/);
+  assert.match(semanticsSource, /if \(total === 0\) return 'muted'/);
+  assert.match(semanticsSource, /if \(done < total\) return 'warning'/);
+  assert.match(semanticsSource, /return 'success'/);
+});
+
+test('Dashboard Tasks card uses the shared task-progress icon variant helper', async () => {
+  const source = await readFile(new URL('../../views/Dashboard.svelte', import.meta.url), 'utf8');
+
+  assert.match(source, /import \{ getTaskProgressIconVariant \} from '\$lib\/visualSemantics'/);
+  assert.match(source, /getTaskProgressIconVariant\(overallTaskProgress\.done, overallTaskProgress\.total\)/);
+  assert.equal(source.includes('IconBox icon={CircleCheckBig} variant="warning"'), false);
+});
+
 test('validation panel text is localized through Paraglide messages', async () => {
   const source = await readFile(new URL('../shared/explorer-section/validation-explorer-section.svelte', import.meta.url), 'utf8');
   const messages = await readFile(new URL('../../../../messages/ja.json', import.meta.url), 'utf8');

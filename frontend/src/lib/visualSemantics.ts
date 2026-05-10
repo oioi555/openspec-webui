@@ -184,3 +184,9 @@ export const validationStatusVisuals: Record<ValidationStatusKind, ValidationSta
 export function getValidationStatusVisual(state: ValidationStatusKind): ValidationStatusVisualMeta {
   return validationStatusVisuals[state];
 }
+
+export function getTaskProgressIconVariant(done: number, total: number): IconBoxVariant {
+  if (total === 0) return 'muted';
+  if (done < total) return 'warning';
+  return 'success';
+}

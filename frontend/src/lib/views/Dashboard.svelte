@@ -29,6 +29,7 @@
   import CommandShortcutBar from '$lib/components/shared/CommandShortcutBar.svelte';
   import { formatChangeName, formatDate } from '$lib/utils';
   import { FIXED_LABELS, getChangeTaskCountLabel, getSpecDeltaCountLabel, getWorkflowSchemaFallbackLabel } from '$lib/uiText';
+  import { getTaskProgressIconVariant } from '$lib/visualSemantics';
 
   type TimestampedChange = {
     name: string;
@@ -334,7 +335,7 @@
             </div>
             <div class="mt-3"><Progress value={overallTaskProgress.percentage} /></div>
           </div>
-          <IconBox icon={CircleCheckBig} variant="warning" size="lg" />
+          <IconBox icon={CircleCheckBig} variant={getTaskProgressIconVariant(overallTaskProgress.done, overallTaskProgress.total)} size="lg" />
         </div>
       </button>
     </InteractiveCard>
