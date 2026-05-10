@@ -21,6 +21,7 @@ const testFiles = [
   'frontend/src/lib/state/localeCore.test.ts',
   'frontend/src/lib/state/versionStatusCore.test.ts',
   'frontend/src/lib/locale.test.ts',
+  'frontend/src/lib/markdown.test.ts',
   'frontend/src/lib/utils.test.ts',
   'frontend/src/lib/contextCopy.test.ts',
   'frontend/src/lib/commandShortcuts.test.ts',

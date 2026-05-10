@@ -376,6 +376,10 @@ body {
   @apply text-muted-foreground;
 }
 
+.markdown-body mark.search-highlight {
+  @apply rounded-sm border border-warning-border bg-warning-bg px-0.5 text-foreground;
+}
+
 /* Diff highlighting */
 .markdown-body h2.diff-added,
 .markdown-body h2.diff-modified,

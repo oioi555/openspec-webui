@@ -1,7 +1,5 @@
 <script lang="ts">
-  import { Clipboard, FileText, LoaderCircle, Search, X } from '@lucide/svelte';
-  import { tick } from 'svelte';
-  import { Badge } from '$lib/components/ui/badge';
+  import { Clipboard, FileText, Highlighter, LoaderCircle, Search, X } from '@lucide/svelte';
   import { Button } from '$lib/components/ui/button';
   import * as ScrollArea from '$lib/components/ui/scroll-area';
   import { t } from '$lib/i18n';
@@ -24,7 +22,6 @@
   let { onItemSelected = () => {} }: Props = $props();
 
   let inputRef = $state<HTMLInputElement | null>(null);
-  let lastFocusRequest = $state(0);
 
   function handleInput(event: Event) {
     searchStore.setQuery((event.target as HTMLInputElement).value);
@@ -94,6 +91,10 @@
 
     return result.excerpt;
   }
+
+  function toggleViewerHighlights() {
+    uiPreferencesStore.setSearchHighlightsEnabled(!uiPreferencesStore.searchHighlightsEnabled);
+  }
 </script>
 
 <div class="flex min-h-0 flex-1 flex-col">
@@ -103,14 +104,20 @@
       <div class="min-w-0 flex-1 truncate text-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground">
         {t(m.search_panel_title)}
       </div>
-      {#if searchStore.results.length > 0}
-        <Badge
-          variant="secondary"
-          class="shrink-0 text-[11px] font-medium"
-        >
-          {searchStore.results.length}
-        </Badge>
-      {/if}
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        class={`size-7 rounded-md border ${uiPreferencesStore.searchHighlightsEnabled
+          ? 'border-warning-border bg-warning-bg text-warning hover:bg-warning-bg/80 hover:text-warning'
+          : 'border-border/50 text-muted-foreground hover:bg-secondary/50 hover:text-foreground'}`}
+        aria-label={t(m.search_highlight_matches)}
+        aria-pressed={uiPreferencesStore.searchHighlightsEnabled}
+        title={t(m.search_highlight_matches)}
+        onclick={toggleViewerHighlights}
+      >
+        <Highlighter class="h-3.5 w-3.5" />
+      </Button>
     </div>
 
       <div class="relative">

@@ -15,6 +15,7 @@
   "search_panel_title": "Pesquisar",
   "search_panel_heading": "Pesquisa no workspace",
   "search_placeholder": "Pesquisar no workspace...",
+  "search_highlight_matches": "Destacar correspondências nos documentos abertos",
   "search_clear": "Limpar pesquisa",
   "search_result_count": "{count} resultados",
   "project_selector_description": "Mude para outro projeto ou adicione um novo.",

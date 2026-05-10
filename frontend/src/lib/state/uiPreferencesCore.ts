@@ -1,5 +1,6 @@
 export interface UiPreferences {
   previewTabsEnabled: boolean;
+  searchHighlightsEnabled: boolean;
 }
 
 const STORAGE_KEY = 'openspec-ui-preferences';
@@ -12,6 +13,7 @@ interface UiPreferencesAdapter {
 export function createDefaultUiPreferences(): UiPreferences {
   return {
     previewTabsEnabled: true,
+    searchHighlightsEnabled: true,
   };
 }
 
@@ -28,6 +30,9 @@ function normalizeUiPreferences(value: unknown): UiPreferences {
     previewTabsEnabled: typeof candidate.previewTabsEnabled === 'boolean'
       ? candidate.previewTabsEnabled
       : defaults.previewTabsEnabled,
+    searchHighlightsEnabled: typeof candidate.searchHighlightsEnabled === 'boolean'
+      ? candidate.searchHighlightsEnabled
+      : defaults.searchHighlightsEnabled,
   };
 }
 
@@ -66,6 +71,10 @@ export function createUiPreferencesStoreWithAdapter(adapter: UiPreferencesAdapte
       return adapter.get().previewTabsEnabled;
     },
 
+    get searchHighlightsEnabled() {
+      return adapter.get().searchHighlightsEnabled;
+    },
+
     initialize() {
       adapter.set(loadUiPreferences());
     },
@@ -74,6 +83,16 @@ export function createUiPreferencesStoreWithAdapter(adapter: UiPreferencesAdapte
       const nextPreferences = {
         ...adapter.get(),
         previewTabsEnabled,
+      };
+
+      saveUiPreferences(nextPreferences);
+      adapter.set(nextPreferences);
+    },
+
+    setSearchHighlightsEnabled(searchHighlightsEnabled: boolean) {
+      const nextPreferences = {
+        ...adapter.get(),
+        searchHighlightsEnabled,
       };
 
       saveUiPreferences(nextPreferences);

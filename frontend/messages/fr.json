@@ -15,6 +15,7 @@
   "search_panel_title": "Rechercher",
   "search_panel_heading": "Recherche dans l’espace de travail",
   "search_placeholder": "Rechercher dans l’espace de travail...",
+  "search_highlight_matches": "Surligner les correspondances dans les documents ouverts",
   "search_clear": "Effacer la recherche",
   "search_result_count": "{count} résultats",
   "project_selector_description": "Passez à un autre projet ou ajoutez-en un nouveau.",

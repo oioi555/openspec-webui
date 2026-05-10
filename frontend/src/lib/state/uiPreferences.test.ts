@@ -40,6 +40,7 @@ test('preview tabs are enabled by default when storage is empty', () => {
   store.initialize();
 
   assert.equal(store.previewTabsEnabled, true);
+  assert.equal(store.searchHighlightsEnabled, true);
 });
 
 test('preview tab preference persists when toggled off', () => {
@@ -51,17 +52,36 @@ test('preview tab preference persists when toggled off', () => {
   store.setPreviewTabsEnabled(false);
 
   assert.equal(store.previewTabsEnabled, false);
-  assert.equal(localStorage.getItem(STORAGE_KEY), JSON.stringify({ previewTabsEnabled: false }));
+  assert.equal(store.searchHighlightsEnabled, true);
+  assert.equal(localStorage.getItem(STORAGE_KEY), JSON.stringify({ previewTabsEnabled: false, searchHighlightsEnabled: true }));
 
   const reloadedStore = createUiPreferencesStore();
   reloadedStore.initialize();
   assert.equal(reloadedStore.previewTabsEnabled, false);
+  assert.equal(reloadedStore.searchHighlightsEnabled, true);
+});
+
+test('search highlight preference persists when toggled off', () => {
+  const localStorage = new MockStorage();
+  Object.assign(globalThis, { localStorage });
+
+  const store = createUiPreferencesStore();
+  store.initialize();
+  store.setSearchHighlightsEnabled(false);
+
+  assert.equal(store.previewTabsEnabled, true);
+  assert.equal(store.searchHighlightsEnabled, false);
+  assert.equal(localStorage.getItem(STORAGE_KEY), JSON.stringify({ previewTabsEnabled: true, searchHighlightsEnabled: false }));
+
+  const reloadedStore = createUiPreferencesStore();
+  reloadedStore.initialize();
+  assert.equal(reloadedStore.searchHighlightsEnabled, false);
 });
 
 test('invalid stored values fall back to preview tabs enabled', () => {
   Object.assign(globalThis, {
     localStorage: new MockStorage({
-      [STORAGE_KEY]: JSON.stringify({ previewTabsEnabled: 'nope' }),
+      [STORAGE_KEY]: JSON.stringify({ previewTabsEnabled: 'nope', searchHighlightsEnabled: 'nope' }),
     }),
   });
 
@@ -69,4 +89,5 @@ test('invalid stored values fall back to preview tabs enabled', () => {
   store.initialize();
 
   assert.equal(store.previewTabsEnabled, true);
+  assert.equal(store.searchHighlightsEnabled, true);
 });

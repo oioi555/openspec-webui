@@ -1,15 +1,17 @@
 <script lang="ts">
-  import { renderMarkdown, highlightDeltas } from '$lib/markdown';
+  import { renderMarkdown, highlightDeltas, highlightSearchMatches } from '$lib/markdown';
 
   interface Props {
     content: string;
     highlightDiff?: boolean;
+    highlightQuery?: string;
   }
 
-  let { content, highlightDiff = false }: Props = $props();
+  let { content, highlightDiff = false, highlightQuery = '' }: Props = $props();
 
   let baseHtml = $derived(renderMarkdown(content));
-  let html = $derived(highlightDiff ? highlightDeltas(baseHtml) : baseHtml);
+  let decoratedHtml = $derived(highlightDiff ? highlightDeltas(baseHtml) : baseHtml);
+  let html = $derived(highlightQuery ? highlightSearchMatches(decoratedHtml, highlightQuery) : decoratedHtml);
 </script>
 
 <div class="markdown-body prose max-w-none">

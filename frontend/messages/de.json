@@ -15,6 +15,7 @@
   "search_panel_title": "Suchen",
   "search_panel_heading": "Workspace-Suche",
   "search_placeholder": "Workspace durchsuchen...",
+  "search_highlight_matches": "Treffer in geöffneten Dokumenten hervorheben",
   "search_clear": "Suche löschen",
   "search_result_count": "{count} Ergebnisse",
   "project_selector_description": "Wechsle zu einem anderen Projekt oder füge ein neues hinzu.",

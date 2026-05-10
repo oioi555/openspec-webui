@@ -17,7 +17,8 @@
     getSpecViewerContextLabel,
   } from '$lib/contextCopy';
   import { specsRefreshTrigger } from '$lib/state/appData.svelte.ts';
-  import { searchStore } from '$lib/state/search.svelte.ts';
+  import { searchStore, SEARCH_MIN_QUERY_LENGTH } from '$lib/state/search.svelte.ts';
+  import { uiPreferencesStore } from '$lib/state/uiPreferences.svelte.ts';
   import type { Spec } from '$lib/types/api';
   import MarkdownRenderer from '$lib/components/shared/MarkdownRenderer.svelte';
   import { formatDate } from '$lib/utils';
@@ -35,6 +36,11 @@
   let previousSpecName: string | null = null;
   let previousRefreshTrigger = -1;
   let hasSelection = $state(false);
+  let highlightQuery = $derived(
+    uiPreferencesStore.searchHighlightsEnabled && searchStore.query.length >= SEARCH_MIN_QUERY_LENGTH
+      ? searchStore.query
+      : undefined,
+  );
 
   async function copyToClipboard(text: string, label: string) {
     try {
@@ -153,7 +159,7 @@
     <!-- Content -->
     <ContextMenu.Root onOpenChange={handleMenuOpenChange}>
       <SurfaceCard shadow="lg" class="p-6">
-        <MarkdownRenderer content={spec.specContent} />
+        <MarkdownRenderer content={spec.specContent} highlightQuery={highlightQuery} />
       </SurfaceCard>
       <ContextMenu.Content>
         <ContextMenu.Item disabled={!hasSelection} onSelect={handleCopy}>

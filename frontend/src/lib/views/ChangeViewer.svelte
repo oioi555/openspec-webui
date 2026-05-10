@@ -21,7 +21,8 @@
   } from '$lib/contextCopy';
   import { changesRefreshTrigger } from '$lib/state/appData.svelte.ts';
   import { commandPreferencesStore } from '$lib/state/commandPreferences.svelte.ts';
-  import { searchStore } from '$lib/state/search.svelte.ts';
+  import { searchStore, SEARCH_MIN_QUERY_LENGTH } from '$lib/state/search.svelte.ts';
+  import { uiPreferencesStore } from '$lib/state/uiPreferences.svelte.ts';
   import type { Change } from '$lib/types/api';
   import { getChangeCommands } from '$lib/commandShortcuts';
   import MarkdownRenderer from '$lib/components/shared/MarkdownRenderer.svelte';
@@ -60,6 +61,11 @@
   let showDeltasTab = $derived((change?.specDeltas.length ?? 0) > 0);
   let isDeltasActive = $derived(activeGroupIndex === (change?.fileGroups.length ?? 0));
   let changeCommands = $derived(change ? getChangeCommands(change, commandPreferencesSnapshot()) : []);
+  let highlightQuery = $derived(
+    uiPreferencesStore.searchHighlightsEnabled && searchStore.query.length >= SEARCH_MIN_QUERY_LENGTH
+      ? searchStore.query
+      : undefined,
+  );
   const GROUP_ORDER = ['proposal', 'design', 'tasks', 'specs'];
 
   function groupSortIndex(name: string): number {
@@ -322,7 +328,7 @@
                   </Collapsible.Trigger>
                   <Collapsible.Content>
                     <div class="border-t border-border/60 px-5 py-4">
-                      <MarkdownRenderer content={delta.content} highlightDiff={true} />
+                      <MarkdownRenderer content={delta.content} highlightDiff={true} highlightQuery={highlightQuery} />
                     </div>
                   </Collapsible.Content>
                 </InteractiveCard>
@@ -351,7 +357,7 @@
         <ContextMenu.Root onOpenChange={handleMenuOpenChange}>
           <div>
             {#if activeFile.content}
-              <MarkdownRenderer content={activeFile.content} />
+              <MarkdownRenderer content={activeFile.content} highlightQuery={highlightQuery} />
             {/if}
           </div>
           <ContextMenu.Content>

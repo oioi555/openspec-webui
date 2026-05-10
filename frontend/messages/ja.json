@@ -15,6 +15,7 @@
   "search_panel_title": "検索",
   "search_panel_heading": "ワークスペース検索",
   "search_placeholder": "ワークスペースを検索...",
+  "search_highlight_matches": "開いている文書内の一致箇所をハイライト",
   "search_clear": "検索をクリア",
   "search_result_count": "{count}件の結果",
   "project_selector_description": "別のプロジェクトへ切り替えるか、新しいプロジェクトを追加します。",

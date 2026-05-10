@@ -15,6 +15,7 @@
   "search_panel_title": "Search",
   "search_panel_heading": "Workspace Search",
   "search_placeholder": "Search workspace...",
+  "search_highlight_matches": "Highlight matches in open documents",
   "search_clear": "Clear search",
   "search_result_count": "{count} results",
   "project_selector_description": "Switch to a different project or add a new one.",

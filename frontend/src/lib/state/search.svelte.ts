@@ -6,6 +6,8 @@ import { tabStore } from '$lib/state/tabs.svelte.ts';
 import type { SearchResult } from '$lib/types/api';
 import { createSearchController } from '$lib/components/layout/searchController';
 
+export const SEARCH_MIN_QUERY_LENGTH = 2;
+
 const state = $state({
   results: [] as SearchResult[],
   loading: false,
@@ -25,6 +27,7 @@ const controller = createSearchController({
   updateResults: (results) => {
     state.results = results;
   },
+  minQueryLength: SEARCH_MIN_QUERY_LENGTH,
 });
 
 function focusExplorerSearch() {

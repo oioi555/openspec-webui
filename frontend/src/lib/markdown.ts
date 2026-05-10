@@ -1,5 +1,9 @@
 import { marked } from 'marked';
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 // Configure marked for better rendering
 marked.setOptions({
   gfm: true,
@@ -36,4 +40,23 @@ export function highlightDeltas(html: string): string {
       /<h2>RENAMED\s+Requirements?<\/h2>/gi,
       '<h2 class="diff-modified">RENAMED Requirements</h2>'
     );
+}
+
+export function highlightSearchMatches(html: string, query: string): string {
+  if (!html || !query) {
+    return html;
+  }
+
+  const matcher = new RegExp(escapeRegExp(query), 'gi');
+
+  return html
+    .split(/(<[^>]+>)/g)
+    .map((segment) => {
+      if (!segment || segment.startsWith('<')) {
+        return segment;
+      }
+
+      return segment.replace(matcher, (match) => `<mark class="search-highlight">${match}</mark>`);
+    })
+    .join('');
 }

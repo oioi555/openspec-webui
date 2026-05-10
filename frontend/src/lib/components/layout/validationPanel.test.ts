@@ -203,15 +203,23 @@ test('SpecViewer places validation status between metadata and markdown content 
   const source = await readFile(new URL('../../views/SpecViewer.svelte', import.meta.url), 'utf8');
 
   assert.match(source, /import ValidationViewerStatus from '\$lib\/components\/shared\/ValidationViewerStatus\.svelte';/);
+  assert.match(source, /import \{ searchStore, SEARCH_MIN_QUERY_LENGTH \} from '\$lib\/state\/search\.svelte\.ts';/);
+  assert.match(source, /import \{ uiPreferencesStore \} from '\$lib\/state\/uiPreferences\.svelte\.ts';/);
+  assert.match(source, /uiPreferencesStore\.searchHighlightsEnabled && searchStore\.query\.length >= SEARCH_MIN_QUERY_LENGTH/);
   assert.match(source, /<\/div>\s*\n\s*<ValidationViewerStatus itemType="spec" itemName=\{specName\} \/>\s*\n\s*\{#if loading\}/);
-  assert.match(source, /<MarkdownRenderer content=\{spec\.specContent\} \/>/);
+  assert.match(source, /<MarkdownRenderer content=\{spec\.specContent\} highlightQuery=\{highlightQuery\} \/>/);
 });
 
 test('ChangeViewer places validation status between metadata and tabs for the current change', async () => {
   const source = await readFile(new URL('../../views/ChangeViewer.svelte', import.meta.url), 'utf8');
 
   assert.match(source, /import ValidationViewerStatus from '\$lib\/components\/shared\/ValidationViewerStatus\.svelte';/);
+  assert.match(source, /import \{ searchStore, SEARCH_MIN_QUERY_LENGTH \} from '\$lib\/state\/search\.svelte\.ts';/);
+  assert.match(source, /import \{ uiPreferencesStore \} from '\$lib\/state\/uiPreferences\.svelte\.ts';/);
+  assert.match(source, /uiPreferencesStore\.searchHighlightsEnabled && searchStore\.query\.length >= SEARCH_MIN_QUERY_LENGTH/);
   assert.match(source, /<\/div>\s*\n\s*<ValidationViewerStatus itemType="change" itemName=\{changeName\} \/>\s*\n\s*\{#if loading\}/);
   assert.match(source, /<UnderlineTabs tabs=\{primaryTabs\} activeId=\{activePrimaryTabId\} onSelect=\{handlePrimaryTabSelect\} \/>/);
   assert.match(source, /FIXED_LABELS\.viewer\.specDeltas/);
+  assert.match(source, /<MarkdownRenderer content=\{delta\.content\} highlightDiff=\{true\} highlightQuery=\{highlightQuery\} \/>/);
+  assert.match(source, /<MarkdownRenderer content=\{activeFile\.content\} highlightQuery=\{highlightQuery\} \/>/);
 });

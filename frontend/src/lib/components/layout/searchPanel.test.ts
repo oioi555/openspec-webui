@@ -34,6 +34,19 @@ test('search panel header only shows transient loading or result-count status te
   assert.doesNotMatch(source, /\{t\(m\.search_start_typing\)\}\s*\{:else if searchStore\.loading\}/);
 });
 
+test('search panel header exposes a persistent highlight toggle instead of a result badge', async () => {
+  const source = await readFile(new URL('../shared/explorer-section/search-explorer-section.svelte', import.meta.url), 'utf8');
+  const messages = await readFile(new URL('../../../../messages/en.json', import.meta.url), 'utf8');
+
+  assert.match(source, /Highlighter/);
+  assert.match(source, /uiPreferencesStore\.searchHighlightsEnabled/);
+  assert.match(source, /uiPreferencesStore\.setSearchHighlightsEnabled\(!uiPreferencesStore\.searchHighlightsEnabled\)/);
+  assert.match(source, /aria-pressed=\{uiPreferencesStore\.searchHighlightsEnabled\}/);
+  assert.match(source, /t\(m\.search_highlight_matches\)/);
+  assert.doesNotMatch(source, /<Badge/);
+  assert.match(messages, /"search_highlight_matches"/);
+});
+
 test('search panel preserves clear control, result navigation, and change-kind semantics', async () => {
   const source = await readFile(new URL('../shared/explorer-section/search-explorer-section.svelte', import.meta.url), 'utf8');
 
