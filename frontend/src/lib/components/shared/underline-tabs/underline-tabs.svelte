@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Highlighter } from '@lucide/svelte';
   import { Badge } from '$lib/components/ui/badge';
   import { cn } from '$lib/utils';
 
@@ -6,6 +7,7 @@
     id: string;
     label: string;
     badge?: number | string;
+    hitIndicator?: boolean;
   };
 
   interface Props {
@@ -62,6 +64,12 @@
       onclick={() => onSelect(tab.id)}
     >
       <span>{tab.label}</span>
+
+      {#if tab.hitIndicator}
+        <span class="inline-flex items-center text-warning" aria-hidden="true">
+          <Highlighter class="h-3 w-3" />
+        </span>
+      {/if}
 
       {#if tab.badge !== undefined}
         <Badge

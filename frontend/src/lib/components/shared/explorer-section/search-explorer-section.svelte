@@ -193,6 +193,7 @@
             <div class="text-sm font-medium text-foreground">{t(m.search_panel_heading)}</div>
             <div class="mt-2 text-xs leading-relaxed text-muted-foreground">{t(m.search_description)}</div>
             <div class="mt-1 text-xs text-muted-foreground">{t(m.search_start_typing)}</div>
+            <div class="mt-1 text-xs leading-relaxed text-muted-foreground">{t(m.search_highlight_matches)}</div>
           {:else}
             <div class="text-sm font-medium text-foreground">{t(m.search_no_results, { query: searchStore.query })}</div>
             <div class="mt-2 text-xs leading-relaxed text-muted-foreground">{t(m.search_description)}</div>

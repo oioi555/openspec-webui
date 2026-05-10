@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { untrack } from 'svelte';
+  import { tick, untrack } from 'svelte';
   import { Calendar, ChevronDown, ChevronRight, CircleCheckBig, Clipboard, FileText, Quote, Search } from '@lucide/svelte';
   import { Badge } from '$lib/components/ui/badge';
   import { ErrorBanner } from '$lib/components/shared/error-banner';
@@ -21,6 +21,7 @@
   } from '$lib/contextCopy';
   import { changesRefreshTrigger } from '$lib/state/appData.svelte.ts';
   import { commandPreferencesStore } from '$lib/state/commandPreferences.svelte.ts';
+  import type { SearchNavigationState } from '$lib/state/search.svelte.ts';
   import { searchStore, SEARCH_MIN_QUERY_LENGTH } from '$lib/state/search.svelte.ts';
   import { uiPreferencesStore } from '$lib/state/uiPreferences.svelte.ts';
   import type { Change } from '$lib/types/api';
@@ -47,6 +48,13 @@
   let activeGroupIndex = $state(0);
   let activeFileIndex = $state(0);
   let deltaOpenStates = $state<Record<number, boolean>>({});
+  let contentRef = $state<HTMLDivElement | null>(null);
+
+  interface ChangeViewerState {
+    groupIndex?: number;
+    fileIndex?: number;
+    searchNavigation?: SearchNavigationState;
+  }
 
   function commandPreferencesSnapshot() {
     return {
@@ -61,6 +69,11 @@
   let showDeltasTab = $derived((change?.specDeltas.length ?? 0) > 0);
   let isDeltasActive = $derived(activeGroupIndex === (change?.fileGroups.length ?? 0));
   let changeCommands = $derived(change ? getChangeCommands(change, commandPreferencesSnapshot()) : []);
+  let activeSearchQuery = $derived(
+    uiPreferencesStore.searchHighlightsEnabled && searchStore.query.length >= SEARCH_MIN_QUERY_LENGTH
+      ? searchStore.query
+      : undefined,
+  );
   let highlightQuery = $derived(
     uiPreferencesStore.searchHighlightsEnabled && searchStore.query.length >= SEARCH_MIN_QUERY_LENGTH
       ? searchStore.query
@@ -76,18 +89,74 @@
     return GROUP_ORDER.length;
   }
 
+  function escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function countQueryMatches(content: string | null | undefined, query: string | undefined): number {
+    if (!content || !query) {
+      return 0;
+    }
+
+    const matches = content.match(new RegExp(escapeRegExp(query), 'gi'));
+    return matches?.length ?? 0;
+  }
+
+  let sortedFileGroups = $derived(
+    change
+      ? [...change.fileGroups].sort((a, b) => groupSortIndex(a.name) - groupSortIndex(b.name))
+      : [],
+  );
+
+  let fileGroupHitCounts = $derived((() => {
+    const counts = new Map<number, number>();
+    if (!change || !activeSearchQuery) {
+      return counts;
+    }
+
+    change.fileGroups.forEach((group, index) => {
+      counts.set(
+        index,
+        group.files.reduce((total, file) => total + countQueryMatches(file.content, activeSearchQuery), 0),
+      );
+    });
+
+    return counts;
+  })());
+
+  let specDeltaHitCounts = $derived((() => {
+    const counts = new Map<string, number>();
+    if (!change || !activeSearchQuery) {
+      return counts;
+    }
+
+    change.specDeltas.forEach((delta) => {
+      counts.set(delta.capability, countQueryMatches(delta.content, activeSearchQuery));
+    });
+
+    return counts;
+  })());
+
   let primaryTabs = $derived(
     change
       ? [
-        ...[...change.fileGroups]
-          .sort((a, b) => groupSortIndex(a.name) - groupSortIndex(b.name))
-          .map((group) => ({
-            id: `group-${change!.fileGroups.indexOf(group)}`,
-            label: group.name,
-            badge: group.files.length > 1 ? group.files.length : undefined,
-          })),
+        ...sortedFileGroups
+          .map((group) => {
+            const groupIndex = change!.fileGroups.indexOf(group);
+            return {
+              id: `group-${groupIndex}`,
+              label: group.name,
+              badge: group.files.length > 1 ? group.files.length : undefined,
+              hitIndicator: (fileGroupHitCounts.get(groupIndex) ?? 0) > 0,
+            };
+          }),
         ...(showDeltasTab
-          ? [{ id: 'spec-deltas', label: FIXED_LABELS.viewer.specDeltas, badge: change.specDeltas.length }]
+          ? [{
+              id: 'spec-deltas',
+              label: FIXED_LABELS.viewer.specDeltas,
+              badge: change.specDeltas.length,
+              hitIndicator: Array.from(specDeltaHitCounts.values()).some((count) => count > 0),
+            }]
           : []),
       ]
       : []
@@ -151,7 +220,7 @@
       change = await getChange(changeName);
 
       if (change) {
-        const persistedState = tabStore.getViewerState<{ groupIndex: number; fileIndex: number }>(tabId);
+        const persistedState = tabStore.getViewerState<ChangeViewerState>(tabId);
         const maxGroupIndex = change.fileGroups.length + (change.specDeltas.length > 0 ? 1 : 0) - 1;
         const nextGroupIndex = persistedState?.groupIndex ?? (preserveState ? savedGroupIndex : 0);
         activeGroupIndex = Math.min(Math.max(nextGroupIndex, 0), Math.max(0, maxGroupIndex));
@@ -220,10 +289,80 @@
       return;
     }
 
-    const current = tabStore.getViewerState<{ groupIndex: number; fileIndex: number }>(tabId);
+    const current = tabStore.getViewerState<ChangeViewerState>(tabId);
     if (current?.groupIndex !== activeGroupIndex || current?.fileIndex !== activeFileIndex) {
-      tabStore.setViewerState(tabId, { groupIndex: activeGroupIndex, fileIndex: activeFileIndex });
+      tabStore.setViewerState(tabId, {
+        ...current,
+        groupIndex: activeGroupIndex,
+        fileIndex: activeFileIndex,
+      });
     }
+  });
+
+  $effect(() => {
+    if (!change || loading || change.name !== changeName) {
+      return;
+    }
+
+    const viewerState = tabStore.getViewerState<ChangeViewerState>(tabId);
+    const searchNavigation = viewerState?.searchNavigation;
+    if (!searchNavigation?.requestKey) {
+      return;
+    }
+
+    if (viewerState) {
+      const { searchNavigation: _ignored, ...rest } = viewerState;
+      if (Object.keys(rest).length > 0) {
+        tabStore.setViewerState(tabId, rest);
+      } else {
+        tabStore.clearViewerState(tabId);
+      }
+    }
+
+    if (searchNavigation.matchLocation?.specDeltaCapability) {
+      selectDeltas();
+
+      const nextDeltaOpenStates: Record<number, boolean> = {};
+      change.specDeltas.forEach((delta, index) => {
+        if ((specDeltaHitCounts.get(delta.capability) ?? 0) > 0) {
+          nextDeltaOpenStates[index] = true;
+        }
+      });
+
+      if (Object.keys(nextDeltaOpenStates).length === 0) {
+        const targetIndex = change.specDeltas.findIndex(
+          (delta) => delta.capability === searchNavigation.matchLocation?.specDeltaCapability,
+        );
+        if (targetIndex >= 0) {
+          nextDeltaOpenStates[targetIndex] = true;
+        }
+      }
+
+      deltaOpenStates = nextDeltaOpenStates;
+    } else if (searchNavigation.matchLocation?.fileGroupName) {
+      const targetGroup = sortedFileGroups.find((group) => group.name === searchNavigation.matchLocation?.fileGroupName);
+      if (targetGroup) {
+        activeGroupIndex = change.fileGroups.indexOf(targetGroup);
+
+        if (searchNavigation.matchLocation.fileName) {
+          const targetFileIndex = targetGroup.files.findIndex(
+            (file) => file.name === searchNavigation.matchLocation?.fileName,
+          );
+          activeFileIndex = targetFileIndex >= 0 ? targetFileIndex : 0;
+        } else {
+          activeFileIndex = 0;
+        }
+      }
+    }
+
+    if (!highlightQuery) {
+      return;
+    }
+
+    void tick().then(() => {
+      const firstHighlight = contentRef?.querySelector<HTMLElement>('mark.search-highlight');
+      firstHighlight?.scrollIntoView({ behavior: 'auto', block: 'center' });
+    });
   });
 
 </script>
@@ -288,7 +427,14 @@
               : 'text-muted-foreground hover:bg-secondary/70 hover:text-foreground'}"
               onclick={() => (activeFileIndex = i)}
             >
-            {file.name}
+            <span class="inline-flex items-center gap-1.5">
+              <span>{file.name}</span>
+              {#if countQueryMatches(file.content, activeSearchQuery) > 0}
+                <Badge variant="warning" class="min-w-5 justify-center px-1.5 py-0 text-[10px] leading-5">
+                  {countQueryMatches(file.content, activeSearchQuery)}
+                </Badge>
+              {/if}
+            </span>
           </button>
         {/each}
       </div>
@@ -296,88 +442,94 @@
 
     <!-- Content area -->
     <SurfaceCard shadow="lg" class="p-6">
-      {#if isDeltasActive}
-        <!-- Spec Deltas -->
-        <div class="flex flex-col gap-3">
-          {#each change.specDeltas as delta, i}
-            <Collapsible.Root open={deltaOpenStates[i] ?? false} onOpenChange={(open) => (deltaOpenStates[i] = open)}>
-              <ContextMenu.Root onOpenChange={handleMenuOpenChange}>
-                <InteractiveCard tone="inset" radius="xl" class="h-full overflow-hidden text-left hover:translate-y-0 hover:shadow-sm hover:border-border/70">
-                  <Collapsible.Trigger class="flex w-full items-center justify-between gap-4 px-5 py-4 text-left">
-                    <h3 class="flex items-center gap-2 text-xl font-medium text-foreground">
-                      <TypeIndicator kind="spec" format="icon-box" size="md" />
-                      {delta.capability}
-                    </h3>
-                    <div class="flex shrink-0 items-center gap-2">
-                      <button
-                        type="button"
-                        class="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground border border-border/50"
-                        title={FIXED_LABELS.search.relatedChanges}
-                        onclick={(e: MouseEvent) => { e.stopPropagation(); searchStore.open(delta.capability); }}
-                      >
-                        <Search class="h-3.5 w-3.5" />
-                      </button>
-                      <span class="flex p-1.5 items-center justify-center rounded-md border border-border/50 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
-                        {#if deltaOpenStates[i] ?? false}
-                          <ChevronDown class="h-3.5 w-3.5" />
-                        {:else}
-                          <ChevronRight class="h-3.5 w-3.5" />
+      <div bind:this={contentRef}>
+        {#if isDeltasActive}
+          <!-- Spec Deltas -->
+          <div class="flex flex-col gap-3">
+            {#each change.specDeltas as delta, i}
+              <Collapsible.Root open={deltaOpenStates[i] ?? false} onOpenChange={(open) => (deltaOpenStates[i] = open)}>
+                <ContextMenu.Root onOpenChange={handleMenuOpenChange}>
+                  <InteractiveCard tone="inset" radius="xl" class="h-full overflow-hidden text-left hover:translate-y-0 hover:shadow-sm hover:border-border/70">
+                    <Collapsible.Trigger class="flex w-full items-center justify-between gap-4 px-5 py-4 text-left">
+                      <h3 class="flex items-center gap-2 text-xl font-medium text-foreground">
+                        <TypeIndicator kind="spec" format="icon-box" size="md" />
+                        {delta.capability}
+                        {#if (specDeltaHitCounts.get(delta.capability) ?? 0) > 0}
+                          <Badge variant="warning" class="min-w-5 justify-center px-1.5 py-0 text-[10px] leading-5">
+                            {specDeltaHitCounts.get(delta.capability)}
+                          </Badge>
                         {/if}
-                      </span>
-                    </div>
-                  </Collapsible.Trigger>
-                  <Collapsible.Content>
-                    <div class="border-t border-border/60 px-5 py-4">
-                      <MarkdownRenderer content={delta.content} highlightDiff={true} highlightQuery={highlightQuery} />
-                    </div>
-                  </Collapsible.Content>
-                </InteractiveCard>
-                <ContextMenu.Content>
-                  <ContextMenu.Item disabled={!hasSelection} onSelect={handleCopy}>
-                    <Clipboard class="h-4 w-4" />
-                    {t(m.common_copy)}
-                  </ContextMenu.Item>
-                  <ContextMenu.Item
-                    disabled={!hasSelection}
-                    onSelect={() =>
-                      handleQuoteCopy(
-                        getChangeViewerContextLabel({ deltaCapability: delta.capability }),
-                      )}
-                    }
-                  >
-                    <Quote class="h-4 w-4" />
-                    {t(m.common_quote_copy)}
-                  </ContextMenu.Item>
-                </ContextMenu.Content>
-              </ContextMenu.Root>
-            </Collapsible.Root>
-          {/each}
-        </div>
-      {:else if activeFile}
-        <ContextMenu.Root onOpenChange={handleMenuOpenChange}>
-          <div>
-            {#if activeFile.content}
-              <MarkdownRenderer content={activeFile.content} highlightQuery={highlightQuery} />
-            {/if}
+                      </h3>
+                      <div class="flex shrink-0 items-center gap-2">
+                        <button
+                          type="button"
+                          class="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground border border-border/50"
+                          title={FIXED_LABELS.search.relatedChanges}
+                          onclick={(e: MouseEvent) => { e.stopPropagation(); searchStore.open(delta.capability); }}
+                        >
+                          <Search class="h-3.5 w-3.5" />
+                        </button>
+                        <span class="flex p-1.5 items-center justify-center rounded-md border border-border/50 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
+                          {#if deltaOpenStates[i] ?? false}
+                            <ChevronDown class="h-3.5 w-3.5" />
+                          {:else}
+                            <ChevronRight class="h-3.5 w-3.5" />
+                          {/if}
+                        </span>
+                      </div>
+                    </Collapsible.Trigger>
+                    <Collapsible.Content>
+                      <div class="border-t border-border/60 px-5 py-4">
+                        <MarkdownRenderer content={delta.content} highlightDiff={true} highlightQuery={highlightQuery} />
+                      </div>
+                    </Collapsible.Content>
+                  </InteractiveCard>
+                  <ContextMenu.Content>
+                    <ContextMenu.Item disabled={!hasSelection} onSelect={handleCopy}>
+                      <Clipboard class="h-4 w-4" />
+                      {t(m.common_copy)}
+                    </ContextMenu.Item>
+                    <ContextMenu.Item
+                      disabled={!hasSelection}
+                      onSelect={() =>
+                        handleQuoteCopy(
+                          getChangeViewerContextLabel({ deltaCapability: delta.capability }),
+                        )}
+                    >
+                      <Quote class="h-4 w-4" />
+                      {t(m.common_quote_copy)}
+                    </ContextMenu.Item>
+                  </ContextMenu.Content>
+                </ContextMenu.Root>
+              </Collapsible.Root>
+            {/each}
           </div>
-          <ContextMenu.Content>
-            <ContextMenu.Item disabled={!hasSelection} onSelect={handleCopy}>
-              <Clipboard class="h-4 w-4" />
-              {t(m.common_copy)}
-            </ContextMenu.Item>
-            <ContextMenu.Item
-              disabled={!hasSelection}
-              onSelect={() =>
-                handleQuoteCopy(
-                  getChangeViewerContextLabel({ activeFileName: activeFile?.name }),
-                )}
-            >
-              <Quote class="h-4 w-4" />
-              {t(m.common_quote_copy)}
-            </ContextMenu.Item>
-          </ContextMenu.Content>
-        </ContextMenu.Root>
-      {/if}
+        {:else if activeFile}
+          <ContextMenu.Root onOpenChange={handleMenuOpenChange}>
+            <div>
+              {#if activeFile.content}
+                <MarkdownRenderer content={activeFile.content} highlightQuery={highlightQuery} />
+              {/if}
+            </div>
+            <ContextMenu.Content>
+              <ContextMenu.Item disabled={!hasSelection} onSelect={handleCopy}>
+                <Clipboard class="h-4 w-4" />
+                {t(m.common_copy)}
+              </ContextMenu.Item>
+              <ContextMenu.Item
+                disabled={!hasSelection}
+                onSelect={() =>
+                  handleQuoteCopy(
+                    getChangeViewerContextLabel({ activeFileName: activeFile?.name }),
+                  )}
+              >
+                <Quote class="h-4 w-4" />
+                {t(m.common_quote_copy)}
+              </ContextMenu.Item>
+            </ContextMenu.Content>
+          </ContextMenu.Root>
+        {/if}
+      </div>
     </SurfaceCard>
   {/if}
 </div>

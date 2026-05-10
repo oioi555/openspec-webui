@@ -132,3 +132,14 @@ test('activity bar no longer wires the bottom control to the project selector ov
   assert.match(source, /shouldToggleCurrentPreset/);
   assert.match(source, /FIXED_LABELS\.appName/);
 });
+
+test('ActivityBar shows a search highlight-state dot only while highlight mode is enabled for a valid query', async () => {
+  const source = await readFile(new URL('./ActivityBar.svelte', import.meta.url), 'utf8');
+
+  assert.match(source, /import \{ uiPreferencesStore \} from '\$lib\/state\/uiPreferences\.svelte\.ts';/);
+  assert.match(source, /let searchHighlightActive = \$derived/);
+  assert.match(source, /uiPreferencesStore\.searchHighlightsEnabled && searchStore\.query\.length >= 2/);
+  assert.match(source, /class=\{`relative flex h-10 w-10 items-center justify-center rounded-lg transition-colors \$\{buttonClass\('search'\)\}`\}/);
+  assert.match(source, /\{#if searchHighlightActive\}/);
+  assert.match(source, /absolute right-1 top-1 inline-flex size-2 rounded-full border border-warning-border bg-warning-bg/);
+});

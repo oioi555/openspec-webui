@@ -47,17 +47,117 @@ function createOpenSpecData(): OpenSpecData {
           archivedDate: null,
           proposal: '## Why\n\nThis change updates navigation behavior.',
           tasks: [],
-          tasksRaw: null,
+          tasksRaw: '- [ ] Follow the navigation plan.',
           taskProgress: {
             done: 0,
             total: 0,
             percentage: 0,
           },
-          design: null,
-          specDeltas: [],
+          design: '## Design\n\nScroll search hits into view from the design tab.',
+          specDeltas: [
+            {
+              capability: 'search',
+              content: '## MODIFIED Requirements\n\nThe delta search hit should expand automatically.',
+              operations: [],
+            },
+          ],
           lastModified: null,
-          files: [],
-          fileGroups: [],
+          files: [
+            {
+              name: 'proposal',
+              path: 'proposal.md',
+              absolutePath: '/workspace/demo/openspec/changes/active-search/proposal.md',
+              type: 'markdown',
+              folder: 'root',
+              content: '## Why\n\nThis change updates navigation behavior.',
+            },
+            {
+              name: 'tasks',
+              path: 'tasks.md',
+              absolutePath: '/workspace/demo/openspec/changes/active-search/tasks.md',
+              type: 'markdown',
+              folder: 'root',
+              content: '- [ ] Follow the navigation plan.',
+            },
+            {
+              name: 'design',
+              path: 'design.md',
+              absolutePath: '/workspace/demo/openspec/changes/active-search/design.md',
+              type: 'markdown',
+              folder: 'root',
+              content: '## Design\n\nScroll search hits into view from the design tab.',
+            },
+            {
+              name: 'notes',
+              path: 'notes/summary.md',
+              absolutePath: '/workspace/demo/openspec/changes/active-search/notes/summary.md',
+              type: 'markdown',
+              folder: 'notes',
+              content: '## Notes\n\nAuxiliary notes live here.',
+            },
+          ],
+          fileGroups: [
+            {
+              name: 'Proposal',
+              folder: '',
+              files: [
+                {
+                  name: 'proposal',
+                  path: 'proposal.md',
+                  absolutePath: '/workspace/demo/openspec/changes/active-search/proposal.md',
+                  type: 'markdown',
+                  folder: 'root',
+                  content: '## Why\n\nThis change updates navigation behavior.',
+                },
+              ],
+              isCore: true,
+            },
+            {
+              name: 'Tasks',
+              folder: '',
+              files: [
+                {
+                  name: 'tasks',
+                  path: 'tasks.md',
+                  absolutePath: '/workspace/demo/openspec/changes/active-search/tasks.md',
+                  type: 'markdown',
+                  folder: 'root',
+                  content: '- [ ] Follow the navigation plan.',
+                },
+              ],
+              isCore: true,
+            },
+            {
+              name: 'Design',
+              folder: '',
+              files: [
+                {
+                  name: 'design',
+                  path: 'design.md',
+                  absolutePath: '/workspace/demo/openspec/changes/active-search/design.md',
+                  type: 'markdown',
+                  folder: 'root',
+                  content: '## Design\n\nScroll search hits into view from the design tab.',
+                },
+              ],
+              isCore: true,
+            },
+            {
+              name: 'Notes',
+              folder: 'notes',
+              files: [
+                {
+                  name: 'notes',
+                  path: 'notes/summary.md',
+                  absolutePath: '/workspace/demo/openspec/changes/active-search/notes/summary.md',
+                  type: 'markdown',
+                  folder: 'notes',
+                  content: '## Notes\n\nAuxiliary notes live here.',
+                },
+              ],
+              isCore: false,
+            },
+          ],
         },
       ],
       archived: [],
@@ -103,6 +203,34 @@ test('searchOpenSpec returns a change for metadata path matches', () => {
       matchSource: 'path',
     },
   ]);
+});
+
+test('searchOpenSpec returns first-hit routing metadata for change design content matches', () => {
+  const results = searchOpenSpec(createOpenSpecData(), 'scroll search hits');
+
+  assert.equal(results.length, 1);
+  assert.equal(results[0]?.name, 'active-search');
+  assert.equal(results[0]?.matchSource, 'content');
+  assert.deepEqual(results[0]?.matchLocation, { fileGroupName: 'Design' });
+  assert.match(results[0]?.excerpt ?? '', /Scroll search hits into view from the design tab/);
+});
+
+test('searchOpenSpec returns first-hit routing metadata for change spec delta content matches', () => {
+  const results = searchOpenSpec(createOpenSpecData(), 'delta search hit');
+
+  assert.equal(results.length, 1);
+  assert.equal(results[0]?.name, 'active-search');
+  assert.equal(results[0]?.matchSource, 'content');
+  assert.deepEqual(results[0]?.matchLocation, { specDeltaCapability: 'search' });
+});
+
+test('searchOpenSpec preserves metadata-only change matches without body-hit routing metadata', () => {
+  const results = searchOpenSpec(createOpenSpecData(), 'notes/summary.md');
+
+  assert.equal(results.length, 1);
+  assert.equal(results[0]?.name, 'active-search');
+  assert.equal(results[0]?.matchSource, 'path');
+  assert.equal(results[0]?.matchLocation, undefined);
 });
 
 test('searchOpenSpec prefers content excerpts and does not duplicate metadata matches', () => {

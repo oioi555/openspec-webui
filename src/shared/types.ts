@@ -128,6 +128,12 @@ export interface Stats {
 
 export type SearchMatchSource = 'content' | 'name' | 'path';
 
+export interface SearchMatchLocation {
+  fileGroupName?: string;
+  fileName?: string;
+  specDeltaCapability?: string;
+}
+
 export interface SearchResult {
   type: 'spec' | 'change' | 'project';
   name: string;
@@ -135,6 +141,7 @@ export interface SearchResult {
   excerpt: string;
   matchLine: number;
   matchSource: SearchMatchSource;
+  matchLocation?: SearchMatchLocation;
 }
 
 // API Response Types

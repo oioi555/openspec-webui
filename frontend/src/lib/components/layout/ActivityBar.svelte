@@ -7,6 +7,7 @@
   import { layoutStore, type ActivityPreset } from '$lib/state/layout.svelte.ts';
   import { searchStore } from '$lib/state/search.svelte.ts';
   import { tabStore } from '$lib/state/tabs.svelte.ts';
+  import { uiPreferencesStore } from '$lib/state/uiPreferences.svelte.ts';
   import { validationStore } from '$lib/state/validation.svelte.ts';
   import { t } from '$lib/i18n';
   import * as m from '$lib/paraglide/messages.js';
@@ -175,6 +176,10 @@
         : FIXED_LABELS.activityBar.expandExplorer
       : FIXED_LABELS.appName
   );
+
+  let searchHighlightActive = $derived(
+    uiPreferencesStore.searchHighlightsEnabled && searchStore.query.length >= 2,
+  );
 </script>
 
 <aside class="relative z-60 flex h-full w-12 shrink-0 flex-col items-center border-r border-border bg-secondary/70 py-2">
@@ -218,11 +223,14 @@
     
     <Tooltip.Root>
       <Tooltip.Trigger
-        class={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${buttonClass('search')}`}
+        class={`relative flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${buttonClass('search')}`}
         aria-label={FIXED_LABELS.common.search}
         onclick={openSearch}
       >
         <Search class="h-5 w-5" />
+        {#if searchHighlightActive}
+          <span class="absolute right-1 top-1 inline-flex size-2 rounded-full border border-warning-border bg-warning-bg" aria-hidden="true"></span>
+        {/if}
       </Tooltip.Trigger>
       <Tooltip.Content side="right">{FIXED_LABELS.common.search}</Tooltip.Content>
     </Tooltip.Root>

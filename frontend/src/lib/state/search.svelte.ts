@@ -3,10 +3,15 @@ import { search as searchApi } from '$lib/api';
 import { searchQuery } from '$lib/state/appData.svelte.ts';
 import { layoutStore } from '$lib/state/layout.svelte.ts';
 import { tabStore } from '$lib/state/tabs.svelte.ts';
-import type { SearchResult } from '$lib/types/api';
+import type { SearchMatchLocation, SearchResult } from '$lib/types/api';
 import { createSearchController } from '$lib/components/layout/searchController';
 
 export const SEARCH_MIN_QUERY_LENGTH = 2;
+
+export interface SearchNavigationState {
+  requestKey: number;
+  matchLocation?: SearchMatchLocation;
+}
 
 const state = $state({
   results: [] as SearchResult[],
@@ -45,6 +50,35 @@ function pathForResult(result: SearchResult) {
   }
 
   return '/';
+}
+
+function tabIdForResult(result: SearchResult): string | null {
+  if (result.type === 'spec') {
+    return `spec:${result.name}`;
+  }
+
+  if (result.type === 'change') {
+    return `change:${result.name}`;
+  }
+
+  return null;
+}
+
+function searchNavigationForResult(result: SearchResult): SearchNavigationState | null {
+  if (result.type === 'spec' && result.matchSource === 'content') {
+    return {
+      requestKey: Date.now(),
+    };
+  }
+
+  if (result.type === 'change' && result.matchSource === 'content' && result.matchLocation) {
+    return {
+      requestKey: Date.now(),
+      matchLocation: result.matchLocation,
+    };
+  }
+
+  return null;
 }
 
 export const searchStore = {
@@ -92,6 +126,16 @@ export const searchStore = {
 
   openResult(result: SearchResult, options?: { confirmed?: boolean }) {
     const path = pathForResult(result);
+    const tabId = tabIdForResult(result);
+    const searchNavigation = searchNavigationForResult(result);
+
+    if (tabId && searchNavigation) {
+      const currentViewerState = tabStore.getViewerState<Record<string, unknown>>(tabId) ?? {};
+      tabStore.setViewerState(tabId, {
+        ...currentViewerState,
+        searchNavigation,
+      });
+    }
 
     if (options?.confirmed) {
       tabStore.openConfirmed(path);

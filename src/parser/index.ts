@@ -3,9 +3,11 @@ import type {
   Project,
   Spec,
   Change,
+  FileGroup,
   Stats,
   SearchResult,
   SearchMatchSource,
+  SearchMatchLocation,
   ParseResult,
 } from '../shared/types.js';
 import { parseProject } from './project.js';
@@ -27,12 +29,15 @@ interface SearchableDocument {
   name: string;
   path: string;
   content: string | null;
+  matchLocation?: SearchMatchLocation;
   metadata: Array<{
     source: Exclude<SearchMatchSource, 'content'>;
     searchValue: string;
     previewValue: string;
   }>;
 }
+
+const CHANGE_GROUP_ORDER = ['proposal', 'design', 'tasks', 'specs'];
 
 /**
  * Parse an entire OpenSpec directory
@@ -169,26 +174,7 @@ export function searchOpenSpec(data: OpenSpecData, query: string): SearchResult[
 
   const allChanges = [...data.changes.active, ...data.changes.archived];
   for (const change of allChanges) {
-    const relativeProposalPath = change.isArchived
-      ? `openspec/changes/archive/${change.name}/proposal.md`
-      : `openspec/changes/${change.name}/proposal.md`;
-
-    const changeResult = searchDocument(
-      {
-        type: 'change',
-        name: change.name,
-        path: change.path,
-        content: change.proposal,
-        metadata: [
-          {
-            source: 'path',
-            searchValue: [change.path, relativeProposalPath].join('\n'),
-            previewValue: relativeProposalPath,
-          },
-        ],
-      },
-      normalizedQuery
-    );
+    const changeResult = searchChange(change, normalizedQuery);
 
     if (changeResult) {
       results.push(changeResult);
@@ -209,6 +195,7 @@ function searchDocument(document: SearchableDocument, normalizedQuery: string): 
       excerpt: getExcerpt(content, normalizedQuery),
       matchLine: findMatchLine(content, normalizedQuery),
       matchSource: 'content',
+      matchLocation: document.matchLocation,
     };
   }
 
@@ -239,6 +226,139 @@ function searchDocument(document: SearchableDocument, normalizedQuery: string): 
     matchLine: 0,
     matchSource: metadataMatch.source,
   };
+}
+
+function searchChange(change: Change, normalizedQuery: string): SearchResult | null {
+  const relativeChangePath = change.isArchived
+    ? `openspec/changes/archive/${change.name}`
+    : `openspec/changes/${change.name}`;
+
+  const sortedFileGroups = [...change.fileGroups].sort((a, b) => compareChangeGroupOrder(a, b));
+  const metadataCandidates: SearchableDocument['metadata'] = [
+    {
+      source: 'path',
+      searchValue: [change.path, relativeChangePath].join('\n'),
+      previewValue: relativeChangePath,
+    },
+  ];
+
+  for (const group of sortedFileGroups) {
+    for (const file of group.files) {
+      const contentResult = searchDocument(
+        {
+          type: 'change',
+          name: change.name,
+          path: change.path,
+          content: file.content ?? null,
+          matchLocation: group.files.length > 1
+            ? { fileGroupName: group.name, fileName: file.name }
+            : { fileGroupName: group.name },
+          metadata: [],
+        },
+        normalizedQuery,
+      );
+
+      if (contentResult) {
+        return contentResult;
+      }
+
+      metadataCandidates.push(
+        {
+          source: 'name',
+          searchValue: file.name,
+          previewValue: file.name,
+        },
+        {
+          source: 'path',
+          searchValue: [file.path, `${relativeChangePath}/${file.path}`].join('\n'),
+          previewValue: `${relativeChangePath}/${file.path}`,
+        },
+      );
+    }
+  }
+
+  for (const delta of change.specDeltas) {
+    const relativeSpecDeltaPath = `${relativeChangePath}/specs/${delta.capability}/spec.md`;
+    const contentResult = searchDocument(
+      {
+        type: 'change',
+        name: change.name,
+        path: change.path,
+        content: delta.content,
+        matchLocation: {
+          specDeltaCapability: delta.capability,
+        },
+        metadata: [],
+      },
+      normalizedQuery,
+    );
+
+    if (contentResult) {
+      return contentResult;
+    }
+
+    metadataCandidates.push(
+      {
+        source: 'name',
+        searchValue: delta.capability,
+        previewValue: delta.capability,
+      },
+      {
+        source: 'path',
+        searchValue: relativeSpecDeltaPath,
+        previewValue: relativeSpecDeltaPath,
+      },
+    );
+  }
+
+  if (normalizeSearchText(change.name).includes(normalizedQuery)) {
+    return {
+      type: 'change',
+      name: change.name,
+      path: change.path,
+      excerpt: change.name,
+      matchLine: 0,
+      matchSource: 'name',
+    };
+  }
+
+  const metadataMatch = metadataCandidates.find((candidate) =>
+    normalizeSearchText(candidate.searchValue).includes(normalizedQuery),
+  );
+
+  if (!metadataMatch) {
+    return null;
+  }
+
+  return {
+    type: 'change',
+    name: change.name,
+    path: change.path,
+    excerpt: metadataMatch.previewValue,
+    matchLine: 0,
+    matchSource: metadataMatch.source,
+  };
+}
+
+function compareChangeGroupOrder(a: FileGroup, b: FileGroup): number {
+  const orderDiff = changeGroupSortIndex(a.name) - changeGroupSortIndex(b.name);
+  if (orderDiff !== 0) {
+    return orderDiff;
+  }
+
+  return a.name.localeCompare(b.name);
+}
+
+function changeGroupSortIndex(name: string): number {
+  const lower = name.toLowerCase();
+
+  for (let index = 0; index < CHANGE_GROUP_ORDER.length; index += 1) {
+    if (lower.includes(CHANGE_GROUP_ORDER[index])) {
+      return index;
+    }
+  }
+
+  return CHANGE_GROUP_ORDER.length;
 }
 
 function normalizeSearchText(value: string): string {

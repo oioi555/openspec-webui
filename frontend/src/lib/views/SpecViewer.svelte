@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tick } from 'svelte';
   import { Calendar, Search, Clipboard, Quote } from '@lucide/svelte';
   import { ErrorBanner } from '$lib/components/shared/error-banner';
   import { TypeIndicator } from '$lib/components/shared/type-indicator';
@@ -17,7 +18,9 @@
     getSpecViewerContextLabel,
   } from '$lib/contextCopy';
   import { specsRefreshTrigger } from '$lib/state/appData.svelte.ts';
+  import type { SearchNavigationState } from '$lib/state/search.svelte.ts';
   import { searchStore, SEARCH_MIN_QUERY_LENGTH } from '$lib/state/search.svelte.ts';
+  import { tabStore } from '$lib/state/tabs.svelte.ts';
   import { uiPreferencesStore } from '$lib/state/uiPreferences.svelte.ts';
   import type { Spec } from '$lib/types/api';
   import MarkdownRenderer from '$lib/components/shared/MarkdownRenderer.svelte';
@@ -36,11 +39,17 @@
   let previousSpecName: string | null = null;
   let previousRefreshTrigger = -1;
   let hasSelection = $state(false);
+  let contentRef = $state<HTMLDivElement | null>(null);
+  let tabId = $derived(`spec:${specName}`);
   let highlightQuery = $derived(
     uiPreferencesStore.searchHighlightsEnabled && searchStore.query.length >= SEARCH_MIN_QUERY_LENGTH
       ? searchStore.query
       : undefined,
   );
+
+  interface SpecViewerState {
+    searchNavigation?: SearchNavigationState;
+  }
 
   async function copyToClipboard(text: string, label: string) {
     try {
@@ -116,6 +125,36 @@
 
     void loadSpec(preserveState);
   });
+
+  $effect(() => {
+    if (!spec || loading) {
+      return;
+    }
+
+    const viewerState = tabStore.getViewerState<SpecViewerState>(tabId);
+    const searchNavigation = viewerState?.searchNavigation;
+    if (!searchNavigation?.requestKey) {
+      return;
+    }
+
+    if (viewerState) {
+      const { searchNavigation: _ignored, ...rest } = viewerState;
+      if (Object.keys(rest).length > 0) {
+        tabStore.setViewerState(tabId, rest);
+      } else {
+        tabStore.clearViewerState(tabId);
+      }
+    }
+
+    if (!highlightQuery) {
+      return;
+    }
+
+    void tick().then(() => {
+      const firstHighlight = contentRef?.querySelector<HTMLElement>('mark.search-highlight');
+      firstHighlight?.scrollIntoView({ behavior: 'auto', block: 'center' });
+    });
+  });
 </script>
 
 <div class="space-y-6">
@@ -159,7 +198,9 @@
     <!-- Content -->
     <ContextMenu.Root onOpenChange={handleMenuOpenChange}>
       <SurfaceCard shadow="lg" class="p-6">
-        <MarkdownRenderer content={spec.specContent} highlightQuery={highlightQuery} />
+        <div bind:this={contentRef}>
+          <MarkdownRenderer content={spec.specContent} highlightQuery={highlightQuery} />
+        </div>
       </SurfaceCard>
       <ContextMenu.Content>
         <ContextMenu.Item disabled={!hasSelection} onSelect={handleCopy}>

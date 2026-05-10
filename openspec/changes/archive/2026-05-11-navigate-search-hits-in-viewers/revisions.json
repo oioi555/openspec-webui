@@ -1,0 +1,23 @@
+{
+  "changeId": "navigate-search-hits-in-viewers",
+  "revisions": [
+    {
+      "id": "rev-650fd8e0",
+      "description": "Added ActivityBar search highlight-state indicator and clarified that hit indicators only render while highlight mode is enabled",
+      "reason": "User requested a persistent search-button state cue and found existing hit indicators stayed visible after turning the highlight toggle off",
+      "author": "AI",
+      "createdAt": "2026-05-10T16:25:31.513Z",
+      "metadata": {
+        "type": "behavior",
+        "updateTarget": [
+          "design",
+          "delta-specs"
+        ],
+        "source": {
+          "file": "frontend/src/lib/components/layout/ActivityBar.svelte",
+          "function": "openSearch"
+        }
+      }
+    }
+  ]
+}

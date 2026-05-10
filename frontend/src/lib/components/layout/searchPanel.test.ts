@@ -47,6 +47,15 @@ test('search panel header exposes a persistent highlight toggle instead of a res
   assert.match(messages, /"search_highlight_matches"/);
 });
 
+test('search panel keeps the input placeholder simple and moves highlight guidance into the empty-state body', async () => {
+  const source = await readFile(new URL('../shared/explorer-section/search-explorer-section.svelte', import.meta.url), 'utf8');
+  const messages = await readFile(new URL('../../../../messages/en.json', import.meta.url), 'utf8');
+
+  assert.match(source, /placeholder=\{t\(m\.search_placeholder\)\}/);
+  assert.match(source, /\{:else if searchStore\.query\.length < 2\}[\s\S]*\{t\(m\.search_start_typing\)\}[\s\S]*\{t\(m\.search_highlight_matches\)\}/);
+  assert.match(messages, /"search_placeholder": "Search workspace\.\.\."/);
+});
+
 test('search panel preserves clear control, result navigation, and change-kind semantics', async () => {
   const source = await readFile(new URL('../shared/explorer-section/search-explorer-section.svelte', import.meta.url), 'utf8');
 
@@ -58,4 +67,14 @@ test('search panel preserves clear control, result navigation, and change-kind s
   assert.match(source, /activeChanges\.value\.some\(\(change\) => change\.name === result\.name\)/);
   assert.match(source, /active=\{tabStore\.activeTab\?\.path === resultPath\}/);
   assert.match(source, /<ScrollArea\.Root class="min-h-0 flex-1" viewportClass="h-full">/);
+});
+
+test('search store writes one-shot viewer-state navigation hints for content hits only', async () => {
+  const source = await readFile(new URL('../../state/search.svelte.ts', import.meta.url), 'utf8');
+
+  assert.match(source, /export interface SearchNavigationState/);
+  assert.match(source, /result\.type === 'spec' && result\.matchSource === 'content'/);
+  assert.match(source, /result\.type === 'change' && result\.matchSource === 'content' && result\.matchLocation/);
+  assert.match(source, /const searchNavigation = searchNavigationForResult\(result\);/);
+  assert.match(source, /tabStore\.setViewerState\(tabId, \{[\s\S]*searchNavigation,[\s\S]*\}\)/);
 });
