@@ -69,6 +69,23 @@ test('search panel preserves clear control, result navigation, and change-kind s
   assert.match(source, /<ScrollArea\.Root class="min-h-0 flex-1" viewportClass="h-full">/);
 });
 
+test('search panel applies trailing validation icons only for resolved active changes and specs', async () => {
+  const source = await readFile(new URL('../shared/explorer-section/search-explorer-section.svelte', import.meta.url), 'utf8');
+
+  assert.match(source, /import \{ validationStore \} from '\$lib\/state\/validation\.svelte\.ts';/);
+  assert.match(source, /import \{ deriveValidationListIconState, deriveValidationTargetSummary \} from '\$lib\/state\/validationCore';/);
+  assert.match(source, /function validationStatusForResult\(result: SearchResult, entityKind: EntityKind\)/);
+  assert.match(source, /entityKind === 'spec'/);
+  assert.match(source, /entityKind === 'active-change'/);
+  assert.match(source, /if \(!activeChanges\.value\.some\(\(change\) => change\.name === result\.name\)\) \{/);
+  assert.match(source, /return null;/);
+  assert.match(source, /deriveValidationTargetSummary\(validationStore, \{ type: 'spec', name: result\.name \}\)\.state/);
+  assert.match(source, /deriveValidationTargetSummary\(validationStore, \{ type: 'change', name: result\.name \}\)\.state/);
+  assert.match(source, /return deriveValidationListIconState\(entityKind, 'unknown'\)/);
+  assert.match(source, /\{@const validationStatus = validationStatusForResult\(result, entityKind\)\}/);
+  assert.match(source, /<ExplorerListItemButton[\s\S]*\{validationStatus\}/);
+});
+
 test('search store writes one-shot viewer-state navigation hints for content hits only', async () => {
   const source = await readFile(new URL('../../state/search.svelte.ts', import.meta.url), 'utf8');
 

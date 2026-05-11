@@ -7,6 +7,7 @@
   import { searchStore } from '$lib/state/search.svelte.ts';
   import { tabStore } from '$lib/state/tabs.svelte.ts';
   import { uiPreferencesStore } from '$lib/state/uiPreferences.svelte.ts';
+  import type { ValidationStatusKind } from '$lib/visualSemantics';
   import ExplorerListItemButton from './explorer-list-item-button.svelte';
 
   interface Props {
@@ -21,6 +22,7 @@
     taskProgress?: { done: number; total: number; percentage: number } | null;
     showProgress?: boolean;
     displayName?: string;
+    validationStatus?: ValidationStatusKind | null;
     children?: Snippet;
   }
 
@@ -36,6 +38,7 @@
     taskProgress,
     showProgress = false,
     displayName,
+    validationStatus = null,
     children,
   }: Props = $props();
 
@@ -83,6 +86,7 @@
   {kind}
   {name}
   {displayName}
+  {validationStatus}
   active={isActive}
   class={className}
   onclick={handleClick}

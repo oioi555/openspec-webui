@@ -8,6 +8,8 @@
   import { searchStore } from '$lib/state/search.svelte.ts';
   import { tabStore } from '$lib/state/tabs.svelte.ts';
   import { uiPreferencesStore } from '$lib/state/uiPreferences.svelte.ts';
+  import { validationStore } from '$lib/state/validation.svelte.ts';
+  import { deriveValidationListIconState, deriveValidationTargetSummary } from '$lib/state/validationCore';
   import type { SearchResult } from '$lib/types/api';
   import { FIXED_LABELS } from '$lib/uiText';
   import type { MenuItem } from '$lib/components/shared/item-context-menu';
@@ -95,6 +97,28 @@
   function toggleViewerHighlights() {
     uiPreferencesStore.setSearchHighlightsEnabled(!uiPreferencesStore.searchHighlightsEnabled);
   }
+
+  function validationStatusForResult(result: SearchResult, entityKind: EntityKind) {
+    if (entityKind === 'spec') {
+      return deriveValidationListIconState(
+        entityKind,
+        deriveValidationTargetSummary(validationStore, { type: 'spec', name: result.name }).state,
+      );
+    }
+
+    if (entityKind === 'active-change') {
+      if (!activeChanges.value.some((change) => change.name === result.name)) {
+        return null;
+      }
+
+      return deriveValidationListIconState(
+        entityKind,
+        deriveValidationTargetSummary(validationStore, { type: 'change', name: result.name }).state,
+      );
+    }
+
+    return deriveValidationListIconState(entityKind, 'unknown');
+  }
 </script>
 
 <div class="flex min-h-0 flex-1 flex-col">
@@ -160,12 +184,14 @@
         {#each searchStore.results as result}
           {@const resultPath = searchStore.pathForResult(result)}
           {@const entityKind = entityKindForResult(result)}
+          {@const validationStatus = validationStatusForResult(result, entityKind)}
           {@const previewText = previewTextForResult(result)}
           <ExplorerListItemButton
             items={menuItemsForResult(result)}
             kind={entityKind}
             name={result.name}
             active={tabStore.activeTab?.path === resultPath}
+            {validationStatus}
             // class={entityKind === "archived-change" ? "bg-muted/20" : ""}
             onclick={(event) => handleResultClick(event, result)}
           >

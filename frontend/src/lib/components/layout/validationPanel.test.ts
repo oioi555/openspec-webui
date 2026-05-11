@@ -245,3 +245,48 @@ test('ChangeViewer places validation status between metadata and tabs for the cu
   assert.match(underlineTabsSource, /hitIndicator\?: boolean/);
   assert.match(underlineTabsSource, /<Highlighter class="h-3 w-3" \/>/);
 });
+
+test('Explorer row plumbing supports optional trailing validation icons without changing archive rows', async () => {
+  const listItemButtonSource = await readFile(new URL('../shared/explorer-section/explorer-list-item-button.svelte', import.meta.url), 'utf8');
+  const explorerItemSource = await readFile(new URL('../shared/explorer-section/explorer-section-item.svelte', import.meta.url), 'utf8');
+  const activeChangesSource = await readFile(new URL('../shared/explorer-section/active-changes-explorer-section.svelte', import.meta.url), 'utf8');
+  const archiveSource = await readFile(new URL('../shared/explorer-section/archive-explorer-section.svelte', import.meta.url), 'utf8');
+  const specsSource = await readFile(new URL('../shared/explorer-section/specs-explorer-section.svelte', import.meta.url), 'utf8');
+
+  assert.match(listItemButtonSource, /import \{ StatusIndicator \} from "\$lib\/components\/shared\/status-indicator";/);
+  assert.match(listItemButtonSource, /validationStatus\?: ValidationStatusKind \| null;/);
+  assert.match(listItemButtonSource, /\{#if validationStatus\}/);
+  assert.match(listItemButtonSource, /<StatusIndicator state=\{validationStatus\} format="minimal" showLabel=\{false\}/);
+
+  assert.match(explorerItemSource, /validationStatus\?: ValidationStatusKind \| null;/);
+  assert.match(explorerItemSource, /validationStatus = null/);
+  assert.match(explorerItemSource, /\{validationStatus\}/);
+
+  assert.match(activeChangesSource, /import \{ validationStore \} from '\$lib\/state\/validation\.svelte\.ts';/);
+  assert.match(activeChangesSource, /deriveValidationListIconState/);
+  assert.match(activeChangesSource, /deriveValidationTargetSummary\(validationStore, \{ type: 'change', name \}\)\.state/);
+  assert.match(activeChangesSource, /validationStatus=\{validationStatusForChange\(change\.name\)\}/);
+
+  assert.equal(archiveSource.includes('validationStatus='), false);
+
+  assert.match(specsSource, /import \{ validationStore \} from '\$lib\/state\/validation\.svelte\.ts';/);
+  assert.match(specsSource, /deriveValidationTargetSummary\(validationStore, \{ type: 'spec', name \}\)\.state/);
+  assert.match(specsSource, /validationStatus=\{validationStatusForSpec\(spec\.name\)\}/);
+});
+
+test('StatusIndicator minimal format is icon-only and colored for compact explorer rows', async () => {
+  const source = await readFile(new URL('../shared/status-indicator/status-indicator.svelte', import.meta.url), 'utf8');
+  const minimalBlock = source.match(/\{:else if format === 'minimal'\}([\s\S]*?)\{:else\}/)?.[1] ?? '';
+
+  assert.match(source, /const minimalIconClass = \$derived\.by\(\(\) => \{/);
+  assert.match(source, /case 'success':[\s\S]*return 'text-success'/);
+  assert.match(source, /case 'info':[\s\S]*return 'text-info'/);
+  assert.match(source, /case 'warning':[\s\S]*return 'text-warning'/);
+  assert.match(source, /case 'danger':[\s\S]*return 'text-danger'/);
+  assert.match(source, /\{:else if format === 'minimal'\}/);
+  assert.match(source, /class=\{cn\('inline-flex shrink-0 items-center', className\)\}/);
+  assert.match(source, /aria-label=\{displayLabel\}/);
+  assert.match(source, /<meta\.icon class=\{cn\(size === 'md' \? 'h-4 w-4' : 'h-3\.5 w-3\.5', 'shrink-0', minimalIconClass\)\} \/>/);
+  assert.match(source, /<span class="sr-only">\{displayLabel\}<\/span>/);
+  assert.equal(minimalBlock.includes('showLabel'), false);
+});

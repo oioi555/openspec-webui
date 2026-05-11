@@ -8,6 +8,7 @@ import {
   createValidationController,
   createValidationRequestTracker,
   deriveValidationDashboardSummary,
+  deriveValidationListIconState,
   deriveValidationItemStatus,
   deriveValidationTargetSummary,
   findValidationItemByTypeAndName,
@@ -613,4 +614,23 @@ test('validation target summary returns unknown when no result is available beca
       lastRunAt: null,
     },
   );
+});
+
+test('deriveValidationListIconState shows only the allowed row-level states per entity kind', () => {
+  assert.equal(deriveValidationListIconState('active-change', 'passed'), 'passed');
+  assert.equal(deriveValidationListIconState('active-change', 'failed'), 'failed');
+  assert.equal(deriveValidationListIconState('active-change', 'warning'), 'warning');
+  assert.equal(deriveValidationListIconState('active-change', 'info'), 'info');
+  assert.equal(deriveValidationListIconState('active-change', 'not-run'), null);
+  assert.equal(deriveValidationListIconState('active-change', 'stale'), null);
+  assert.equal(deriveValidationListIconState('active-change', 'unknown'), null);
+
+  assert.equal(deriveValidationListIconState('spec', 'failed'), 'failed');
+  assert.equal(deriveValidationListIconState('spec', 'warning'), 'warning');
+  assert.equal(deriveValidationListIconState('spec', 'info'), 'info');
+  assert.equal(deriveValidationListIconState('spec', 'passed'), null);
+
+  assert.equal(deriveValidationListIconState('archived-change', 'failed'), null);
+  assert.equal(deriveValidationListIconState('project', 'warning'), null);
+  assert.equal(deriveValidationListIconState('unknown', 'info'), null);
 });

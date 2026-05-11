@@ -38,6 +38,8 @@ export interface ValidationDashboardSummaryOptions {
 }
 
 export type ValidationTargetState = 'not-run' | 'passed' | 'info' | 'warning' | 'failed' | 'stale' | 'unknown';
+export type ValidationListIconState = Extract<ValidationTargetState, 'passed' | 'info' | 'warning' | 'failed'>;
+export type ValidationListIconKind = 'active-change' | 'archived-change' | 'spec' | 'project' | 'unknown';
 
 export interface ValidationTarget {
   type: ValidationItemType;
@@ -50,6 +52,40 @@ export interface ValidationTargetSummary {
   issueCount: number;
   issues: ValidationItem['issues'];
   lastRunAt: string | null;
+}
+
+export function deriveValidationListIconState(
+  kind: ValidationListIconKind,
+  state: ValidationTargetState,
+): ValidationListIconState | null {
+  if (kind === 'archived-change' || kind === 'project' || kind === 'unknown') {
+    return null;
+  }
+
+  if (kind === 'active-change') {
+    switch (state) {
+      case 'failed':
+      case 'warning':
+      case 'info':
+      case 'passed':
+        return state;
+      default:
+        return null;
+    }
+  }
+
+  if (kind === 'spec') {
+    switch (state) {
+      case 'failed':
+      case 'warning':
+      case 'info':
+        return state;
+      default:
+        return null;
+    }
+  }
+
+  return null;
 }
 
 export interface ValidationControllerDependencies {

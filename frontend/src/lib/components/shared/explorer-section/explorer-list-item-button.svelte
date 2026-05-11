@@ -1,9 +1,10 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import { ItemContextMenu, type MenuItem } from "$lib/components/shared/item-context-menu";
+  import { StatusIndicator } from "$lib/components/shared/status-indicator";
   import { TypeIndicator } from "$lib/components/shared/type-indicator";
   import { cn } from "$lib/utils";
-  import type { EntityKind } from "$lib/visualSemantics";
+  import type { EntityKind, ValidationStatusKind } from "$lib/visualSemantics";
 
   interface Props {
     items: MenuItem[];
@@ -12,6 +13,7 @@
     displayName?: string;
     active?: boolean;
     interactive?: boolean;
+    validationStatus?: ValidationStatusKind | null;
     class?: string;
     onclick?: (event: MouseEvent) => void;
     children?: Snippet;
@@ -24,6 +26,7 @@
     displayName,
     active = false,
     interactive = true,
+    validationStatus = null,
     class: className = "",
     onclick,
     children,
@@ -42,13 +45,16 @@
       active && "bg-primary/10 text-foreground",
     )}
     {onclick}
->
+  >
     <div class="flex w-full min-w-0 items-center gap-2">
       <TypeIndicator {kind} format="icon-box" size="sm" />
       <span
         class="min-w-0 flex-1 truncate text-sm font-medium text-foreground"
         title={name}>{displayName ?? name}</span
       >
+      {#if validationStatus}
+        <StatusIndicator state={validationStatus} format="minimal" showLabel={false} class="shrink-0" />
+      {/if}
     </div>
 
     {@render children?.()}

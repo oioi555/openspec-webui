@@ -2,6 +2,8 @@
   import { SquarePen } from '@lucide/svelte';
   import type { Snippet } from 'svelte';
   import type { ChangeSummary } from '$lib/types/api';
+  import { validationStore } from '$lib/state/validation.svelte.ts';
+  import { deriveValidationListIconState, deriveValidationTargetSummary } from '$lib/state/validationCore';
   import { formatDate } from '$lib/utils';
   import type { ExplorerSortMode } from './sort-utils';
   import { compareBySortMode } from './sort-utils';
@@ -29,6 +31,13 @@
   let sortedChanges = $derived.by(() => {
     return [...changes].sort(compareBySortMode<ChangeSummary>(sortMode));
   });
+
+  function validationStatusForChange(name: string) {
+    return deriveValidationListIconState(
+      'active-change',
+      deriveValidationTargetSummary(validationStore, { type: 'change', name }).state,
+    );
+  }
 </script>
 
 <ExplorerSection
@@ -51,6 +60,7 @@
       date={change.lastModified ? formatDate(change.lastModified) : null}
       specDeltaCount={change.specDeltaCount}
       taskProgress={change.taskProgress}
+      validationStatus={validationStatusForChange(change.name)}
       showProgress
     />
   {/each}

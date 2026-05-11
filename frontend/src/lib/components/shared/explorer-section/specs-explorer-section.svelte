@@ -2,6 +2,8 @@
   import { FileText } from '@lucide/svelte';
   import type { Snippet } from 'svelte';
   import type { SpecSummary } from '$lib/types/api';
+  import { validationStore } from '$lib/state/validation.svelte.ts';
+  import { deriveValidationListIconState, deriveValidationTargetSummary } from '$lib/state/validationCore';
   import { formatDate } from '$lib/utils';
   import type { ExplorerSortMode } from './sort-utils';
   import { timestampValue } from './sort-utils';
@@ -40,6 +42,13 @@
       return left.name.localeCompare(right.name);
     });
   });
+
+  function validationStatusForSpec(name: string) {
+    return deriveValidationListIconState(
+      'spec',
+      deriveValidationTargetSummary(validationStore, { type: 'spec', name }).state,
+    );
+  }
 </script>
 
 <ExplorerSection
@@ -60,6 +69,7 @@
       {onItemSelected}
       name={spec.name}
       date={spec.lastModified ? formatDate(spec.lastModified) : null}
+      validationStatus={validationStatusForSpec(spec.name)}
     />
   {/each}
 </ExplorerSection>

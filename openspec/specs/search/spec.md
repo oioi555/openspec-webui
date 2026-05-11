@@ -91,23 +91,26 @@ The system SHALL route search requests initiated from context menu actions and `
 - **AND** matching results appear in the Search panel
 
 ### Requirement: Search results distinguish archived changes
-The system SHALL distinguish archived change results from active change results when rendering mixed Search panel output. A change search result whose name corresponds to an archived change SHALL use archived-change visual semantics; a change search result whose name corresponds to an active change SHALL use active-change visual semantics. Search result selection and tab-opening behavior SHALL remain unchanged.
+The system SHALL distinguish archived change results from active change results when rendering mixed Search panel output. A change search result whose name corresponds to an archived change SHALL use archived-change visual semantics; a change search result whose name corresponds to an active change SHALL use active-change visual semantics. Search result rows SHALL also mirror the inline validation-icon rules of the resolved target kind: active change results show `failed`, `warning`, `info`, or `passed`; archived change results show no inline validation icon; spec results show only `failed`, `warning`, or `info`; other result kinds show no inline validation icon. Search result selection and tab-opening behavior SHALL remain unchanged.
 
-#### Scenario: Render active change search result
-- **WHEN** the Search panel displays a `change` result whose name belongs to an active change
+#### Scenario: Render active change search result with pass icon
+- **WHEN** the Search panel displays a `change` result whose name belongs to an active change and that change's latest validation target status is `passed`
 - **THEN** the result uses the shared active-change indicator semantics
-- **AND** selecting the result opens or focuses the change detail tab as before
+- **AND** it also shows the shared pass icon as a compact trailing validation indicator
 
-#### Scenario: Render archived change search result
+#### Scenario: Render spec search result with attention icon
+- **WHEN** the Search panel displays a `spec` result whose latest validation target status is `failed`, `warning`, or `info`
+- **THEN** the result shows the corresponding shared validation icon as a compact trailing validation indicator
+
+#### Scenario: Hide archived search validation icon
 - **WHEN** the Search panel displays a `change` result whose name belongs to an archived change
 - **THEN** the result uses the shared archived-change indicator semantics
-- **AND** the result is visually distinguishable from active change results before selection
-- **AND** selecting the result opens or focuses the change detail tab as before
+- **AND** it does not show a trailing validation icon
 
-#### Scenario: Preserve non-change result semantics
-- **WHEN** the Search panel displays a spec, project, or unknown result
-- **THEN** the result uses the corresponding shared entity visual semantics
-- **AND** search query, result preservation, context menu, and clear behavior remain unchanged
+#### Scenario: Hide non-target search validation icon
+- **WHEN** the Search panel displays a `project` or `unknown` result
+- **THEN** the result uses the corresponding shared entity semantics
+- **AND** it does not show a trailing validation icon
 
 ### Requirement: Search query can drive optional in-page viewer highlighting
 When the Search panel's viewer-highlight toggle is enabled and the current query is valid, the system SHALL use that query as the in-page highlight term for rendered markdown viewers opened in the Main Viewer. The system SHALL treat the query as one literal string, SHALL highlight exact string matches case-insensitively while preserving the original document text, and SHALL remove or suppress those highlights when the query becomes shorter than the Search minimum length or the toggle is disabled. Search results based on filenames, paths, or other metadata SHALL continue to appear in the Search panel, but SHALL NOT create in-page highlights unless the same query also appears in the markdown body.
