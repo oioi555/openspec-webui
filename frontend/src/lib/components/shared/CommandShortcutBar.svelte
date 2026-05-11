@@ -39,7 +39,10 @@
         label={getWorkflowCommandLabel(command)}
         icon={Clipboard}
         title={getCommandShortcutCopyTitle(text)}
-        onclick={() => copyCommand(command)}
+        onclick={(event) => {
+          event.stopPropagation();
+          void copyCommand(command);
+        }}
       />
     {/each}
   </div>

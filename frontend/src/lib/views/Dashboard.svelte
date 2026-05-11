@@ -342,7 +342,7 @@
   </div>
 
   <!-- Active Changes -->
-  <SurfaceCard shadow="lg">
+  <SurfaceCard shadow="sm">
     <SectionHeader>
       <div class="space-y-2">
         <div class="flex flex-wrap items-start justify-between gap-3">
@@ -380,7 +380,7 @@
               onOpenInNewTab: () => openActiveChange(change.name),
             })}
           >
-            <InteractiveCard tone="inset" class="overflow-hidden">
+            <InteractiveCard tone="inset" class="overflow-hidden p-0">
               <button
                 type="button"
                 class="group w-full px-4 py-3 text-left"
@@ -427,7 +427,18 @@
               </button>
 
               {#if changeCommands.length > 0}
-                <div class="border-t border-border/60 px-5 py-3">
+                <div
+                  class="cursor-pointer border-t border-border/60 px-5 py-3"
+                  role="button"
+                  tabindex="0"
+                  onclick={() => openActiveChange(change.name)}
+                  onkeydown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      openActiveChange(change.name);
+                    }
+                  }}
+                >
                   <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div class="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{FIXED_LABELS.common.nextStep}</div>
                     <div class="flex max-w-full sm:justify-end">
@@ -511,7 +522,7 @@
 
   <!-- Planning Context -->
   {#if planningContext}
-    <SurfaceCard id="project-documentation" shadow="lg">
+    <SurfaceCard id="project-documentation" shadow="sm">
       <SectionHeader>
         <div class="flex flex-wrap items-start justify-between gap-3">
           <h2 class="flex items-center gap-2 text-lg font-semibold text-foreground">

@@ -33,6 +33,7 @@ const testFiles = [
   'frontend/src/lib/components/layout/settingsTab.test.ts',
   'frontend/src/lib/components/layout/searchPanel.test.ts',
   'frontend/src/lib/components/layout/validationPanel.test.ts',
+  'frontend/src/lib/views/dashboard.test.ts',
   'scripts/dev-utils.test.mjs',
 ];
 
