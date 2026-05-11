@@ -235,6 +235,10 @@ export async function getVersionStatus(): Promise<VersionStatusResponse> {
   return fetchApi<VersionStatusResponse>('/version-status');
 }
 
+export async function refreshVersionStatus(): Promise<VersionStatusResponse> {
+  return fetchApi<VersionStatusResponse>('/version-status/refresh', { method: 'POST' });
+}
+
 export interface RunValidationOptions {
   strict: boolean;
   concurrency: number | null;

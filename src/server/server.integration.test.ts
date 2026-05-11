@@ -717,6 +717,57 @@ test('version status endpoint returns current, latest, and registered project gu
   }
 });
 
+test('POST /api/version-status/refresh triggers a server-side refresh and returns the updated snapshot', async () => {
+  const configHome = await createTempDir('openspec-webui-server-config-');
+  process.env.XDG_CONFIG_HOME = configHome;
+  const projectRoot = await createProjectFixture('refresh-project');
+  await installFakeOpenSpecCommand({
+    readyProjectRoots: new Set([projectRoot]),
+    version: '1.3.1',
+  });
+
+  let refreshCallCount = 0;
+  const versionSnapshotService = createVersionSnapshotService({
+    autoStart: false,
+    deps: {
+      getWebUiCurrentVersion: () => '0.1.0',
+      fetchLatestPackageVersion: async (packageName: string) => {
+        refreshCallCount += 1;
+        return packageName === 'openspec-webui' ? '0.2.0' : '1.4.0';
+      },
+      readOpenSpecVersion: async () => '1.3.1',
+      now: () => new Date('2026-04-30T00:00:00.000Z'),
+    },
+  });
+  await versionSnapshotService.refresh();
+
+  const runtime = await startServer({ versionSnapshotService });
+
+  try {
+    await apiJson(runtime.baseUrl, '/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: projectRoot }),
+    });
+
+    const before = await apiJson(runtime.baseUrl, '/api/version-status');
+    assert.equal(before.response.status, 200);
+    assert.equal(before.body.checkedAt, '2026-04-30T00:00:00.000Z');
+
+    const result = await apiJson(runtime.baseUrl, '/api/version-status/refresh', { method: 'POST' });
+    assert.equal(result.response.status, 200);
+    assert.equal(result.body.loading, false);
+    assert.equal(typeof result.body.checkedAt, 'string');
+    assert.equal(result.body.tools.webui.currentVersion, '0.1.0');
+    assert.equal(result.body.tools.webui.latestVersion, '0.2.0');
+    assert.equal(result.body.tools.openspec.currentVersion, '1.3.1');
+    assert.equal(result.body.tools.openspec.latestVersion, '1.4.0');
+    assert.equal(refreshCallCount, 4);
+  } finally {
+    await runtime.close();
+  }
+});
+
 test('server reports a helpful error when the port is already in use', async () => {
   const configHome = await createTempDir('openspec-webui-server-config-');
   const nonProjectRoot = await createTempDir('openspec-webui-port-check-cwd-');

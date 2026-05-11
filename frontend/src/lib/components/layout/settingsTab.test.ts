@@ -138,3 +138,49 @@ test('App.svelte keeps one-time app bootstrap untracked from locale-dependent tr
   assert.match(source, /await initializeData\(\)/);
   assert.match(source, /unsubscribe = setupWebSocket\(\)/);
 });
+
+test('SettingsView.svelte versions section header includes RefreshCw button and checkedAt timestamp', async () => {
+  const source = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
+
+  // RefreshCw icon is imported
+  assert.match(source, /import.*RefreshCw.*from '@lucide\/svelte'/);
+
+  assert.match(source, /versionStatusStore\.loading/);
+
+  // Versions section calls manualRefresh on click
+  assert.match(source, /versionStatusStore\.manualRefresh\(\)/);
+
+  // Refresh button has aria-label using i18n message
+  assert.match(source, /settings_versions_refresh_aria/);
+
+  // RefreshCw adds animate-spin class while loading
+  assert.match(source, /animate-spin/);
+  assert.match(source, /versionStatusStore\.loading \? 'animate-spin' : ''/);
+
+  // checkedAtLabel is derived from snapshot
+  assert.match(source, /checkedAtLabel/);
+  assert.match(source, /settings_versions_last_checked/);
+  assert.match(source, /settings_versions_never_checked/);
+
+  // checkedAt fallback when null (never_checked message shown)
+  assert.match(source, /checkedAt.*\?\?.*null/);
+});
+
+test('SettingsView.svelte disables the refresh button while version status loading is in-flight', async () => {
+  const source = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
+
+  // The refresh Button has disabled bound to versionStatusStore.loading
+  const versionsStart = source.indexOf('id="settings-versions"');
+  const versionsEnd = source.indexOf('</SurfaceCard>', versionsStart);
+  assert.ok(versionsStart > 0, 'versions section should exist');
+  assert.ok(versionsEnd > versionsStart, 'versions SurfaceCard should close');
+
+  const versionsBlock = source.slice(versionsStart, versionsEnd);
+
+  // Button is disabled while any version-status lookup is in-flight
+  assert.match(versionsBlock, /disabled=\{versionStatusStore\.loading\}/);
+
+  // RefreshCw icon is present with animate-spin while the lookup is in-flight
+  assert.match(versionsBlock, /<RefreshCw/);
+  assert.match(versionsBlock, /versionStatusStore\.loading \? 'animate-spin' : ''/);
+});

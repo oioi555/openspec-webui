@@ -57,3 +57,50 @@ test('version snapshot tolerates unavailable npm and OpenSpec CLI lookups', asyn
   assert.equal(snapshot.tools.openspec.notInstalled, true);
   assert.match(snapshot.tools.openspec.error ?? '', /not installed/i);
 });
+
+test('version snapshot deduplicates concurrent refresh requests', async () => {
+  let fetchCalls = 0;
+  let readCalls = 0;
+  let resolveWebUiLatest: ((value: string) => void) | null = null;
+
+  const pendingWebUiLatest = new Promise<string>((resolve) => {
+    resolveWebUiLatest = resolve;
+  });
+
+  const service = createVersionSnapshotService({
+    autoStart: false,
+    deps: {
+      getWebUiCurrentVersion: () => '0.1.0',
+      fetchLatestPackageVersion: async (packageName: string) => {
+        fetchCalls += 1;
+        if (packageName === 'openspec-webui') {
+          return pendingWebUiLatest;
+        }
+
+        return '1.4.0';
+      },
+      readOpenSpecVersion: async () => {
+        readCalls += 1;
+        return '1.3.1';
+      },
+      now: () => new Date('2026-04-29T00:00:00.000Z'),
+    },
+  });
+
+  const firstRefresh = service.refresh();
+  const secondRefresh = service.refresh();
+
+  assert.equal(fetchCalls, 2);
+  assert.equal(readCalls, 1);
+
+  const releaseWebUiLatest: (value: string) => void = resolveWebUiLatest ?? (() => {
+    throw new Error('webui latest-version resolver should be captured');
+  });
+  releaseWebUiLatest('0.2.0');
+
+  const [firstSnapshot, secondSnapshot] = await Promise.all([firstRefresh, secondRefresh]);
+
+  assert.deepEqual(firstSnapshot, secondSnapshot);
+  assert.equal(firstSnapshot.tools.webui.latestVersion, '0.2.0');
+  assert.equal(firstSnapshot.tools.openspec.latestVersion, '1.4.0');
+});

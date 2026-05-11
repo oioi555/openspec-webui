@@ -43,7 +43,7 @@ interface RegisterApiRoutesOptions {
     | 'removeProject'
     | 'setCommandAvailabilityCache'
   >;
-  versionSnapshotService: Pick<VersionSnapshotService, 'getSnapshot'>;
+  versionSnapshotService: Pick<VersionSnapshotService, 'getSnapshot' | 'refresh'>;
   onProjectRemoved?: (removedProjectId: string, nextProjectId: string | null) => Promise<void> | void;
 }
 
@@ -342,6 +342,7 @@ export async function registerApiRoutes(
   });
 
   fastify.get('/api/version-status', async () => versionSnapshotService.getSnapshot());
+  fastify.post('/api/version-status/refresh', async () => versionSnapshotService.refresh());
 
   // Search
   fastify.get<{ Querystring: { q: string } }>('/api/search', async (request, reply) => {

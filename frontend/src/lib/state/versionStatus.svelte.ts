@@ -1,6 +1,6 @@
 import { toast } from 'svelte-sonner';
 
-import { getApiErrorMessage, getVersionStatus, type VersionStatusResponse } from '$lib/api';
+import { getApiErrorMessage, getVersionStatus, refreshVersionStatus, type VersionStatusResponse } from '$lib/api';
 import { t } from '$lib/i18n';
 import * as m from '$lib/paraglide/messages.js';
 import { FIXED_LABELS } from '$lib/uiText';
@@ -65,6 +65,10 @@ export function createVersionStatusStore() {
   }
 
   async function refresh() {
+    if (loading) {
+      return;
+    }
+
     loading = true;
 
     try {
@@ -87,6 +91,27 @@ export function createVersionStatusStore() {
     }
   }
 
+  async function manualRefresh() {
+    if (loading) {
+      return;
+    }
+
+    clearRetryTimeout();
+    loading = true;
+
+    try {
+      const nextSnapshot = await refreshVersionStatus();
+      snapshot = nextSnapshot;
+      error = null;
+      notifyIfNeeded(nextSnapshot);
+    } catch (cause) {
+      clearRetryTimeout();
+      error = getApiErrorMessage(cause, t(m.error_failed_to_load_version_status));
+    } finally {
+      loading = false;
+    }
+  }
+
   return {
     get initialized() {
       return initialized;
@@ -95,7 +120,6 @@ export function createVersionStatusStore() {
     get loading() {
       return loading;
     },
-
     get snapshot() {
       return snapshot;
     },
@@ -119,6 +143,7 @@ export function createVersionStatusStore() {
     },
 
     refresh,
+    manualRefresh,
   };
 }
 

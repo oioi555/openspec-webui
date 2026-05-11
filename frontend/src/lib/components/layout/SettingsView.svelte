@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Command, Copy, ExternalLink, FlaskConical, Info, ListChecks, Monitor, Moon, Settings, Sparkles, Sun, Terminal, Wrench } from '@lucide/svelte';
+  import { Command, Copy, ExternalLink, FlaskConical, Info, ListChecks, Monitor, Moon, RefreshCw, Settings, Sparkles, Sun, Terminal, Wrench } from '@lucide/svelte';
   import { Callout } from '$lib/components/shared/callout';
   import { OptionCard } from '$lib/components/shared/option-card';
   import { InsetPanel, SectionHeader, SurfaceCard } from '$lib/components/shared/surface';
@@ -153,6 +153,12 @@
   let previewChangeCommand = $derived(buildCommand('apply', commandPreferencesStore.format, 'my-change'));
   let availabilityReady = $derived(commandPreferencesStore.availability.status === 'ready');
   let versionSnapshot = $derived(versionStatusStore.snapshot);
+
+  let checkedAtLabel = $derived.by(() => {
+    const iso = versionSnapshot?.checkedAt ?? null;
+    if (!iso) return t(m.settings_versions_never_checked);
+    return t(m.settings_versions_last_checked, { time: new Date(iso).toLocaleString() });
+  });
 
   function getLocaleHeadingLabel() {
     return FIXED_LABELS.settings.headings.language;
@@ -607,8 +613,25 @@
     <!-- versions section -->
     <SurfaceCard id="settings-versions" data-settings-section="versions">
       <SectionHeader>
-        <h2 class="text-lg font-semibold text-foreground">{FIXED_LABELS.settings.sections.versions}</h2>
-        <p class="mt-1 text-sm text-muted-foreground">{t(m.settings_versions_description)}</p>
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h2 class="text-lg font-semibold text-foreground">{FIXED_LABELS.settings.sections.versions}</h2>
+            <p class="mt-1 text-sm text-muted-foreground">{t(m.settings_versions_description)}</p>
+          </div>
+          <div class="flex shrink-0 items-center gap-2 pt-0.5">
+            <span class="text-xs text-muted-foreground">{checkedAtLabel}</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              class="size-8 text-muted-foreground hover:text-foreground"
+              disabled={versionStatusStore.loading}
+              aria-label={t(m.settings_versions_refresh_aria)}
+              onclick={() => versionStatusStore.manualRefresh()}
+            >
+              <RefreshCw class={`h-4 w-4 ${versionStatusStore.loading ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
+        </div>
       </SectionHeader>
 
       <div class="space-y-4 p-4">
