@@ -4,7 +4,7 @@
 Provide workspace search through the Activity Bar so operators can open matching content in the tabbed Main Viewer.
 ## Requirements
 ### Requirement: Provide debounced workspace search from Activity Bar
-The system SHALL expose a search interface accessible from the Activity Bar's Search icon. The search SHALL wait briefly before issuing a search request and SHALL suppress result queries until the operator has entered at least two characters. When the query becomes shorter than two characters, the system SHALL clear any previously displayed results. The system SHALL ignore stale debounced timers and asynchronous search responses whose query no longer matches the current input. Search results SHALL be displayed in a persistent Search panel in the Explorer Pane.
+The system SHALL expose a search interface accessible from the Activity Bar's Search icon. The search SHALL wait briefly before issuing a search request and SHALL suppress result queries until the operator has entered at least two characters. When the query becomes shorter than two characters, the system SHALL clear any previously displayed results. When the active project changes or is cleared, the system SHALL clear the visible search query and displayed results immediately. The system SHALL ignore stale debounced timers and asynchronous search responses whose query no longer matches the current input or whose work began under a previous active project. Search results SHALL be displayed in a persistent Search panel in the Explorer Pane.
 
 #### Scenario: Open search from Activity Bar
 - **WHEN** the operator clicks the Search icon in the Activity Bar
@@ -31,6 +31,16 @@ The system SHALL expose a search interface accessible from the Activity Bar's Se
 - **WHEN** the operator enters a valid query and then changes or shortens it before the older search response resolves
 - **THEN** only the latest matching query may update the visible search results
 - **AND** any older response is ignored
+
+#### Scenario: Clear search state on project switch
+- **WHEN** the operator switches to a different active project while the Search panel still has a query or visible results
+- **THEN** the system clears the search input and visible Search results during project-scoped reinitialization
+- **AND** the Search panel does not preserve results from the previous project
+
+#### Scenario: Ignore stale search work after a project switch
+- **WHEN** a Search timer or request created under project A is still pending when the operator switches to project B
+- **THEN** any timer or async response associated with project A is ignored
+- **AND** the Search panel in project B remains empty until the operator enters a new valid query
 
 ### Requirement: Search the supported content sources only
 The system SHALL search project markdown, spec markdown, and change proposal markdown, and SHALL also match each supported search source's document name and path/file identifier. The system SHALL return each hit with a result type, result name, and excerpt. When a query matches source metadata without matching markdown body content, the system SHALL still return that document once and SHALL provide result preview data that explains the metadata match.

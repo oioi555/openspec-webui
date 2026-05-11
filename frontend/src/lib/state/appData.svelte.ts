@@ -19,6 +19,7 @@ import { layoutStore } from './layout.svelte.ts';
 import { projectStore } from './projects.svelte.ts';
 import { shouldRestoreProjectBinding } from './projectsCore';
 import { handleProjectBoundMessage, handleProjectContextMessage } from './projectSync';
+import { resetSearchProjectScopedState } from './search.svelte.ts';
 import { tabStore } from './tabs.svelte.ts';
 import { validationStore } from './validation.svelte.ts';
 
@@ -41,7 +42,6 @@ const state = $state({
   specs: [] as SpecSummary[],
   activeChanges: [] as ChangeSummary[],
   archivedChanges: [] as ChangeSummary[],
-  searchQuery: '',
   specsRefreshTrigger: 0,
   changesRefreshTrigger: 0,
   ignoreRefreshUntilBound: false,
@@ -104,13 +104,6 @@ export const currentRoute = createBox(
   }
 );
 
-export const searchQuery = createBox(
-  () => state.searchQuery,
-  (value) => {
-    state.searchQuery = value;
-  }
-);
-
 export const specsRefreshTrigger = createBox(
   () => state.specsRefreshTrigger,
   (value) => {
@@ -134,7 +127,7 @@ function clearLoadedWorkspaceState() {
 }
 
 export function clearProjectScopedSearchState() {
-  state.searchQuery = '';
+  resetSearchProjectScopedState();
 }
 
 function applyNoActiveProjectState() {

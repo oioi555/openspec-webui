@@ -15,6 +15,7 @@ const testFiles = [
   'frontend/src/lib/state/theme.test.ts',
   'frontend/src/lib/state/uiPreferences.test.ts',
   'frontend/src/lib/state/projectSync.test.ts',
+  'frontend/src/lib/state/searchCore.test.ts',
   'frontend/src/lib/state/validationCore.test.ts',
   'frontend/src/lib/state/projectsCore.test.ts',
   'frontend/src/lib/state/commandPreferencesCore.test.ts',

@@ -78,3 +78,13 @@ test('search store writes one-shot viewer-state navigation hints for content hit
   assert.match(source, /const searchNavigation = searchNavigationForResult\(result\);/);
   assert.match(source, /tabStore\.setViewerState\(tabId, \{[\s\S]*searchNavigation,[\s\S]*\}\)/);
 });
+
+test('app data delegates project-scoped search reset to the search store reset hook', async () => {
+  const appDataSource = await readFile(new URL('../../state/appData.svelte.ts', import.meta.url), 'utf8');
+  const searchSource = await readFile(new URL('../../state/search.svelte.ts', import.meta.url), 'utf8');
+
+  assert.match(appDataSource, /import \{ resetSearchProjectScopedState \} from '\.\/search\.svelte\.ts';/);
+  assert.match(appDataSource, /export function clearProjectScopedSearchState\(\) \{\s*resetSearchProjectScopedState\(\);\s*\}/);
+  assert.match(searchSource, /resetProjectScopedState\(\) \{\s*controller\.resetProjectScopedState\(\);\s*\}/);
+  assert.match(searchSource, /export function resetSearchProjectScopedState\(\) \{\s*searchStore\.resetProjectScopedState\(\);\s*\}/);
+});

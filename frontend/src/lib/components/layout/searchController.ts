@@ -1,6 +1,12 @@
 import type { SearchResult } from '../../types/api';
 
-type SearchFunction = (query: string) => Promise<SearchResult[]>;
+export interface SearchRequestContext {
+  token: number;
+  query: string;
+  isCurrent: () => boolean;
+}
+
+type SearchFunction = (query: string, request?: SearchRequestContext) => Promise<SearchResult[]>;
 type UpdateResults = (results: SearchResult[]) => void;
 type Scheduler = (callback: () => void, delay: number) => unknown;
 type CancelScheduler = (handle: unknown) => void;
@@ -46,9 +52,15 @@ export function createSearchController({
       return;
     }
 
-    const results = await search(query);
+    const request: SearchRequestContext = {
+      token,
+      query,
+      isCurrent: () => token === currentToken && query === currentQuery,
+    };
 
-    if (token !== currentToken || query !== currentQuery) {
+    const results = await search(query, request);
+
+    if (!request.isCurrent()) {
       return;
     }
 

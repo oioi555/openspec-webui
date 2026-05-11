@@ -1,10 +1,10 @@
 import { tick } from 'svelte';
 import { search as searchApi } from '$lib/api';
-import { searchQuery } from '$lib/state/appData.svelte.ts';
 import { layoutStore } from '$lib/state/layout.svelte.ts';
 import { tabStore } from '$lib/state/tabs.svelte.ts';
 import type { SearchMatchLocation, SearchResult } from '$lib/types/api';
-import { createSearchController } from '$lib/components/layout/searchController';
+
+import { createDefaultSearchState, createSearchStateController } from './searchCore';
 
 export const SEARCH_MIN_QUERY_LENGTH = 2;
 
@@ -14,24 +14,13 @@ export interface SearchNavigationState {
 }
 
 const state = $state({
-  results: [] as SearchResult[],
-  loading: false,
+  ...createDefaultSearchState(),
   focusRequest: 0,
 });
 
-const controller = createSearchController({
-  search: async (query) => {
-    state.loading = true;
-
-    try {
-      return await searchApi(query);
-    } finally {
-      state.loading = false;
-    }
-  },
-  updateResults: (results) => {
-    state.results = results;
-  },
+const controller = createSearchStateController({
+  state,
+  search: searchApi,
   minQueryLength: SEARCH_MIN_QUERY_LENGTH,
 });
 
@@ -83,7 +72,7 @@ function searchNavigationForResult(result: SearchResult): SearchNavigationState 
 
 export const searchStore = {
   get query() {
-    return searchQuery.value;
+    return state.query;
   },
 
   get results() {
@@ -102,7 +91,6 @@ export const searchStore = {
     focusExplorerSearch();
 
     if (query != null) {
-      searchQuery.value = query;
       void controller.searchImmediately(query);
     }
 
@@ -112,14 +100,15 @@ export const searchStore = {
   },
 
   setQuery(query: string) {
-    searchQuery.value = query;
     controller.handleQueryChange(query);
   },
 
   clear() {
-    searchQuery.value = '';
-    state.loading = false;
     controller.clear();
+  },
+
+  resetProjectScopedState() {
+    controller.resetProjectScopedState();
   },
 
   pathForResult,
@@ -145,3 +134,7 @@ export const searchStore = {
     tabStore.openPreview(path);
   },
 };
+
+export function resetSearchProjectScopedState() {
+  searchStore.resetProjectScopedState();
+}
