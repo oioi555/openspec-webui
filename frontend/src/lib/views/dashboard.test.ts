@@ -373,3 +373,127 @@ test('Dashboard active-change items derive validation status icon using deriveVa
     'validationStatus icon should render as minimal StatusIndicator when non-null',
   );
 });
+
+test('Dashboard active-change validation icon appears in title row after creation badges', async () => {
+  const source = await dashboardSource;
+  const eachBlock = source.match(
+    /\{#each sortedActiveChanges as change\}([\s\S]*?)\{\/each\}/,
+  );
+  assert.ok(eachBlock, 'Should find the sortedActiveChanges each block');
+  const loopBody = eachBlock[1];
+
+  const titleRow = loopBody.match(
+    /<div class="flex flex-wrap items-center gap-2">([\s\S]*?)\n\s*<\/div>\n\s*<div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground">/,
+  );
+  assert.ok(titleRow, 'Should find the active-change title/badge row');
+
+  assert.match(
+    titleRow[1],
+    /\{change\.name\}[\s\S]*FIXED_LABELS\.dashboard\.proposal[\s\S]*FIXED_LABELS\.common\.design[\s\S]*\{#if validationStatus\}[\s\S]*<StatusIndicator state=\{validationStatus\} format="minimal" showLabel=\{false\} class="shrink-0" \/>/,
+    'validation status should appear after change name, Proposal badge, and Design badge in the title row',
+  );
+});
+
+test('Dashboard active-change rows do not render trailing arrow icons', async () => {
+  const source = await dashboardSource;
+  const eachBlock = source.match(
+    /\{#each sortedActiveChanges as change\}([\s\S]*?)\{\/each\}/,
+  );
+  assert.ok(eachBlock, 'Should find the sortedActiveChanges each block');
+
+  assert.doesNotMatch(
+    eachBlock[1],
+    /<ArrowRight\b/,
+    'Active Changes rows should not render a trailing ArrowRight icon',
+  );
+});
+
+test('Dashboard active-change progress area is right-aligned after arrow removal', async () => {
+  const source = await dashboardSource;
+  const eachBlock = source.match(
+    /\{#each sortedActiveChanges as change\}([\s\S]*?)\{\/each\}/,
+  );
+  assert.ok(eachBlock, 'Should find the sortedActiveChanges each block');
+  const loopBody = eachBlock[1];
+
+  assert.match(
+    loopBody,
+    /<div class="flex min-w-45 shrink-0 items-center justify-end">\s*\n\s*<div class="w-36 min-w-0 shrink-0">/,
+    'Active Changes progress area should right-align the fixed-width progress bar without reserving arrow space',
+  );
+});
+
+test('Dashboard recent activity derives compact validation status for active changes and specs only', async () => {
+  const source = await dashboardSource;
+
+  assert.match(
+    source,
+    /function validationStatusForRecentActivity\(item: RecentActivityItem\)/,
+    'validationStatusForRecentActivity helper should exist',
+  );
+  assert.match(
+    source,
+    /if \(item\.kind === 'active-change'\)[\s\S]*deriveValidationListIconState\([\s\S]*'active-change'[\s\S]*deriveValidationTargetSummary\(validationStore, \{ type: 'change', name: item\.name \}\)\.state/,
+    'recent active changes should use active-change validation list semantics',
+  );
+  assert.match(
+    source,
+    /if \(item\.kind === 'spec'\)[\s\S]*deriveValidationListIconState\([\s\S]*'spec'[\s\S]*deriveValidationTargetSummary\(validationStore, \{ type: 'spec', name: item\.name \}\)\.state/,
+    'recent specs should use spec validation list semantics',
+  );
+  assert.match(
+    source,
+    /return null;/,
+    'recent archived changes and other non-targets should not produce validation status',
+  );
+});
+
+test('Dashboard recent activity rows render right-aligned status indicators instead of arrows', async () => {
+  const source = await dashboardSource;
+  const eachBlock = source.match(
+    /\{#each sortedRecentActivity as item\}([\s\S]*?)\{\/each\}/,
+  );
+  assert.ok(eachBlock, 'Should find the sortedRecentActivity each block');
+  const loopBody = eachBlock[1];
+
+  assert.match(
+    loopBody,
+    /\{@const validationStatus = validationStatusForRecentActivity\(item\)\}/,
+    'recent activity loop should derive a compact validation status per item',
+  );
+  assert.match(
+    loopBody,
+    /\{#if validationStatus\}\s*\n\s*<StatusIndicator state=\{validationStatus\} format="minimal" showLabel=\{false\} class="ml-auto shrink-0" \/>/,
+    'recent activity should right-align compact status where the trailing arrow used to be',
+  );
+  assert.doesNotMatch(
+    loopBody,
+    /<ArrowRight\b/,
+    'Recent Activity rows should not render a trailing ArrowRight icon',
+  );
+});
+
+test('Dashboard recent activity rows remain clickable and expose context-menu open actions without arrows', async () => {
+  const source = await dashboardSource;
+  const eachBlock = source.match(
+    /\{#each sortedRecentActivity as item\}([\s\S]*?)\{\/each\}/,
+  );
+  assert.ok(eachBlock, 'Should find the sortedRecentActivity each block');
+  const loopBody = eachBlock[1];
+
+  assert.match(
+    loopBody,
+    /onclick=\{item\.open\}/,
+    'Recent Activity row button should remain clickable',
+  );
+  assert.match(
+    loopBody,
+    /onOpenInNewTab: item\.open/,
+    'Recent Activity context menu should retain open-in-new-tab behavior',
+  );
+  assert.doesNotMatch(
+    loopBody,
+    /<ArrowRight\b/,
+    'Recent Activity click affordance should not depend on a trailing arrow',
+  );
+});

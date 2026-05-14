@@ -1,6 +1,6 @@
 <script lang="ts">
   import { tick } from 'svelte';
-  import { ArrowRight, Bookmark, ChevronDown, ChevronRight, LayoutDashboard, Calendar, CircleCheckBig, FileText, FolderPen, History, SquarePen, FlaskConical } from '@lucide/svelte';
+  import { Bookmark, ChevronDown, ChevronRight, LayoutDashboard, Calendar, CircleCheckBig, FileText, FolderPen, History, SquarePen, FlaskConical } from '@lucide/svelte';
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
   import { Callout } from '$lib/components/shared/callout';
@@ -220,6 +220,24 @@
     );
   }
 
+  function validationStatusForRecentActivity(item: RecentActivityItem) {
+    if (item.kind === 'active-change') {
+      return deriveValidationListIconState(
+        'active-change',
+        deriveValidationTargetSummary(validationStore, { type: 'change', name: item.name }).state,
+      );
+    }
+
+    if (item.kind === 'spec') {
+      return deriveValidationListIconState(
+        'spec',
+        deriveValidationTargetSummary(validationStore, { type: 'spec', name: item.name }).state,
+      );
+    }
+
+    return null;
+  }
+
   let planningContext = $derived(project.value?.planningContext ?? null);
   let parsedPlanningContext = $derived.by(() =>
     isParsedPlanningContext(planningContext) ? planningContext : null
@@ -408,6 +426,9 @@
                         {#if change.hasDesign}
                           <Badge variant="outline">{FIXED_LABELS.common.design}</Badge>
                         {/if}
+                        {#if validationStatus}
+                          <StatusIndicator state={validationStatus} format="minimal" showLabel={false} class="shrink-0" />
+                        {/if}
                       </div>
                       <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground">
                         {#if changeUpdatedAt(change)}
@@ -422,20 +443,16 @@
                       </div>
                     </div>
 
-                    {#if validationStatus}
-                      <StatusIndicator state={validationStatus} format="minimal" showLabel={false} class="shrink-0" />
-                    {/if}
                   </div>
 
-                  <div class="flex min-w-45 shrink-0 items-center gap-3">
-                    <div class="min-w-0 flex-1 lg:w-36 lg:flex-none">
+                  <div class="flex min-w-45 shrink-0 items-center justify-end">
+                    <div class="w-36 min-w-0 shrink-0">
                       <div class="mb-1 flex items-center justify-between text-xs text-muted-foreground">
                         <span>{FIXED_LABELS.common.progress}</span>
                         <span>{change.taskProgress.percentage}%</span>
                       </div>
                       <Progress value={change.taskProgress.percentage} />
                     </div>
-                    <ArrowRight class="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
                   </div>
                 </div>
               </button>
@@ -484,6 +501,7 @@
       </SectionHeader>
       <div class="grid gap-2 p-4 sm:grid-cols-2 xl:grid-cols-3">
         {#each sortedRecentActivity as item}
+          {@const validationStatus = validationStatusForRecentActivity(item)}
           <ItemContextMenu
             items={createItemContextMenuItems(
               item.kind === 'spec'
@@ -525,7 +543,9 @@
                     {/if}
                   </div>
                 </div>
-                <ArrowRight class="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+                {#if validationStatus}
+                  <StatusIndicator state={validationStatus} format="minimal" showLabel={false} class="ml-auto shrink-0" />
+                {/if}
               </button>
             </InteractiveCard>
           </ItemContextMenu>
