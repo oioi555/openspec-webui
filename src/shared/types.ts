@@ -81,6 +81,14 @@ export interface ChangeFile {
   content?: string;          // Markdown content
 }
 
+export interface OtherFile {
+  name: string;              // Display name (filename with extension)
+  path: string;              // Relative path from change root
+  absolutePath: string;      // Full filesystem path
+  type: 'markdown' | 'json' | 'yaml' | 'text';
+  content: string;           // Raw text content
+}
+
 export interface FileGroup {
   name: string;              // Display name (e.g., "Core", "Mockups")
   folder: string;            // Folder path
@@ -103,6 +111,8 @@ export interface Change {
   // Generic files collection
   files: ChangeFile[];
   fileGroups: FileGroup[];
+  otherFiles: OtherFile[];
+  otherFileCount: number;
 }
 
 export interface SpecDelta {
@@ -132,6 +142,7 @@ export interface SearchMatchLocation {
   fileGroupName?: string;
   fileName?: string;
   specDeltaCapability?: string;
+  otherFilePath?: string;
 }
 
 export interface SearchResult {

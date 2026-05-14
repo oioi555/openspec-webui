@@ -71,6 +71,7 @@ function createChangeSummary(done: number, total: number): ChangeSummary {
     hasDesign: false,
     fileCount: 0,
     groupCount: 0,
+    otherFileCount: 0,
   };
 }
 

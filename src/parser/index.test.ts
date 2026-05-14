@@ -158,6 +158,16 @@ function createOpenSpecData(): OpenSpecData {
               isCore: false,
             },
           ],
+          otherFiles: [
+            {
+              name: 'revisions.json',
+              path: 'revisions.json',
+              absolutePath: '/workspace/demo/openspec/changes/active-search/revisions.json',
+              type: 'json',
+              content: '{"note":"Search in other files"}',
+            },
+          ],
+          otherFileCount: 1,
         },
       ],
       archived: [],
@@ -231,6 +241,15 @@ test('searchOpenSpec preserves metadata-only change matches without body-hit rou
   assert.equal(results[0]?.name, 'active-search');
   assert.equal(results[0]?.matchSource, 'path');
   assert.equal(results[0]?.matchLocation, undefined);
+});
+
+test('searchOpenSpec returns routing metadata for change other file content matches', () => {
+  const results = searchOpenSpec(createOpenSpecData(), 'other files');
+
+  assert.equal(results.length, 1);
+  assert.equal(results[0]?.name, 'active-search');
+  assert.equal(results[0]?.matchSource, 'content');
+  assert.deepEqual(results[0]?.matchLocation, { otherFilePath: 'revisions.json' });
 });
 
 test('searchOpenSpec prefers content excerpts and does not duplicate metadata matches', () => {

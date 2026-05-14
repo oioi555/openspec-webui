@@ -29,7 +29,7 @@
   import { Progress } from '$lib/components/ui/progress';
   import CommandShortcutBar from '$lib/components/shared/CommandShortcutBar.svelte';
   import { formatChangeName, formatDate } from '$lib/utils';
-  import { FIXED_LABELS, getChangeTaskCountLabel, getSpecDeltaCountLabel, getWorkflowSchemaFallbackLabel } from '$lib/uiText';
+  import { FIXED_LABELS, getChangeTaskCountLabel, getOtherFileCountLabel, getSpecDeltaCountLabel, getWorkflowSchemaFallbackLabel } from '$lib/uiText';
   import { getTaskProgressIconVariant } from '$lib/visualSemantics';
   import { deriveValidationListIconState, deriveValidationTargetSummary } from '$lib/state/validationCore';
 
@@ -38,6 +38,7 @@
     isArchived?: boolean;
     lastModified?: string | null;
     specDeltaCount: number;
+    otherFileCount: number;
     hasProposal?: boolean;
     hasDesign?: boolean;
     taskProgress: {
@@ -425,6 +426,9 @@
                         {/if}
                         {#if change.hasDesign}
                           <Badge variant="outline">{FIXED_LABELS.common.design}</Badge>
+                        {/if}
+                        {#if change.otherFileCount > 0}
+                          <Badge variant="outline">{getOtherFileCountLabel(change.otherFileCount)}</Badge>
                         {/if}
                         {#if validationStatus}
                           <StatusIndicator state={validationStatus} format="minimal" showLabel={false} class="shrink-0" />

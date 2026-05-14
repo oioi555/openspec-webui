@@ -277,6 +277,39 @@ function searchChange(change: Change, normalizedQuery: string): SearchResult | n
     }
   }
 
+  for (const otherFile of change.otherFiles) {
+    const contentResult = searchDocument(
+      {
+        type: 'change',
+        name: change.name,
+        path: change.path,
+        content: otherFile.content,
+        matchLocation: {
+          otherFilePath: otherFile.path,
+        },
+        metadata: [],
+      },
+      normalizedQuery,
+    );
+
+    if (contentResult) {
+      return contentResult;
+    }
+
+    metadataCandidates.push(
+      {
+        source: 'name',
+        searchValue: otherFile.name,
+        previewValue: otherFile.name,
+      },
+      {
+        source: 'path',
+        searchValue: [otherFile.path, `${relativeChangePath}/${otherFile.path}`].join('\n'),
+        previewValue: `${relativeChangePath}/${otherFile.path}`,
+      },
+    );
+  }
+
   for (const delta of change.specDeltas) {
     const relativeSpecDeltaPath = `${relativeChangePath}/specs/${delta.capability}/spec.md`;
     const contentResult = searchDocument(

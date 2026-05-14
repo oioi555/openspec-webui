@@ -1,0 +1,45 @@
+{
+  "changeId": "display-other-change-files",
+  "revisions": [
+    {
+      "id": "rev-e2ef374d",
+      "description": "計画を修正: Other Files は Proposal/Design/Tasks/Spec Deltas の本文下に追記するのではなく、専用のトップレベル `Other` タブとして表示する方針に変更。`Other` タブにはファイル数バッジを表示し、タブ内で各 Other File を折りたたみカードとして表示する。Spec Deltas タブには spec delta のみを表示し、Other Files は混在させない。",
+      "reason": "別セッション実装で `frontend/src/lib/views/ChangeViewer.svelte` の Spec Deltas ページ下に Other Files が追加され、ナビゲーション上 Spec のタブページに属して見える問題が判明したため。ユーザー方針として、Other は既存の Proposal/Design/Spec Deltas と並ぶタブにする方がデバッグしやすく、意図も明確。",
+      "author": "AI",
+      "createdAt": "2026-05-14T16:23:21.039Z",
+      "metadata": {
+        "type": "behavior",
+        "affectedAPI": "GET /api/changes/:name",
+        "affectedField": "otherFiles",
+        "updateTarget": [
+          "design",
+          "delta-specs"
+        ],
+        "source": {
+          "file": "openspec/changes/display-other-change-files/specs/change-other-files/spec.md",
+          "function": "Render other files in ChangeViewer"
+        }
+      }
+    },
+    {
+      "id": "rev-87859b2e",
+      "description": "`revisions.json` を汎用 JSON 表示ではなく、OpenSpec MCP revision schema の既知フォーマットとして構造化された revision カード一覧で表示する方針に変更。valid な `{ changeId, revisions[] }` の場合のみ change id、件数、revision id/type/author/time/description/reason/metadata/source を見やすく表示し、schema 不一致や parse 失敗時は従来の generic JSON fallback を使う。",
+      "reason": "`revisions.json` はフォーマットが分かっているため、pretty-printed JSON だけでは監査ログとして読みづらい。Other Files の汎用性を保ちつつ、既知 schema のファイルだけ専用表示にすることで視認性を上げられるため。",
+      "author": "AI",
+      "createdAt": "2026-05-14T17:25:43.022Z",
+      "metadata": {
+        "type": "behavior",
+        "affectedAPI": "GET /api/changes/:name",
+        "affectedField": "otherFiles.revisions.json",
+        "updateTarget": [
+          "design",
+          "delta-specs"
+        ],
+        "source": {
+          "file": "frontend/src/lib/views/ChangeViewer.svelte",
+          "function": "parseRevisionsFile"
+        }
+      }
+    }
+  ]
+}

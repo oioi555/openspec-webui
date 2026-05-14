@@ -394,6 +394,58 @@ test('Dashboard active-change validation icon appears in title row after creatio
   );
 });
 
+// ---------------------------------------------------------------------------
+// Other Files badge – dashboard card badge visibility for meaningful other
+// files vs .openspec.yaml-only
+// ---------------------------------------------------------------------------
+
+test('Dashboard active-change title row places the Other N badge after Design when meaningful other files exist', async () => {
+  const source = await dashboardSource;
+  const eachBlock = source.match(
+    /\{#each sortedActiveChanges as change\}([\s\S]*?)\{\/each\}/,
+  );
+  assert.ok(eachBlock, 'Should find the sortedActiveChanges each block');
+  const loopBody = eachBlock[1];
+
+  // The title row renders badges in a flex-wrap gap-2 container.
+  // Order: change.name → Proposal → Design → Other N → validationStatus.
+  const titleRow = loopBody.match(
+    /<div class="flex flex-wrap items-center gap-2">([\s\S]*?)\n\s*<\/div>/,
+  );
+  assert.ok(titleRow, 'title row should be a flex-wrap gap-2 container');
+
+  const badgeZone = titleRow[1];
+  assert.match(badgeZone, /\{change\.name\}/, 'change name appears first');
+  assert.match(badgeZone, /FIXED_LABELS\.dashboard\.proposal/, 'Proposal badge present');
+  assert.match(badgeZone, /FIXED_LABELS\.common\.design/, 'Design badge present');
+
+  assert.match(
+    badgeZone,
+    /FIXED_LABELS\.common\.design[\s\S]*change\.otherFileCount > 0[\s\S]*getOtherFileCountLabel\(change\.otherFileCount\)[\s\S]*\{#if validationStatus\}/,
+    'Other badge should appear after Design and before validation status',
+  );
+});
+
+test('Dashboard only renders the Other N badge when otherFileCount is greater than zero', async () => {
+  const source = await dashboardSource;
+  const eachBlock = source.match(
+    /\{#each sortedActiveChanges as change\}([\s\S]*?)\{\/each\}/,
+  );
+  assert.ok(eachBlock, 'Should find the sortedActiveChanges each block');
+  const loopBody = eachBlock[1];
+
+  assert.match(
+    loopBody,
+    /otherFileCount/,
+    'otherFileCount should drive dashboard badge visibility',
+  );
+  assert.match(
+    loopBody,
+    /\{#if change\.otherFileCount > 0\}\s*\n\s*<Badge variant="outline">\{getOtherFileCountLabel\(change\.otherFileCount\)\}<\/Badge>\s*\n\s*\{\/if\}/,
+    'Other badge should be conditionally hidden for .openspec.yaml-only changes',
+  );
+});
+
 test('Dashboard active-change rows do not render trailing arrow icons', async () => {
   const source = await dashboardSource;
   const eachBlock = source.match(

@@ -126,6 +126,14 @@ export interface ChangeFile {
   content?: string;
 }
 
+export interface OtherFile {
+  name: string;
+  path: string;
+  absolutePath: string;
+  type: 'markdown' | 'json' | 'yaml' | 'text';
+  content: string;
+}
+
 export interface FileGroup {
   name: string;
   folder: string;
@@ -145,6 +153,7 @@ export interface ChangeSummary {
   hasDesign: boolean;
   fileCount: number;
   groupCount: number;
+  otherFileCount: number;
 }
 
 export interface Task {
@@ -180,6 +189,8 @@ export interface Change {
   specDeltas: SpecDelta[];
   files: ChangeFile[];
   fileGroups: FileGroup[];
+  otherFiles: OtherFile[];
+  otherFileCount: number;
 }
 
 export interface Stats {
@@ -195,6 +206,7 @@ export interface SearchMatchLocation {
   fileGroupName?: string;
   fileName?: string;
   specDeltaCapability?: string;
+  otherFilePath?: string;
 }
 
 export interface SearchResult {

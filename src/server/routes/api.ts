@@ -610,5 +610,6 @@ function summarizeChange(change: OpenSpecData['changes']['active'][0]) {
     hasDesign: change.design !== null,
     fileCount: change.files.length,
     groupCount: change.fileGroups.length,
+    otherFileCount: change.otherFileCount,
   };
 }

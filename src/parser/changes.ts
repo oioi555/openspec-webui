@@ -1,11 +1,71 @@
 import { readdir, readFile, stat } from 'fs/promises';
 import { join } from 'path';
-import type { Change, ChangeFile, FileGroup, SpecDelta, DeltaOperation, ParseResult } from '../shared/types.js';
+import type { Change, ChangeFile, FileGroup, OtherFile, SpecDelta, DeltaOperation, ParseResult } from '../shared/types.js';
 import { parseTasks } from './tasks.js';
 
+const STANDARD_CHANGE_FILES = new Set(['proposal.md', 'design.md', 'tasks.md']);
+const OTHER_FILE_NOISE_NAMES = new Set(['.openspec.yaml']);
+
+function detectOtherFileType(fileName: string): OtherFile['type'] {
+  const lowerName = fileName.toLowerCase();
+  if (lowerName.endsWith('.md')) {
+    return 'markdown';
+  }
+  if (lowerName.endsWith('.json')) {
+    return 'json';
+  }
+  if (lowerName.endsWith('.yaml') || lowerName.endsWith('.yml')) {
+    return 'yaml';
+  }
+  return 'text';
+}
+
+async function discoverOtherFiles(changePath: string): Promise<OtherFile[]> {
+  const otherFiles: OtherFile[] = [];
+
+  try {
+    const entries = await readdir(changePath, { withFileTypes: true });
+
+    for (const entry of entries) {
+      if (!entry.isFile()) {
+        continue;
+      }
+
+      if (STANDARD_CHANGE_FILES.has(entry.name.toLowerCase())) {
+        continue;
+      }
+
+      const absolutePath = join(changePath, entry.name);
+
+      try {
+        const content = await readFile(absolutePath, 'utf-8');
+        otherFiles.push({
+          name: entry.name,
+          path: entry.name,
+          absolutePath,
+          type: detectOtherFileType(entry.name),
+          content,
+        });
+      } catch {
+        // Ignore unreadable or binary files.
+      }
+    }
+  } catch {
+    // Change directory unavailable.
+  }
+
+  otherFiles.sort((a, b) => a.path.localeCompare(b.path));
+  return otherFiles;
+}
+
+function computeMeaningfulOtherFileCount(otherFiles: OtherFile[]): number {
+  return otherFiles.filter((file) => !OTHER_FILE_NOISE_NAMES.has(file.name.toLowerCase())).length;
+}
+
 /**
- * Recursively discover all .md files in a change directory
- * Excludes the specs/ subdirectory (handled separately as spec deltas)
+ * Recursively discover markdown change artifacts that participate in the main
+ * tabbed viewer. Direct root-level non-standard files are handled separately as
+ * Other Files.
  */
 async function discoverChangeFiles(
   changePath: string,
@@ -30,6 +90,10 @@ async function discoverChangeFiles(
       } else if (entry.isFile()) {
         const ext = entry.name.toLowerCase();
         if (ext.endsWith('.md')) {
+          if (relativePath === '' && !STANDARD_CHANGE_FILES.has(entry.name.toLowerCase())) {
+            continue;
+          }
+
           const folder = relativePath || 'root';
           const nameWithoutExt = entry.name.replace(/\.md$/i, '');
 
@@ -273,6 +337,7 @@ async function parseChange(
 
   // Discover all .md files recursively
   const files = await discoverChangeFiles(changePath);
+  const otherFiles = await discoverOtherFiles(changePath);
 
   // Load content for markdown files
   for (const file of files) {
@@ -313,9 +378,14 @@ async function parseChange(
       taskProgress,
       design,
       specDeltas: specDeltas.data,
-      lastModified: await computeLastModifiedAsync(files, specDeltaPaths),
+      lastModified: await computeLastModifiedAsync(files, [
+        ...specDeltaPaths,
+        ...otherFiles.map((file) => file.absolutePath),
+      ]),
       files,
       fileGroups,
+      otherFiles,
+      otherFileCount: computeMeaningfulOtherFileCount(otherFiles),
     },
     errors,
     warnings,

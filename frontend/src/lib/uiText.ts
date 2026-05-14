@@ -159,6 +159,7 @@ export const FIXED_LABELS = {
     parseErrors: 'Parse Errors',
     rawConfig: 'Raw config.yaml',
     workflowSchema: 'Workflow Schema',
+    other: 'Other',
     proposal: 'Proposal',
     badges: {
       activeChange: 'Active change',
@@ -229,6 +230,7 @@ export const FIXED_LABELS = {
   viewer: {
     specification: 'Specification',
     specDeltas: 'Spec Deltas',
+    otherFiles: 'Other Files',
   },
   tab: {
     preview: 'Preview',
@@ -296,6 +298,10 @@ export function getChangeTaskCountLabel(done: number, total: number): string {
 
 export function getChangeTaskCountCompleteLabel(done: number, total: number): string {
   return `${done}/${total} tasks complete`;
+}
+
+export function getOtherFileCountLabel(count: number): string {
+  return `Other ${count}`;
 }
 
 export function getCommandShortcutCopyTitle(command: string): string {

@@ -25,7 +25,7 @@
   import type { SearchNavigationState } from '$lib/state/search.svelte.ts';
   import { searchStore, SEARCH_MIN_QUERY_LENGTH } from '$lib/state/search.svelte.ts';
   import { uiPreferencesStore } from '$lib/state/uiPreferences.svelte.ts';
-  import type { Change } from '$lib/types/api';
+  import type { Change, OtherFile } from '$lib/types/api';
   import { getChangeCommands } from '$lib/commandShortcuts';
   import MarkdownRenderer from '$lib/components/shared/MarkdownRenderer.svelte';
   import { Progress } from '$lib/components/ui/progress';
@@ -49,12 +49,36 @@
   let activeGroupIndex = $state(0);
   let activeFileIndex = $state(0);
   let deltaOpenStates = $state<Record<number, boolean>>({});
+  let otherFileOpenStates = $state<Record<string, boolean>>({});
   let contentRef = $state<HTMLDivElement | null>(null);
 
   interface ChangeViewerState {
     groupIndex?: number;
     fileIndex?: number;
     searchNavigation?: SearchNavigationState;
+  }
+
+  interface RevisionRecord {
+    id?: string;
+    description?: string;
+    reason?: string;
+    author?: string;
+    createdAt?: string;
+    metadata?: {
+      type?: string;
+      affectedAPI?: string;
+      affectedField?: string;
+      updateTarget?: string[];
+      source?: {
+        file?: string;
+        function?: string;
+      };
+    };
+  }
+
+  interface RevisionsFile {
+    changeId?: string;
+    revisions: RevisionRecord[];
   }
 
   function commandPreferencesSnapshot() {
@@ -68,7 +92,11 @@
   let activeGroup = $derived(change?.fileGroups[activeGroupIndex] ?? null);
   let activeFile = $derived(activeGroup?.files[activeFileIndex] ?? null);
   let showDeltasTab = $derived((change?.specDeltas.length ?? 0) > 0);
-  let isDeltasActive = $derived(activeGroupIndex === (change?.fileGroups.length ?? 0));
+  let showOtherTab = $derived((change?.otherFiles.length ?? 0) > 0);
+  let isDeltasActive = $derived(showDeltasTab && activeGroupIndex === (change?.fileGroups.length ?? 0));
+  let isOtherActive = $derived(
+    change ? activeGroupIndex === change.fileGroups.length + (showDeltasTab ? 1 : 0) : false,
+  );
   let changeCommands = $derived(change ? getChangeCommands(change, commandPreferencesSnapshot()) : []);
   let activeSearchQuery = $derived(
     uiPreferencesStore.searchHighlightsEnabled && searchStore.query.length >= SEARCH_MIN_QUERY_LENGTH
@@ -138,6 +166,19 @@
     return counts;
   })());
 
+  let otherFileHitCounts = $derived((() => {
+    const counts = new Map<string, number>();
+    if (!change || !activeSearchQuery) {
+      return counts;
+    }
+
+    change.otherFiles.forEach((file) => {
+      counts.set(file.path, countQueryMatches(file.content, activeSearchQuery));
+    });
+
+    return counts;
+  })());
+
   let primaryTabs = $derived(
     change
       ? [
@@ -159,10 +200,20 @@
               hitIndicator: Array.from(specDeltaHitCounts.values()).some((count) => count > 0),
             }]
           : []),
+        ...(showOtherTab
+          ? [{
+              id: 'other-files',
+              label: FIXED_LABELS.dashboard.other,
+              badge: change.otherFiles.length,
+              hitIndicator: Array.from(otherFileHitCounts.values()).some((count) => count > 0),
+            }]
+          : []),
       ]
       : []
   );
-  let activePrimaryTabId = $derived(isDeltasActive ? 'spec-deltas' : `group-${activeGroupIndex}`);
+  let activePrimaryTabId = $derived(
+    isOtherActive ? 'other-files' : isDeltasActive ? 'spec-deltas' : `group-${activeGroupIndex}`,
+  );
 
   let previousChangeName: string | null = null;
   let previousRefreshTrigger = -1;
@@ -230,14 +281,25 @@
 
     try {
       change = await getChange(changeName);
+      otherFileOpenStates = {};
 
       if (change) {
         const persistedState = tabStore.getViewerState<ChangeViewerState>(tabId);
-        const maxGroupIndex = change.fileGroups.length + (change.specDeltas.length > 0 ? 1 : 0) - 1;
+        const maxGroupIndex =
+          change.fileGroups.length
+          + (change.specDeltas.length > 0 ? 1 : 0)
+          + (change.otherFiles.length > 0 ? 1 : 0)
+          - 1;
         const nextGroupIndex = persistedState?.groupIndex ?? (preserveState ? savedGroupIndex : 0);
         activeGroupIndex = Math.min(Math.max(nextGroupIndex, 0), Math.max(0, maxGroupIndex));
 
-        if (activeGroupIndex === change.fileGroups.length && change.specDeltas.length > 0) {
+        const deltasIndex = change.fileGroups.length;
+        const otherIndex = change.fileGroups.length + (change.specDeltas.length > 0 ? 1 : 0);
+
+        if (
+          (activeGroupIndex === deltasIndex && change.specDeltas.length > 0)
+          || (activeGroupIndex === otherIndex && change.otherFiles.length > 0)
+        ) {
           activeFileIndex = 0;
         } else {
           const currentGroup = change.fileGroups[activeGroupIndex];
@@ -266,9 +328,23 @@
     activeFileIndex = 0;
   }
 
+  function selectOtherFiles() {
+    if (!change) {
+      return;
+    }
+
+    activeGroupIndex = change.fileGroups.length + (change.specDeltas.length > 0 ? 1 : 0);
+    activeFileIndex = 0;
+  }
+
   function handlePrimaryTabSelect(id: string) {
     if (id === 'spec-deltas') {
       selectDeltas();
+      return;
+    }
+
+    if (id === 'other-files') {
+      selectOtherFiles();
       return;
     }
 
@@ -278,6 +354,56 @@
         selectGroup(index);
       }
     }
+  }
+
+  function getOtherFileElement(path: string): HTMLElement | null {
+    const elements = contentRef?.querySelectorAll<HTMLElement>('[data-other-file-path]') ?? [];
+    return Array.from(elements).find((element) => element.dataset.otherFilePath === path) ?? null;
+  }
+
+  function getOtherFileDisplayContent(file: OtherFile): string {
+    if (file.type === 'json') {
+      try {
+        return JSON.stringify(JSON.parse(file.content), null, 2);
+      } catch {
+        return file.content;
+      }
+    }
+
+    return file.content;
+  }
+
+  function isRevisionsFile(file: OtherFile): boolean {
+    return file.type === 'json' && (file.name === 'revisions.json' || file.path.endsWith('/revisions.json'));
+  }
+
+  function parseRevisionsFile(file: OtherFile): RevisionsFile | null {
+    if (!isRevisionsFile(file)) {
+      return null;
+    }
+
+    try {
+      const parsed = JSON.parse(file.content) as Partial<RevisionsFile>;
+      if (Array.isArray(parsed.revisions)) {
+        return {
+          changeId: typeof parsed.changeId === 'string' ? parsed.changeId : undefined,
+          revisions: parsed.revisions,
+        };
+      }
+    } catch {
+      // Fall through to generic JSON rendering.
+    }
+
+    return null;
+  }
+
+  function getRevisionSource(revision: RevisionRecord): string | null {
+    const source = revision.metadata?.source;
+    if (!source?.file) {
+      return null;
+    }
+
+    return source.function ? `${source.file}#${source.function}` : source.file;
   }
 
   $effect(() => {
@@ -318,6 +444,7 @@
 
     const viewerState = tabStore.getViewerState<ChangeViewerState>(tabId);
     const searchNavigation = viewerState?.searchNavigation;
+    let targetOtherFilePath: string | null = null;
     if (!searchNavigation?.requestKey) {
       return;
     }
@@ -365,13 +492,24 @@
           activeFileIndex = 0;
         }
       }
-    }
-
-    if (!highlightQuery) {
-      return;
+    } else if (searchNavigation.matchLocation?.otherFilePath) {
+      targetOtherFilePath = searchNavigation.matchLocation.otherFilePath;
+      selectOtherFiles();
+      otherFileOpenStates[targetOtherFilePath] = true;
     }
 
     void tick().then(() => {
+      if (targetOtherFilePath) {
+        const otherFileElement = getOtherFileElement(targetOtherFilePath);
+        const target = otherFileElement?.querySelector<HTMLElement>('mark.search-highlight') ?? otherFileElement;
+        target?.scrollIntoView({ behavior: 'auto', block: 'center' });
+        return;
+      }
+
+      if (!highlightQuery) {
+        return;
+      }
+
       const firstHighlight = contentRef?.querySelector<HTMLElement>('mark.search-highlight');
       firstHighlight?.scrollIntoView({ behavior: 'auto', block: 'center' });
     });
@@ -432,7 +570,7 @@
     <UnderlineTabs tabs={primaryTabs} activeId={activePrimaryTabId} onSelect={handlePrimaryTabSelect} />
 
     <!-- Secondary tabs: Files within group (if multiple) -->
-    {#if activeGroup && activeGroup.files.length > 1 && !isDeltasActive}
+    {#if activeGroup && activeGroup.files.length > 1 && !isDeltasActive && !isOtherActive}
       <div class="flex space-x-2 px-2">
         {#each activeGroup.files as file, i}
             <button
@@ -520,6 +658,113 @@
                     </ContextMenu.Item>
                   </ContextMenu.Content>
                 </ContextMenu.Root>
+              </Collapsible.Root>
+            {/each}
+          </div>
+        {:else if isOtherActive}
+          <div class="flex flex-col gap-3">
+            {#each change.otherFiles as otherFile}
+              {@const revisionsFile = parseRevisionsFile(otherFile)}
+              <Collapsible.Root
+                open={otherFileOpenStates[otherFile.path] ?? false}
+                onOpenChange={(open) => (otherFileOpenStates[otherFile.path] = open)}
+              >
+                <InteractiveCard
+                  tone="inset"
+                  radius="xl"
+                  class="h-full overflow-hidden text-left hover:translate-y-0 hover:shadow-sm hover:border-border/70"
+                  data-other-file-path={otherFile.path}
+                >
+                  <Collapsible.Trigger class="flex w-full items-center justify-between gap-4 px-5 py-4 text-left">
+                    <h3 class="flex min-w-0 items-center gap-2 text-base font-medium text-foreground">
+                      <TypeIndicator kind="active-change" format="icon-box" size="md" />
+                      <span class="truncate">{otherFile.path}</span>
+                      {#if (otherFileHitCounts.get(otherFile.path) ?? 0) > 0}
+                        <Badge variant="warning" class="min-w-5 justify-center px-1.5 py-0 text-[10px] leading-5">
+                          {otherFileHitCounts.get(otherFile.path)}
+                        </Badge>
+                      {/if}
+                    </h3>
+                    <span class="flex shrink-0 items-center justify-center rounded-md border border-border/50 p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
+                      {#if otherFileOpenStates[otherFile.path] ?? false}
+                        <ChevronDown class="h-3.5 w-3.5" />
+                      {:else}
+                        <ChevronRight class="h-3.5 w-3.5" />
+                      {/if}
+                    </span>
+                  </Collapsible.Trigger>
+                  <Collapsible.Content>
+                    <div class="border-t border-border/60 px-5 py-4">
+                      {#if revisionsFile}
+                        <div class="space-y-4">
+                          <div class="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                            {#if revisionsFile.changeId}
+                              <span>Change: <span class="font-medium text-foreground">{revisionsFile.changeId}</span></span>
+                            {/if}
+                            <Badge variant="secondary">{revisionsFile.revisions.length} revisions</Badge>
+                          </div>
+
+                          {#if revisionsFile.revisions.length === 0}
+                            <p class="text-sm text-muted-foreground">No revisions recorded.</p>
+                          {:else}
+                            <div class="space-y-3">
+                              {#each revisionsFile.revisions as revision}
+                                <div class="rounded-lg border border-border/60 bg-muted/20 p-4">
+                                  <div class="mb-3 flex flex-wrap items-center gap-2">
+                                    {#if revision.id}
+                                      <Badge variant="outline">{revision.id}</Badge>
+                                    {/if}
+                                    {#if revision.metadata?.type}
+                                      <Badge variant="secondary">{revision.metadata.type}</Badge>
+                                    {/if}
+                                    {#if revision.author}
+                                      <span class="text-xs text-muted-foreground">by {revision.author}</span>
+                                    {/if}
+                                    {#if revision.createdAt}
+                                      <span class="text-xs text-muted-foreground">{formatDate(revision.createdAt)}</span>
+                                    {/if}
+                                  </div>
+
+                                  {#if revision.description}
+                                    <p class="whitespace-pre-wrap text-sm leading-6 text-foreground">{revision.description}</p>
+                                  {/if}
+
+                                  {#if revision.reason}
+                                    <div class="mt-3 rounded-md border border-border/50 bg-background/60 p-3">
+                                      <div class="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">Reason</div>
+                                      <p class="whitespace-pre-wrap text-sm leading-6 text-foreground">{revision.reason}</p>
+                                    </div>
+                                  {/if}
+
+                                  {#if revision.metadata}
+                                    <div class="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
+                                      {#if revision.metadata.affectedAPI}
+                                        <div><span class="font-medium text-foreground">API:</span> {revision.metadata.affectedAPI}</div>
+                                      {/if}
+                                      {#if revision.metadata.affectedField}
+                                        <div><span class="font-medium text-foreground">Field:</span> {revision.metadata.affectedField}</div>
+                                      {/if}
+                                      {#if revision.metadata.updateTarget?.length}
+                                        <div><span class="font-medium text-foreground">Updates:</span> {revision.metadata.updateTarget.join(', ')}</div>
+                                      {/if}
+                                      {#if getRevisionSource(revision)}
+                                        <div><span class="font-medium text-foreground">Source:</span> {getRevisionSource(revision)}</div>
+                                      {/if}
+                                    </div>
+                                  {/if}
+                                </div>
+                              {/each}
+                            </div>
+                          {/if}
+                        </div>
+                      {:else if otherFile.type === 'markdown'}
+                        <MarkdownRenderer content={otherFile.content} highlightQuery={highlightQuery} />
+                      {:else}
+                        <pre class="overflow-x-auto whitespace-pre-wrap rounded-lg border border-border/60 bg-muted/30 p-4 text-sm leading-6 text-foreground"><code>{getOtherFileDisplayContent(otherFile)}</code></pre>
+                      {/if}
+                    </div>
+                  </Collapsible.Content>
+                </InteractiveCard>
               </Collapsible.Root>
             {/each}
           </div>
