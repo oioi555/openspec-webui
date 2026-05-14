@@ -158,5 +158,7 @@
   "copy_label_tab_path": "Caminho",
   "validation_strict": "Estrito",
   "validation_auto_run": "Execução automática",
-  "validation_concurrency": "Concorrência"
+  "validation_auto_run_on_artifact_change": "Execução automática ao alterar artefato",
+  "validation_concurrency": "Concorrência",
+  "settings_validation_auto_run_on_artifact_change_description": "Executar validação automaticamente após arquivos de artefato OpenSpec serem criados ou modificados."
 }

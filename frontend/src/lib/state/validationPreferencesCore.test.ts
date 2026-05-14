@@ -7,12 +7,13 @@ import {
   toValidationRequestOptions,
 } from './validationPreferencesCore';
 
-test('default validation preferences have strict=true, concurrency=null, autoRun=false', () => {
+test('default validation preferences have strict=true, concurrency=null, autoRun=false, autoRunOnArtifactChange=false', () => {
   const defaults = createDefaultValidationPreferences();
   assert.deepEqual(defaults, {
     strict: true,
     concurrency: null,
     autoRun: false,
+    autoRunOnArtifactChange: false,
   });
 });
 
@@ -57,9 +58,20 @@ test('normalizeValidationPreferences defaults autoRun to false for non-boolean',
   assert.equal(normalizeValidationPreferences({ autoRun: 1 }).autoRun, false);
 });
 
-test('toValidationRequestOptions strips autoRun', () => {
-  const prefs = { strict: false, concurrency: 8, autoRun: true };
+test('normalizeValidationPreferences preserves valid boolean autoRunOnArtifactChange', () => {
+  assert.equal(normalizeValidationPreferences({ autoRunOnArtifactChange: true }).autoRunOnArtifactChange, true);
+  assert.equal(normalizeValidationPreferences({ autoRunOnArtifactChange: false }).autoRunOnArtifactChange, false);
+});
+
+test('normalizeValidationPreferences defaults autoRunOnArtifactChange to false for non-boolean', () => {
+  assert.equal(normalizeValidationPreferences({ autoRunOnArtifactChange: 'yes' }).autoRunOnArtifactChange, false);
+  assert.equal(normalizeValidationPreferences({ autoRunOnArtifactChange: 1 }).autoRunOnArtifactChange, false);
+});
+
+test('toValidationRequestOptions strips autoRun and autoRunOnArtifactChange', () => {
+  const prefs = { strict: false, concurrency: 8, autoRun: true, autoRunOnArtifactChange: true };
   const options = toValidationRequestOptions(prefs);
   assert.deepEqual(options, { strict: false, concurrency: 8 });
   assert.equal('autoRun' in options, false);
+  assert.equal('autoRunOnArtifactChange' in options, false);
 });

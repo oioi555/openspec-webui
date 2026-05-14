@@ -179,11 +179,21 @@ export interface SearchResponse {
 
 export type WSEntity = 'project' | 'specs' | 'changes' | 'all';
 
+/**
+ * Cause metadata from a filesystem watcher event that triggered a refresh.
+ */
+export interface WSRefreshCause {
+  type: 'add' | 'change' | 'unlink' | 'addDir' | 'unlinkDir';
+  path?: string;
+}
+
 export interface WSDataRefreshMessage {
   type: 'data:refresh';
   entity: WSEntity;
   entityId?: string;
   data?: unknown;
+  /** Set when the refresh was triggered by a watcher file change event. */
+  cause?: WSRefreshCause;
 }
 
 export interface WSFileChangedMessage {

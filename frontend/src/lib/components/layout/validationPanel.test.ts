@@ -236,7 +236,9 @@ test('ChangeViewer places validation status between metadata and tabs for the cu
   assert.match(source, /contentRef\?\.querySelector<HTMLElement>\('mark\.search-highlight'\)/);
   assert.match(source, /Badge variant="warning" class="min-w-5 justify-center px-1\.5 py-0 text-\[10px\] leading-5"/);
   assert.match(source, /uiPreferencesStore\.searchHighlightsEnabled && searchStore\.query\.length >= SEARCH_MIN_QUERY_LENGTH/);
-  assert.match(source, /<\/div>\s*\n\s*<ValidationViewerStatus itemType="change" itemName=\{changeName\} \/>\s*\n\s*\{#if loading\}/);
+  // The archived-check conditional wraps the ValidationViewerStatus, keeping
+  // it placed between the header metadata and the tabs.
+  assert.match(source, /\{#if !change\.isArchived\}\s*\n\s*<ValidationViewerStatus itemType="change" itemName=\{changeName\} \/>/);
   assert.match(source, /<UnderlineTabs tabs=\{primaryTabs\} activeId=\{activePrimaryTabId\} onSelect=\{handlePrimaryTabSelect\} \/>/);
   assert.match(source, /FIXED_LABELS\.viewer\.specDeltas/);
   assert.match(source, /<MarkdownRenderer content=\{delta\.content\} highlightDiff=\{true\} highlightQuery=\{highlightQuery\} \/>/);
@@ -289,4 +291,38 @@ test('StatusIndicator minimal format is icon-only and colored for compact explor
   assert.match(source, /<meta\.icon class=\{cn\(size === 'md' \? 'h-4 w-4' : 'h-3\.5 w-3\.5', 'shrink-0', minimalIconClass\)\} \/>/);
   assert.match(source, /<span class="sr-only">\{displayLabel\}<\/span>/);
   assert.equal(minimalBlock.includes('showLabel'), false);
+});
+
+test('Dashboard active-change rows show validationStatus icon when deriver yields a non-null state', async () => {
+  const source = await readFile(new URL('../../views/Dashboard.svelte', import.meta.url), 'utf8');
+
+  // The each-block for sortedActiveChanges derives validationStatus and renders
+  // a StatusIndicator with format="minimal" when validationStatus is truthy.
+  assert.match(source, /import \{ deriveValidationListIconState, deriveValidationTargetSummary \} from/);
+  assert.match(source, /function validationStatusForActiveChange\(name: string\)/);
+  assert.match(source, /deriveValidationListIconState\([\s\S]*deriveValidationTargetSummary\(validationStore, \{ type: 'change', name \}\)/);
+  assert.match(source, /\{#if validationStatus\}\s*\n\s*<StatusIndicator state=\{validationStatus\} format="minimal"/);
+});
+
+test('ChangeViewer suppresses ValidationViewerStatus for archived changes', async () => {
+  const source = await readFile(new URL('../../views/ChangeViewer.svelte', import.meta.url), 'utf8');
+
+  // The archived check must wrap the ValidationViewerStatus in an {#if !change.isArchived}
+  // so that archived changes do not show inline validation status or re-run controls.
+  assert.match(source, /\{#if !change\.isArchived\}\s*\n\s*<ValidationViewerStatus itemType="change" itemName=\{changeName\} \/>/);
+});
+
+test('ValidationViewerStatus re-run button is disabled while validation is loading and shows a spinner', async () => {
+  const source = await readFile(new URL('../shared/ValidationViewerStatus.svelte', import.meta.url), 'utf8');
+
+  // The re-run button must have disabled={validationStore.loading}
+  assert.match(source, /disabled=\{validationStore\.loading\}/);
+  // When loading, a spinning icon is shown instead of the RotateCcw icon
+  assert.match(source, /\{#if validationStore\.loading\}\s*\n\s*<LoaderCircle class="h-3\.5 w-3\.5 animate-spin" \/>/);
+  assert.match(source, /\{:else\}\s*\n\s*<RotateCcw class="h-3\.5 w-3\.5" \/>/);
+  // The re-run button should call validationStore.refresh() on click
+  assert.match(source, /onclick=\{\(\) => validationStore\.refresh\(\)\}/);
+  // The aria-label should reflect loading state
+  assert.match(source, /FIXED_LABELS\.validation\.viewer\.rerunning/);
+  assert.match(source, /FIXED_LABELS\.validation\.viewer\.rerun/);
 });

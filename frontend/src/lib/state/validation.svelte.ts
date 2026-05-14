@@ -57,6 +57,10 @@ export const validationStore = {
     return validationPreferencesStore.autoRun;
   },
 
+  get autoRunOnArtifactChange() {
+    return validationPreferencesStore.autoRunOnArtifactChange;
+  },
+
   get dashboardSummary() {
     return deriveValidationDashboardSummary(controller.state, {
       copy: {

@@ -158,5 +158,7 @@
   "copy_label_tab_path": "Pfad",
   "validation_strict": "Strikt",
   "validation_auto_run": "Automatisch ausführen",
-  "validation_concurrency": "Parallelität"
+  "validation_auto_run_on_artifact_change": "Automatisch bei Artefaktänderung ausführen",
+  "validation_concurrency": "Parallelität",
+  "settings_validation_auto_run_on_artifact_change_description": "Automatisch eine Validierung ausführen, nachdem OpenSpec-Artefaktdateien erstellt oder geändert wurden."
 }

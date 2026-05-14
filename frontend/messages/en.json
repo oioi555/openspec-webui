@@ -158,5 +158,7 @@
   "copy_label_tab_path": "Path",
   "validation_strict": "Strict",
   "validation_auto_run": "Auto-run",
-  "validation_concurrency": "Concurrency"
+  "validation_auto_run_on_artifact_change": "Auto-run on artifact change",
+  "validation_concurrency": "Concurrency",
+  "settings_validation_auto_run_on_artifact_change_description": "Automatically run validation after OpenSpec artifact files are created or modified."
 }

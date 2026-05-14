@@ -158,5 +158,7 @@
   "copy_label_tab_path": "パス",
   "validation_strict": "Strict",
   "validation_auto_run": "自動実行",
-  "validation_concurrency": "並列数"
+  "validation_auto_run_on_artifact_change": "アーティファクト変更時に自動実行",
+  "validation_concurrency": "並列数",
+  "settings_validation_auto_run_on_artifact_change_description": "OpenSpec アーティファクトファイルが作成・変更された後に自動でバリデーションを実行します。"
 }

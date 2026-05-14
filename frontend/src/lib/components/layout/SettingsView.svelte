@@ -138,6 +138,11 @@
     validationPreferencesStore.setAutoRun(target.checked);
   }
 
+  function toggleValidationArtifactAutoRun(event: Event) {
+    const target = event.currentTarget as HTMLInputElement;
+    validationPreferencesStore.setAutoRunOnArtifactChange(target.checked);
+  }
+
   function handleValidationConcurrencyInput(value: string) {
     validationConcurrencyInput = value;
     const parsed = parseInt(value, 10);
@@ -580,6 +585,20 @@
               checked={validationPreferencesStore.autoRun}
               aria-label={t(m.validation_auto_run)}
               onchange={toggleValidationAutoRun}
+            />
+          </label>
+
+          <label class="flex items-start justify-between gap-4 px-4 py-3 text-sm text-card-foreground">
+            <div>
+              <div class="font-medium text-foreground">{t(m.validation_auto_run_on_artifact_change)}</div>
+              <div class="mt-1 text-xs text-muted-foreground">{t(m.settings_validation_auto_run_on_artifact_change_description)}</div>
+            </div>
+
+            <input
+              type="checkbox"
+              checked={validationPreferencesStore.autoRunOnArtifactChange}
+              aria-label={t(m.validation_auto_run_on_artifact_change)}
+              onchange={toggleValidationArtifactAutoRun}
             />
           </label>
 

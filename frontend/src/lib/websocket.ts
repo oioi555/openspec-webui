@@ -1,7 +1,12 @@
 import type { WSMessage } from '../../../src/shared/types.ts';
 
 export type MessageHandler = (message: WSMessage) => void;
-export type { WSMessage } from '../../../src/shared/types.ts';
+export type {
+  WSEntity,
+  WSDataRefreshMessage,
+  WSMessage,
+  WSRefreshCause,
+} from '../../../src/shared/types.ts';
 
 export class WebSocketClient {
   private ws: WebSocket | null = null;

@@ -204,6 +204,8 @@ export const FIXED_LABELS = {
     viewer: {
       details: 'Details',
       hideDetails: 'Hide details',
+      rerun: 'Re-run validation',
+      rerunning: 'Re-running validation',
       labels: {
         notRun: 'Not run',
         passed: 'Passed',

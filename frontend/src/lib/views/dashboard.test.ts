@@ -349,3 +349,27 @@ test('CommandChip component renders a button with type="button" default (not sub
   assert.match(chipSource, /type = 'button'/);
   assert.match(chipSource, /\{type\}/);
 });
+
+test('Dashboard active-change items derive validation status icon using deriveValidationListIconState', async () => {
+  const source = await dashboardSource;
+
+  // The sortedActiveChanges loop should call validationStatusForActiveChange
+  // which uses deriveValidationListIconState with deriveValidationTargetSummary.
+  assert.match(
+    source,
+    /function validationStatusForActiveChange\(name: string\)/,
+    'validationStatusForActiveChange helper should exist',
+  );
+  assert.match(
+    source,
+    /deriveValidationListIconState\([\s\S]*'active-change'[\s\S]*deriveValidationTargetSummary/,
+    'helper must call deriveValidationListIconState with active-change kind and deriveValidationTargetSummary state',
+  );
+
+  // The icon is conditionally rendered inside the each block
+  assert.match(
+    source,
+    /\{#if validationStatus\}\s*\n\s*<StatusIndicator state=\{validationStatus\} format="minimal" showLabel=\{false\} class="shrink-0" \/>/,
+    'validationStatus icon should render as minimal StatusIndicator when non-null',
+  );
+});

@@ -2,6 +2,7 @@ export interface ValidationPreferences {
   strict: boolean;
   concurrency: number | null;
   autoRun: boolean;
+  autoRunOnArtifactChange: boolean;
 }
 
 export interface ValidationRequestOptions {
@@ -21,6 +22,7 @@ export function createDefaultValidationPreferences(): ValidationPreferences {
     strict: true,
     concurrency: null,
     autoRun: false,
+    autoRunOnArtifactChange: false,
   };
 }
 
@@ -44,6 +46,9 @@ export function normalizeValidationPreferences(value: unknown): ValidationPrefer
     autoRun: typeof candidate.autoRun === 'boolean'
       ? candidate.autoRun
       : defaults.autoRun,
+    autoRunOnArtifactChange: typeof candidate.autoRunOnArtifactChange === 'boolean'
+      ? candidate.autoRunOnArtifactChange
+      : defaults.autoRunOnArtifactChange,
   };
 }
 
@@ -97,6 +102,10 @@ export function createValidationPreferencesStoreWithAdapter(adapter: ValidationP
       return adapter.get().autoRun;
     },
 
+    get autoRunOnArtifactChange() {
+      return adapter.get().autoRunOnArtifactChange;
+    },
+
     setStrict(strict: boolean) {
       const nextPreferences = {
         ...adapter.get(),
@@ -124,6 +133,16 @@ export function createValidationPreferencesStoreWithAdapter(adapter: ValidationP
       const nextPreferences = {
         ...adapter.get(),
         autoRun,
+      };
+
+      saveValidationPreferences(nextPreferences);
+      adapter.set(nextPreferences);
+    },
+
+    setAutoRunOnArtifactChange(autoRunOnArtifactChange: boolean) {
+      const nextPreferences = {
+        ...adapter.get(),
+        autoRunOnArtifactChange,
       };
 
       saveValidationPreferences(nextPreferences);

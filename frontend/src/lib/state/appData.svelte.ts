@@ -12,7 +12,7 @@ import {
   isNoActiveProjectError,
 } from '$lib/api';
 import type { ChangeSummary, Project, SpecSummary, Stats } from '$lib/types/api';
-import { wsClient, type WSMessage } from '$lib/websocket';
+import { wsClient, type WSDataRefreshMessage, type WSMessage } from '$lib/websocket';
 
 import { commandPreferencesStore } from './commandPreferences.svelte.ts';
 import { layoutStore } from './layout.svelte.ts';
@@ -22,6 +22,7 @@ import { handleProjectBoundMessage, handleProjectContextMessage } from './projec
 import { resetSearchProjectScopedState } from './search.svelte.ts';
 import { tabStore } from './tabs.svelte.ts';
 import { validationStore } from './validation.svelte.ts';
+import { createArtifactValidationScheduler } from './validationAutoRunCore';
 
 function createBox<T>(read: () => T, write: (value: T) => void) {
   return {
@@ -46,6 +47,13 @@ const state = $state({
   changesRefreshTrigger: 0,
   ignoreRefreshUntilBound: false,
   reconnectAnnouncedProjectId: null as string | null,
+});
+
+const artifactValidationScheduler = createArtifactValidationScheduler({
+  getProjectId: () => projectStore.activeProjectId,
+  isAutoRunEnabled: () => validationStore.autoRunOnArtifactChange,
+  isValidationLoading: () => validationStore.loading,
+  refreshValidation: () => validationStore.refresh(),
 });
 
 export const isLoading = createBox(
@@ -126,6 +134,10 @@ function clearLoadedWorkspaceState() {
   state.archivedChanges = [];
 }
 
+function maybeScheduleArtifactValidation(message: WSDataRefreshMessage) {
+  artifactValidationScheduler.handleRefreshMessage(message);
+}
+
 export function clearProjectScopedSearchState() {
   resetSearchProjectScopedState();
 }
@@ -166,6 +178,8 @@ async function reinitializeProjectScopedState(
     initializeData,
     refreshCommandAvailability: () => commandPreferencesStore.refreshAvailability(),
   });
+
+  artifactValidationScheduler.syncProject();
 }
 
 export async function initializeData() {
@@ -271,6 +285,8 @@ async function handleProjectBound(activeProjectId: string | null) {
     initializeData,
     refreshCommandAvailability: () => commandPreferencesStore.refreshAvailability(),
   });
+
+  artifactValidationScheduler.syncProject();
 }
 
 export function setupWebSocket() {
@@ -286,6 +302,8 @@ export function setupWebSocket() {
         if (state.ignoreRefreshUntilBound) {
           return;
         }
+
+        artifactValidationScheduler.syncProject();
 
         const entity = message.entity;
         const scrollY = window.scrollY;
@@ -315,6 +333,7 @@ export function setupWebSocket() {
 
           await tick();
           window.scrollTo(0, scrollY);
+          maybeScheduleArtifactValidation(message);
         } catch (cause) {
           if (isNoActiveProjectError(cause)) {
             await handleProjectBound(null);

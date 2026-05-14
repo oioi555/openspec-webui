@@ -66,6 +66,7 @@ test('SettingsView.svelte preserves existing settings control wiring across all 
   assert.match(source, /commandPreferencesStore\.format/);
   assert.match(source, /validationPreferencesStore\.strict/);
   assert.match(source, /validationPreferencesStore\.autoRun/);
+  assert.match(source, /validationPreferencesStore\.autoRunOnArtifactChange/);
   assert.match(source, /validationPreferencesStore\.concurrency/);
   assert.match(source, /CORE_COMMANDS/);
   assert.match(source, /EXPANDED_COMMANDS/);

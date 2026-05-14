@@ -419,13 +419,15 @@
     </div>
   </div>
 
-  <ValidationViewerStatus itemType="change" itemName={changeName} />
-
   {#if loading}
     <LoadingState />
   {:else if error}
     <ErrorBanner {error} />
   {:else if change}
+    {#if !change.isArchived}
+      <ValidationViewerStatus itemType="change" itemName={changeName} />
+    {/if}
+
     <!-- Primary tabs: Groups + Deltas -->
     <UnderlineTabs tabs={primaryTabs} activeId={activePrimaryTabId} onSelect={handlePrimaryTabSelect} />
 

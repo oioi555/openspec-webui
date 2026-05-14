@@ -23,6 +23,7 @@
   import { searchStore } from '$lib/state/search.svelte.ts';
   import { tabStore } from '$lib/state/tabs.svelte.ts';
   import { validationStore } from '$lib/state/validation.svelte.ts';
+  import { StatusIndicator } from '$lib/components/shared/status-indicator';
   import MarkdownRenderer from '$lib/components/shared/MarkdownRenderer.svelte';
   import VersionBadge from '$lib/components/shared/VersionBadge.svelte';
   import { Progress } from '$lib/components/ui/progress';
@@ -30,6 +31,7 @@
   import { formatChangeName, formatDate } from '$lib/utils';
   import { FIXED_LABELS, getChangeTaskCountLabel, getSpecDeltaCountLabel, getWorkflowSchemaFallbackLabel } from '$lib/uiText';
   import { getTaskProgressIconVariant } from '$lib/visualSemantics';
+  import { deriveValidationListIconState, deriveValidationTargetSummary } from '$lib/state/validationCore';
 
   type TimestampedChange = {
     name: string;
@@ -211,6 +213,13 @@
     return getChangeCommands(changeContext, commandPreferencesSnapshot());
   }
 
+  function validationStatusForActiveChange(name: string) {
+    return deriveValidationListIconState(
+      'active-change',
+      deriveValidationTargetSummary(validationStore, { type: 'change', name }).state,
+    );
+  }
+
   let planningContext = $derived(project.value?.planningContext ?? null);
   let parsedPlanningContext = $derived.by(() =>
     isParsedPlanningContext(planningContext) ? planningContext : null
@@ -373,6 +382,7 @@
       <div class="flex flex-col gap-2 p-4">
         {#each sortedActiveChanges as change}
           {@const changeCommands = changeCommandsFor(change)}
+          {@const validationStatus = validationStatusForActiveChange(change.name)}
           <ItemContextMenu
             items={createItemContextMenuItems({
               kind: 'active-change',
@@ -411,6 +421,10 @@
                         <span class="flex items-center gap-1"><CircleCheckBig class="h-3.5 w-3.5" />{getChangeTaskCountLabel(change.taskProgress.done, change.taskProgress.total)}</span>
                       </div>
                     </div>
+
+                    {#if validationStatus}
+                      <StatusIndicator state={validationStatus} format="minimal" showLabel={false} class="shrink-0" />
+                    {/if}
                   </div>
 
                   <div class="flex min-w-45 shrink-0 items-center gap-3">

@@ -983,6 +983,7 @@ test('project-scoped websocket refresh only reaches clients bound to the changed
       const refresh = message as {
         type: string;
         entity: string;
+        cause?: { type: string; path?: string };
         data?: {
           project?: {
             name?: string;
@@ -1019,6 +1020,10 @@ test('project-scoped websocket refresh only reaches clients bound to the changed
       assert.equal(refresh.data?.project?.legacyProjectDoc ?? null, null);
       assert.equal(refresh.data?.project?.migrationState, 'config-only');
       assert.match(refresh.data?.project?.content ?? '', /Updated description for alpha-project\./);
+      // Verify cause metadata from watcher event is present
+      assert.ok(refresh.cause, 'refresh should include cause metadata for watcher-driven events');
+      assert.equal(refresh.cause!.type, 'change');
+      assert.equal(refresh.cause!.path, join(alphaRoot, 'openspec', 'config.yaml'));
       await betaClient.recorder.expectNoMessage(500);
     } finally {
       alphaClient.ws.close();
@@ -1065,6 +1070,7 @@ test('project-scoped websocket refresh publishes degraded invalid planning conte
       const refresh = (await alphaClient.recorder.nextMessage(3_000)) as {
         type: string;
         entity: string;
+        cause?: { type: string; path?: string };
         data?: {
           project?: {
             planningContext?: {
@@ -1086,6 +1092,10 @@ test('project-scoped websocket refresh publishes degraded invalid planning conte
         refresh.data?.project?.planningContext?.rawConfig,
         'schema: default-workflow\ncontext: "Broken "quote" content"\n'
       );
+      // Verify cause metadata from watcher event is present
+      assert.ok(refresh.cause, 'refresh should include cause metadata for watcher-driven events');
+      assert.equal(refresh.cause!.type, 'change');
+      assert.equal(refresh.cause!.path, join(alphaRoot, 'openspec', 'config.yaml'));
     } finally {
       alphaClient.ws.close();
     }

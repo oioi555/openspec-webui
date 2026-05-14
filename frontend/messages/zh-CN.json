@@ -158,5 +158,7 @@
   "copy_label_tab_path": "路径",
   "validation_strict": "严格",
   "validation_auto_run": "自动运行",
-  "validation_concurrency": "并发数"
+  "validation_auto_run_on_artifact_change": "工件变更时自动运行",
+  "validation_concurrency": "并发数",
+  "settings_validation_auto_run_on_artifact_change_description": "在 OpenSpec 工件文件创建或修改后自动运行验证。"
 }

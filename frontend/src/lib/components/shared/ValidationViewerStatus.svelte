@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ChevronDown, ChevronRight } from '@lucide/svelte';
+  import { ChevronDown, ChevronRight, LoaderCircle, RotateCcw } from '@lucide/svelte';
   import { InsetPanel, SurfaceCard } from '$lib/components/shared/surface';
   import { SeverityIndicator } from '$lib/components/shared/severity-indicator';
   import { StatusIndicator } from '$lib/components/shared/status-indicator';
@@ -42,6 +42,11 @@
   const detailsAriaLabel = $derived(
     FIXED_LABELS.validation.viewer.detailsAria(itemTypeLabel, itemName, detailsOpen),
   );
+  const rerunAriaLabel = $derived(
+    validationStore.loading
+      ? FIXED_LABELS.validation.viewer.rerunning
+      : FIXED_LABELS.validation.viewer.rerun,
+  );
 
   $effect(() => {
     if (!hasDetails && detailsOpen) {
@@ -54,43 +59,60 @@
 <SurfaceCard shadow="sm" class={cn('overflow-hidden', className)}>
   <Collapsible.Root open={detailsOpen} onOpenChange={(open) => (detailsOpen = open)}>
     <div role="status" aria-label={statusAriaLabel}>
-      <Collapsible.Trigger
-        disabled={!hasDetails}
-        class={cn(
-          'flex w-full min-w-0 items-center gap-3 px-4 py-3 text-left transition-colors',
-          hasDetails && 'hover:bg-secondary/50'
-        )}
-        aria-label={hasDetails ? detailsAriaLabel : statusAriaLabel}
-        title={hasDetails ? (detailsOpen ? FIXED_LABELS.validation.viewer.hideDetails : FIXED_LABELS.validation.viewer.details) : undefined}
-      >
-        <StatusIndicator state={summary.state} format="icon-box" />
+      <div class="flex items-center gap-3 px-4 py-3">
+        <Collapsible.Trigger
+          disabled={!hasDetails}
+          class={cn(
+            'flex min-w-0 flex-1 items-center gap-3 text-left transition-colors',
+            hasDetails && 'hover:text-foreground'
+          )}
+          aria-label={hasDetails ? detailsAriaLabel : statusAriaLabel}
+          title={hasDetails ? (detailsOpen ? FIXED_LABELS.validation.viewer.hideDetails : FIXED_LABELS.validation.viewer.details) : undefined}
+        >
+          <StatusIndicator state={summary.state} format="icon-box" />
 
-        <div class="min-w-0 flex-1">
-          <div class="flex min-w-0 flex-wrap items-center gap-2">
-            <span class="text-sm font-medium text-foreground">{statusLabel}</span>
+          <div class="min-w-0 flex-1">
+            <div class="flex min-w-0 flex-wrap items-center gap-2">
+              <span class="text-sm font-medium text-foreground">{statusLabel}</span>
 
-            {#if summary.issueCount > 0}
-              <span class="text-xs text-muted-foreground">{FIXED_LABELS.validation.issueCount(summary.issueCount)}</span>
-            {/if}
+              {#if summary.issueCount > 0}
+                <span class="text-xs text-muted-foreground">{FIXED_LABELS.validation.issueCount(summary.issueCount)}</span>
+              {/if}
 
-            {#if summary.lastRunAt}
-              <span class="text-xs text-muted-foreground">
-                {FIXED_LABELS.validation.lastRun}: {formatDate(summary.lastRunAt)}
-              </span>
-            {/if}
+              {#if summary.lastRunAt}
+                <span class="text-xs text-muted-foreground">
+                  {FIXED_LABELS.validation.lastRun}: {formatDate(summary.lastRunAt)}
+                </span>
+              {/if}
+            </div>
           </div>
-        </div>
 
-        {#if hasDetails}
-          <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-border/50 text-muted-foreground transition-colors">
-            {#if detailsOpen}
-              <ChevronDown class="h-3.5 w-3.5" />
-            {:else}
-              <ChevronRight class="h-3.5 w-3.5" />
-            {/if}
-          </span>
-        {/if}
-      </Collapsible.Trigger>
+          {#if hasDetails}
+            <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-border/50 text-muted-foreground transition-colors">
+              {#if detailsOpen}
+                <ChevronDown class="h-3.5 w-3.5" />
+              {:else}
+                <ChevronRight class="h-3.5 w-3.5" />
+              {/if}
+            </span>
+          {/if}
+        </Collapsible.Trigger>
+
+        <button
+          type="button"
+          class="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-border/50 text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+          disabled={validationStore.loading}
+          aria-label={rerunAriaLabel}
+          title={rerunAriaLabel}
+          onclick={() => validationStore.refresh()}
+        >
+          {#if validationStore.loading}
+            <LoaderCircle class="h-3.5 w-3.5 animate-spin" />
+          {:else}
+            <RotateCcw class="h-3.5 w-3.5" />
+          {/if}
+        </button>
+      </div>
     </div>
 
     {#if hasDetails}

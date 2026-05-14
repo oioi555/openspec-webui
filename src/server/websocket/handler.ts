@@ -65,6 +65,10 @@ export class WebSocketManager {
       entity: event.affectedEntity,
       entityId: event.entityId,
       data,
+      cause: {
+        type: event.type,
+        path: event.path,
+      },
     };
 
     for (const [client, boundProjectId] of this.clientBindings.entries()) {
