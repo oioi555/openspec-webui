@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { RotateCcw, CircleCheckBig, Clipboard, FileText, FlaskConical, LoaderCircle, Search, Settings } from '@lucide/svelte';
+  import { RefreshCw, CircleCheckBig, Clipboard, FileText, FlaskConical, LoaderCircle, Search, Settings } from '@lucide/svelte';
   import { Callout } from '$lib/components/shared/callout';
   import { StatusIndicator } from '$lib/components/shared/status-indicator';
   import * as ScrollArea from '$lib/components/ui/scroll-area';
@@ -202,7 +202,7 @@
           {#if validationStore.loading}
             <LoaderCircle class="h-3.5 w-3.5 animate-spin" />
           {:else}
-            <RotateCcw class="h-3.5 w-3.5" />
+            <RefreshCw class="h-3.5 w-3.5" />
           {/if}
         </button>
       {/if}

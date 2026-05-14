@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ChevronDown, ChevronRight, LoaderCircle, RotateCcw } from '@lucide/svelte';
+  import { ChevronDown, ChevronRight, LoaderCircle, RefreshCw } from '@lucide/svelte';
   import { InsetPanel, SurfaceCard } from '$lib/components/shared/surface';
   import { SeverityIndicator } from '$lib/components/shared/severity-indicator';
   import { StatusIndicator } from '$lib/components/shared/status-indicator';
@@ -61,7 +61,6 @@
     <div role="status" aria-label={statusAriaLabel}>
       <div class="flex items-center gap-3 px-4 py-3">
         <Collapsible.Trigger
-          disabled={!hasDetails}
           class={cn(
             'flex min-w-0 flex-1 items-center gap-3 text-left transition-colors',
             hasDetails && 'hover:text-foreground'
@@ -86,9 +85,22 @@
               {/if}
             </div>
           </div>
-
+          <button
+            type="button"
+            class="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-border/50 text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+            disabled={validationStore.loading}
+            aria-label={rerunAriaLabel}
+            title={rerunAriaLabel}
+            onclick={() => validationStore.refresh()}
+          >
+            {#if validationStore.loading}
+              <LoaderCircle class="h-3.5 w-3.5 animate-spin" />
+            {:else}
+              <RefreshCw class="h-3.5 w-3.5" />
+            {/if}
+          </button>
           {#if hasDetails}
-            <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-border/50 text-muted-foreground transition-colors">
+            <span class="flex size-8 shrink-0 items-center justify-center rounded-md border border-border/50 text-muted-foreground transition-colors">
               {#if detailsOpen}
                 <ChevronDown class="h-3.5 w-3.5" />
               {:else}
@@ -97,21 +109,6 @@
             </span>
           {/if}
         </Collapsible.Trigger>
-
-        <button
-          type="button"
-          class="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-border/50 text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
-          disabled={validationStore.loading}
-          aria-label={rerunAriaLabel}
-          title={rerunAriaLabel}
-          onclick={() => validationStore.refresh()}
-        >
-          {#if validationStore.loading}
-            <LoaderCircle class="h-3.5 w-3.5 animate-spin" />
-          {:else}
-            <RotateCcw class="h-3.5 w-3.5" />
-          {/if}
-        </button>
       </div>
     </div>
 

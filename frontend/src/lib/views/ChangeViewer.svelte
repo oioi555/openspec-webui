@@ -615,13 +615,13 @@
                       <div class="flex shrink-0 items-center gap-2">
                         <button
                           type="button"
-                          class="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground border border-border/50"
+                          class="flex size-8 items-center justify-center rounded-md border border-border/50 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                           title={FIXED_LABELS.search.relatedChanges}
                           onclick={(e: MouseEvent) => { e.stopPropagation(); searchStore.open(delta.capability); }}
                         >
                           <Search class="h-3.5 w-3.5" />
                         </button>
-                        <span class="flex p-1.5 items-center justify-center rounded-md border border-border/50 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
+                        <span class="flex size-8 items-center justify-center rounded-md border border-border/50 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
                           {#if deltaOpenStates[i] ?? false}
                             <ChevronDown class="h-3.5 w-3.5" />
                           {:else}
