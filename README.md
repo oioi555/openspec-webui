@@ -83,6 +83,10 @@ openspec-webui --no-open
 | `-V, --version` | Display version |
 | `-h, --help` | Display help |
 
+## Security and permissions
+
+`openspec-webui` is local tooling — it starts a local server, reads OpenSpec project files, runs `openspec` commands, and checks npm for version updates. Project contents are not sent to external services. No install-time lifecycle scripts are used.
+
 ## Development
 
 ### Requirements

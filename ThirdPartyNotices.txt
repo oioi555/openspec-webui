@@ -226,7 +226,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 The following npm package may be included in this product:
 
- - content-disposition@0.5.4
+ - content-disposition@1.1.0
 
 This package contains the following license:
 
@@ -288,7 +288,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 The following npm packages may be included in this product:
 
- - lru-cache@11.3.5
+ - lru-cache@11.3.6
  - minipass@7.1.3
  - path-scurry@2.0.2
 
@@ -352,12 +352,11 @@ software or this license, under any kind of legal claim.***
 
 -----------
 
-The following npm packages may be included in this product:
+The following npm package may be included in this product:
 
- - jackspeak@4.2.3
  - minimatch@10.2.5
 
-These packages each contain the following license:
+This package contains the following license:
 
 # Blue Oak Model License
 
@@ -417,12 +416,11 @@ software or this license, under any kind of legal claim._**
 
 -----------
 
-The following npm packages may be included in this product:
+The following npm package may be included in this product:
 
- - glob@11.1.0
- - package-json-from-dist@1.0.1
+ - glob@13.0.6
 
-These packages each contain the following license:
+This package contains the following license:
 
 All packages under `src/` are licensed according to the terms in
 their respective `LICENSE` or `LICENSE.md` files.
@@ -492,7 +490,7 @@ software or this license, under any kind of legal claim.***
 
 The following npm package may be included in this product:
 
- - ws@8.20.0
+ - ws@8.20.1
 
 This package contains the following license:
 
@@ -521,7 +519,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 The following npm package may be included in this product:
 
- - ipaddr.js@2.3.0
+ - ipaddr.js@2.4.0
 
 This package contains the following license:
 
@@ -549,15 +547,13 @@ THE SOFTWARE.
 
 The following npm package may be included in this product:
 
- - fast-uri@3.1.0
+ - fast-uri@3.1.2
 
 This package contains the following license:
 
 Copyright (c) 2011-2021, Gary Court until https://github.com/garycourt/uri-js/commit/a1acf730b4bba3f1097c9f52e7d9d3aba8cdcaae
-Copyright (c) 2021-present The Fastify team
+Copyright (c) 2021-present The Fastify team <https://github.com/fastify/fastify#team>
 All rights reserved.
-
-The Fastify team members are listed at https://github.com/fastify/fastify#team.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -783,7 +779,7 @@ IN THE SOFTWARE.
 
 The following npm package may be included in this product:
 
- - yaml@2.8.3
+ - yaml@2.9.0
 
 This package contains the following license:
 
@@ -1052,16 +1048,14 @@ SOFTWARE.
 
 The following npm package may be included in this product:
 
- - fast-json-stringify@6.3.0
+ - fast-json-stringify@6.4.0
 
 This package contains the following license:
 
 MIT License
 
 Copyright (c) 2016-present Matteo Collina
-Copyright (c) 2016-present The Fastify team
-
-The Fastify team members are listed at https://github.com/fastify/fastify#team.
+Copyright (c) 2016-present The Fastify team <https://github.com/fastify/fastify#team>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -1176,7 +1170,7 @@ SOFTWARE.
 
 The following npm package may be included in this product:
 
- - find-my-way@9.5.0
+ - find-my-way@9.6.0
 
 This package contains the following license:
 
@@ -1206,7 +1200,6 @@ SOFTWARE.
 
 The following npm packages may be included in this product:
 
- - @fastify/static@8.3.0
  - @fastify/websocket@11.2.0
  - fastify-plugin@5.1.0
 
@@ -1217,6 +1210,36 @@ MIT License
 Copyright (c) 2017-present The Fastify team
 
 The Fastify team members are listed at https://github.com/fastify/fastify#team.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+-----------
+
+The following npm package may be included in this product:
+
+ - @fastify/static@9.1.3
+
+This package contains the following license:
+
+MIT License
+
+Copyright (c) 2017-present The Fastify team <https://github.com/fastify/fastify#team>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -1363,7 +1386,7 @@ SOFTWARE.
 The following npm packages may be included in this product:
 
  - on-exit-leak-free@2.1.2
- - thread-stream@4.0.0
+ - thread-stream@4.2.0
 
 These packages each contain the following license:
 
@@ -1636,24 +1659,6 @@ SOFTWARE.
 
 The following npm package may be included in this product:
 
- - shebang-command@2.0.0
-
-This package contains the following license:
-
-MIT License
-
-Copyright (c) Kevin Mårtensson <kevinmartensson@gmail.com> (github.com/kevva)
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
------------
-
-The following npm package may be included in this product:
-
  - @lukeed/ms@2.0.2
 
 This package contains the following license:
@@ -1697,28 +1702,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 -----------
 
-The following npm packages may be included in this product:
-
- - path-key@3.1.1
- - shebang-regex@3.0.0
-
-These packages each contain the following license:
-
-MIT License
-
-Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
------------
-
 The following npm package may be included in this product:
 
- - brace-expansion@5.0.5
+ - brace-expansion@5.0.6
 
 This package contains the following license:
 
@@ -1862,127 +1848,6 @@ IN THE SOFTWARE.
 
 The following npm package may be included in this product:
 
- - @isaacs/cliui@9.0.0
-
-This package contains the following license:
-
-Several modules are vendored under `./src`, which are used and
-distributed according to their respective licenses, each provided
-in the same directory as the code.
-
-Everything else is released under the following license.
-
-----
-
-# Blue Oak Model License
-
-Version 1.0.0
-
-## Purpose
-
-This license gives everyone as much permission to work with
-this software as possible, while protecting contributors
-from liability.
-
-## Acceptance
-
-In order to receive this license, you must agree to its
-rules. The rules of this license are both obligations
-under that agreement and conditions to your license.
-You must not do anything with this software that triggers
-a rule that you cannot or will not follow.
-
-## Copyright
-
-Each contributor licenses you to do everything with this
-software that would otherwise infringe that contributor's
-copyright in it.
-
-## Notices
-
-You must ensure that everyone who gets a copy of
-any part of this software from you, with or without
-changes, also gets the text of this license or a link to
-<https://blueoakcouncil.org/license/1.0.0>.
-
-## Excuse
-
-If anyone notifies you in writing that you have not
-complied with [Notices](#notices), you can keep your
-license by taking all practical steps to comply within 30
-days after the notice. If you do not do so, your license
-ends immediately.
-
-## Patent
-
-Each contributor licenses you to do everything with this
-software that would otherwise infringe any patent claims
-they can license or become able to license.
-
-## Reliability
-
-No contributor can revoke this license.
-
-## No Liability
-
-**_As far as the law allows, this software comes as is,
-without any warranty or condition, and no contributor
-will be liable to anyone for any damages related to this
-software or this license, under any kind of legal claim._**
-
------------
-
-The following npm package may be included in this product:
-
- - signal-exit@4.1.0
-
-This package contains the following license:
-
-The ISC License
-
-Copyright (c) 2015-2023 Benjamin Coe, Isaac Z. Schlueter, and Contributors
-
-Permission to use, copy, modify, and/or distribute this software
-for any purpose with or without fee is hereby granted, provided
-that the above copyright notice and this permission notice
-appear in all copies.
-
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
-WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES
-OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE
-LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES
-OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
-WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
-ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-
------------
-
-The following npm package may be included in this product:
-
- - foreground-child@3.3.1
-
-This package contains the following license:
-
-The ISC License
-
-Copyright (c) 2015-2023 Isaac Z. Schlueter and Contributors
-
-Permission to use, copy, modify, and/or distribute this software for any
-purpose with or without fee is hereby granted, provided that the above
-copyright notice and this permission notice appear in all copies.
-
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
-WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
-ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
-ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR
-IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-
------------
-
-The following npm package may be included in this product:
-
  - inherits@2.0.4
 
 This package contains the following license:
@@ -2007,10 +1872,8 @@ PERFORMANCE OF THIS SOFTWARE.
 
 The following npm packages may be included in this product:
 
- - isexe@2.0.0
  - once@1.4.0
- - semver@7.7.4
- - which@2.0.2
+ - semver@7.8.0
  - wrappy@1.0.2
 
 These packages each contain the following license:
@@ -2335,41 +2198,12 @@ SOFTWARE.
 
 -----------
 
-The following npm package may be included in this product:
-
- - cross-spawn@7.0.6
-
-This package contains the following license:
-
-The MIT License (MIT)
-
-Copyright (c) 2018 Made With MOXY Lda <hello@moxy.studio>
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-
------------
-
-The following npm package may be included in this product:
+The following npm packages may be included in this product:
 
  - real-require@0.2.0
+ - real-require@1.0.0
 
-This package contains the following license:
+These packages each contain the following license:
 
 The MIT License (MIT)
 
