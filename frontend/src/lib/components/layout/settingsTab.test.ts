@@ -73,6 +73,30 @@ test('SettingsView.svelte preserves existing settings control wiring across all 
   assert.match(source, /versionStatusStore\.snapshot/);
 });
 
+test('SettingsView and shared settings surfaces use restrained solid radii', async () => {
+  const source = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
+  const calloutSource = await readFile(
+    new URL('../shared/callout/callout.svelte', import.meta.url),
+    'utf8',
+  );
+  const optionCardSource = await readFile(
+    new URL('../shared/option-card/option-card.svelte', import.meta.url),
+    'utf8',
+  );
+
+  assert.match(source, /items-center gap-3 rounded-md border px-4 py-3 text-left/);
+  assert.match(source, /rounded-md border border-border bg-secondary\/50 p-4/);
+  assert.match(source, /divide-y divide-border overflow-hidden rounded-md border border-border bg-secondary\/50/);
+  assert.match(source, /rounded-sm border border-border bg-background px-3 py-2/);
+
+  assert.match(calloutSource, /rounded-sm border px-4 py-3 text-sm/);
+  assert.match(optionCardSource, /rounded-md border-2 bg-card p-4/);
+  assert.match(optionCardSource, /rounded-md bg-background p-3 transition-colors/);
+  assert.equal(optionCardSource.includes('rounded-xl'), false);
+  assert.equal(optionCardSource.includes('rounded-full'), false);
+  assert.equal(optionCardSource.includes('group-hover:scale'), false);
+});
+
 test('ActivityBar.svelte wires settings via tabStore.openSettings and does not toggle a settings overlay', async () => {
   const source = await readFile(new URL('./ActivityBar.svelte', import.meta.url), 'utf8');
 

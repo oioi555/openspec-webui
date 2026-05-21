@@ -115,7 +115,7 @@ test('each Dashboard Active Changes item wires onclick to openActiveChange with 
 
   // The sortedActiveChanges loop should produce a clickable button that
   // calls openActiveChange(change.name)
-  assert.match(source, /\{#each sortedActiveChanges as change\}/);
+  assert.match(source, /\{#each sortedActiveChanges as change(?:, i)?\}/);
 
   // The primary summary button should call openActiveChange
   assert.match(
@@ -133,15 +133,20 @@ test('each Dashboard Active Changes item wires onclick to openActiveChange with 
 });
 
 // ---------------------------------------------------------------------------
-// 3. Active Changes row preserves InteractiveCard hover lift
+// 3. Active Changes rows use bounded solid task-card treatment
 // ---------------------------------------------------------------------------
 
-test('Active Changes InteractiveCard retains the standard hover-lift transform', async () => {
+test('Active Changes rows use bounded solid task-card styling instead of hover lift', async () => {
   const source = await dashboardSource;
 
-  // InteractiveCard base class includes hover:-translate-y-0.5 for a subtle
-  // lift on hover. The Active Changes items should NOT suppress this with
-  // a local hover:translate-y-0 override.
+  assert.match(
+    source,
+    /<div class="flex flex-col gap-2 p-4">/,
+    'Active Changes list should keep item spacing so compound Next Step rows remain legible',
+  );
+
+  // Active Changes are compound task items, so each item keeps a subtle
+  // bounded surface while avoiding large-radius floating-card styling.
   const eachBlock = source.match(
     /\{#each sortedActiveChanges as change\}([\s\S]*?)\{\/each\}/,
   );
@@ -152,23 +157,30 @@ test('Active Changes InteractiveCard retains the standard hover-lift transform',
   const cardMatch = loopBody.match(/<InteractiveCard[^>]*>/);
   assert.ok(cardMatch, 'Should find an InteractiveCard inside the loop');
 
-  // The card must NOT include hover:translate-y-0 which would cancel the
-  // base hover:-translate-y-0.5 lift from InteractiveCard.
-  assert.doesNotMatch(
-    cardMatch[0],
-    /hover:translate-y-0\b/,
-    'Active Changes InteractiveCard must not override the hover lift with hover:translate-y-0',
+  assert.match(cardMatch[0], /radius="sm"/);
+  assert.match(cardMatch[0], /bg-background\/60 shadow-none p-0/);
+
+  assert.match(
+    loopBody,
+    /class="cursor-pointer border-t border-border\/40 bg-secondary\/20 px-5 py-2\.5"/,
+    'Next Step sub-row should use a weaker internal separator and subtle background',
   );
 
-  // Confirm InteractiveCard base still provides the lift
+  // InteractiveCard still preserves lift for outer card-tone surfaces, while
+  // inset rows use grounded border/background hover treatment.
   const interactiveSource = await readFile(
     new URL('../components/shared/surface/interactive-card.svelte', import.meta.url),
     'utf8',
   );
   assert.match(
     interactiveSource,
-    /hover:-translate-y-0\.5/,
-    'InteractiveCard base must still define the hover-lift',
+    /tone === 'card' && 'hover:-translate-y-0\.5 hover:border-primary\/40 hover:shadow-md'/,
+    'card-tone InteractiveCard should keep the calmer outer-card hover lift',
+  );
+  assert.match(
+    interactiveSource,
+    /tone === 'inset' && 'hover:border-primary\/40'/,
+    'inset InteractiveCard should use border hover instead of lift',
   );
 });
 
@@ -180,7 +192,7 @@ test('Next Step command row container itself opens the change via openActiveChan
   const source = await dashboardSource;
 
   const eachBlock = source.match(
-    /\{#each sortedActiveChanges as change\}([\s\S]*?)\{\/each\}/,
+    /\{#each sortedActiveChanges as change(?:, i)?\}([\s\S]*?)\{\/each\}/,
   );
   assert.ok(eachBlock, 'Should find the sortedActiveChanges each block');
   const loopBody = eachBlock[1];
@@ -259,7 +271,7 @@ test('command chips stop click propagation so clicking a chip does not open the 
   const commandSource = await commandBarSource;
 
   const eachBlock = source.match(
-    /\{#each sortedActiveChanges as change\}([\s\S]*?)\{\/each\}/,
+    /\{#each sortedActiveChanges as change(?:, i)?\}([\s\S]*?)\{\/each\}/,
   );
   assert.ok(eachBlock, 'Should find the sortedActiveChanges each block');
   const loopBody = eachBlock[1];
@@ -297,7 +309,7 @@ test('Dashboard command row keeps the summary button and command chips as separa
   const source = await dashboardSource;
 
   const eachBlock = source.match(
-    /\{#each sortedActiveChanges as change\}([\s\S]*?)\{\/each\}/,
+    /\{#each sortedActiveChanges as change(?:, i)?\}([\s\S]*?)\{\/each\}/,
   );
   assert.ok(eachBlock, 'Should find the sortedActiveChanges each block');
   const loopBody = eachBlock[1];
@@ -350,6 +362,31 @@ test('CommandChip component renders a button with type="button" default (not sub
   assert.match(chipSource, /\{type\}/);
 });
 
+test('shared dense-surface primitives use restrained radii', async () => {
+  const cardSource = await readFile(
+    new URL('../components/ui/card/card.svelte', import.meta.url),
+    'utf8',
+  );
+  const badgeSource = await readFile(
+    new URL('../components/ui/badge/badge.svelte', import.meta.url),
+    'utf8',
+  );
+  const iconBoxSource = await readFile(
+    new URL('../components/shared/icon-box/icon-box.svelte', import.meta.url),
+    'utf8',
+  );
+  const insetPanelSource = await readFile(
+    new URL('../components/shared/surface/inset-panel.svelte', import.meta.url),
+    'utf8',
+  );
+
+  assert.match(cardSource, /rounded-lg border py-6 shadow/);
+  assert.equal(cardSource.includes('rounded-xl border py-6 shadow'), false);
+  assert.match(badgeSource, /rounded-sm border px-2\.5 py-0\.5/);
+  assert.match(iconBoxSource, /lg: 'h-9 w-9 rounded-md'/);
+  assert.match(insetPanelSource, /'rounded-md border px-4 py-4'/);
+});
+
 test('Dashboard active-change items derive validation status icon using deriveValidationListIconState', async () => {
   const source = await dashboardSource;
 
@@ -377,7 +414,7 @@ test('Dashboard active-change items derive validation status icon using deriveVa
 test('Dashboard active-change validation icon appears in title row after creation badges', async () => {
   const source = await dashboardSource;
   const eachBlock = source.match(
-    /\{#each sortedActiveChanges as change\}([\s\S]*?)\{\/each\}/,
+    /\{#each sortedActiveChanges as change(?:, i)?\}([\s\S]*?)\{\/each\}/,
   );
   assert.ok(eachBlock, 'Should find the sortedActiveChanges each block');
   const loopBody = eachBlock[1];
@@ -402,7 +439,7 @@ test('Dashboard active-change validation icon appears in title row after creatio
 test('Dashboard active-change title row places the Other N badge after Design when meaningful other files exist', async () => {
   const source = await dashboardSource;
   const eachBlock = source.match(
-    /\{#each sortedActiveChanges as change\}([\s\S]*?)\{\/each\}/,
+    /\{#each sortedActiveChanges as change(?:, i)?\}([\s\S]*?)\{\/each\}/,
   );
   assert.ok(eachBlock, 'Should find the sortedActiveChanges each block');
   const loopBody = eachBlock[1];
@@ -429,7 +466,7 @@ test('Dashboard active-change title row places the Other N badge after Design wh
 test('Dashboard only renders the Other N badge when otherFileCount is greater than zero', async () => {
   const source = await dashboardSource;
   const eachBlock = source.match(
-    /\{#each sortedActiveChanges as change\}([\s\S]*?)\{\/each\}/,
+    /\{#each sortedActiveChanges as change(?:, i)?\}([\s\S]*?)\{\/each\}/,
   );
   assert.ok(eachBlock, 'Should find the sortedActiveChanges each block');
   const loopBody = eachBlock[1];
@@ -449,7 +486,7 @@ test('Dashboard only renders the Other N badge when otherFileCount is greater th
 test('Dashboard active-change rows do not render trailing arrow icons', async () => {
   const source = await dashboardSource;
   const eachBlock = source.match(
-    /\{#each sortedActiveChanges as change\}([\s\S]*?)\{\/each\}/,
+    /\{#each sortedActiveChanges as change(?:, i)?\}([\s\S]*?)\{\/each\}/,
   );
   assert.ok(eachBlock, 'Should find the sortedActiveChanges each block');
 
@@ -463,7 +500,7 @@ test('Dashboard active-change rows do not render trailing arrow icons', async ()
 test('Dashboard active-change progress area is right-aligned after arrow removal', async () => {
   const source = await dashboardSource;
   const eachBlock = source.match(
-    /\{#each sortedActiveChanges as change\}([\s\S]*?)\{\/each\}/,
+    /\{#each sortedActiveChanges as change(?:, i)?\}([\s\S]*?)\{\/each\}/,
   );
   assert.ok(eachBlock, 'Should find the sortedActiveChanges each block');
   const loopBody = eachBlock[1];
@@ -548,4 +585,18 @@ test('Dashboard recent activity rows remain clickable and expose context-menu op
     /<ArrowRight\b/,
     'Recent Activity click affordance should not depend on a trailing arrow',
   );
+});
+
+test('Dashboard recent activity items use restrained tiles without floating-card shadow', async () => {
+  const source = await dashboardSource;
+  const eachBlock = source.match(
+    /\{#each sortedRecentActivity as item\}([\s\S]*?)\{\/each\}/,
+  );
+  assert.ok(eachBlock, 'Should find the sortedRecentActivity each block');
+  const loopBody = eachBlock[1];
+
+  const cardMatch = loopBody.match(/<InteractiveCard[^>]*>/);
+  assert.ok(cardMatch, 'Should find an InteractiveCard inside the recent activity loop');
+  assert.match(cardMatch[0], /radius="sm"/);
+  assert.match(cardMatch[0], /shadow-none/);
 });

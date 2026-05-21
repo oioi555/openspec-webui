@@ -1,0 +1,68 @@
+{
+  "changeId": "reduce-ui-radius-for-solid-surfaces",
+  "revisions": [
+    {
+      "id": "rev-4e10bb5b",
+      "description": "Adjusted Dashboard Active Changes from fully flush rows to a bounded solid task-card stack so the internal Next Step separator remains distinguishable from item boundaries.",
+      "reason": "Active Changes items are compound rows with a secondary Next Step action band; removing item spacing made internal and external separators visually ambiguous and inconsistent with Recent Activity.",
+      "author": "AI",
+      "createdAt": "2026-05-21T16:07:41.288Z",
+      "metadata": {
+        "type": "behavior",
+        "affectedAPI": "Dashboard UI",
+        "affectedField": "Active Changes list layout",
+        "updateTarget": [
+          "design",
+          "specs",
+          "delta-specs"
+        ],
+        "source": {
+          "file": "frontend/src/lib/views/Dashboard.svelte",
+          "function": "Dashboard Active Changes markup"
+        }
+      }
+    },
+    {
+      "id": "rev-90de11aa",
+      "description": "Extended the solid surface radius treatment to Callout, OptionCard, and SettingsView inner settings surfaces.",
+      "reason": "Callouts and settings controls still used large nested radii and playful icon/scale treatments that conflicted with the reduced-radius dashboard direction.",
+      "author": "AI",
+      "createdAt": "2026-05-21T17:12:32.463Z",
+      "metadata": {
+        "type": "internal",
+        "affectedAPI": "Settings UI",
+        "affectedField": "Callout and settings surface radii",
+        "updateTarget": [
+          "design",
+          "specs",
+          "delta-specs"
+        ],
+        "source": {
+          "file": "frontend/src/lib/components/layout/SettingsView.svelte",
+          "function": "SettingsView markup and shared settings surfaces"
+        }
+      }
+    },
+    {
+      "id": "rev-ac48e70d",
+      "description": "Aligned the base Card default radius with the reduced-radius hierarchy by changing its default from extra-large to restrained outer-shell radius.",
+      "reason": "Reviewer noted that although SurfaceCard and InteractiveCard override radius today, D4 requires shared primitives to encode the solid surface direction for future direct Card usage.",
+      "author": "AI",
+      "createdAt": "2026-05-21T21:24:33.436Z",
+      "metadata": {
+        "type": "internal",
+        "affectedAPI": "Shared UI primitives",
+        "affectedField": "Card root default radius",
+        "updateTarget": [
+          "design",
+          "specs",
+          "delta-specs"
+        ],
+        "source": {
+          "file": "frontend/src/lib/components/ui/card/card.svelte",
+          "function": "Card root class"
+        }
+      }
+    }
+  ]
+}

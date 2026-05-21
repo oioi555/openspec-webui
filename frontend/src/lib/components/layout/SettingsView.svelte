@@ -268,7 +268,7 @@
         {@const SectionIcon = section.icon}
         <button
           type="button"
-          class={`flex shrink-0 items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors ${activeSection === section.id
+          class={`flex shrink-0 items-center gap-3 rounded-md border px-4 py-3 text-left transition-colors ${activeSection === section.id
             ? 'border-primary bg-primary/10 text-foreground'
             : 'border-transparent bg-secondary/50 text-card-foreground hover:border-primary/20 hover:bg-primary/5 hover:text-foreground'}`}
           aria-current={activeSection === section.id ? 'page' : undefined}
@@ -366,7 +366,7 @@
           <p class="mt-1 text-sm text-muted-foreground">{t(m.settings_explorer_description)}</p>
         </div>
 
-        <label class="flex items-start justify-between gap-4 rounded-lg border border-border bg-secondary/50 p-4 text-sm text-card-foreground">
+        <label class="flex items-start justify-between gap-4 rounded-md border border-border bg-secondary/50 p-4 text-sm text-card-foreground">
           <div>
             <div class="font-medium text-foreground">{FIXED_LABELS.settings.enablePreviewTabs}</div>
             <div class="mt-1 text-muted-foreground">{t(m.settings_enable_preview_tabs_description)}</div>
@@ -484,7 +484,7 @@
             <p class="mt-1 text-sm text-muted-foreground">{t(m.settings_core_commands_description)}</p>
           </div>
 
-          <div class="divide-y divide-border overflow-hidden rounded-lg border border-border bg-secondary/50">
+          <div class="divide-y divide-border overflow-hidden rounded-md border border-border bg-secondary/50">
             {#each CORE_COMMANDS as command}
               <label class="flex items-center justify-between gap-4 px-4 py-3 text-sm">
                 <div>
@@ -519,7 +519,7 @@
             <p class="mt-1 text-sm text-muted-foreground">{t(m.settings_expanded_commands_description)}</p>
           </div>
 
-          <div class="divide-y divide-border overflow-hidden rounded-lg border border-border bg-secondary/50">
+          <div class="divide-y divide-border overflow-hidden rounded-md border border-border bg-secondary/50">
             {#each EXPANDED_COMMANDS as command}
               {@const isAvailable = isExpandedCommandAvailable(command, commandPreferencesStore.availability)}
               <label class="flex items-center justify-between gap-4 px-4 py-3 text-sm">
@@ -559,7 +559,7 @@
       </SectionHeader>
 
       <div class="space-y-4 p-4">
-        <div class="divide-y divide-border overflow-hidden rounded-lg border border-border bg-secondary/50">
+        <div class="divide-y divide-border overflow-hidden rounded-md border border-border bg-secondary/50">
           <label class="flex items-start justify-between gap-4 px-4 py-3 text-sm text-card-foreground">
             <div>
               <div class="font-medium text-foreground">{t(m.validation_strict)}</div>
@@ -623,7 +623,7 @@
         <Callout variant="info">
           <div class="space-y-1 text-sm">
             <div class="font-medium text-foreground">{t(m.settings_validation_command_preview)}</div>
-            <code class="block overflow-x-auto rounded bg-background px-3 py-2 text-xs text-primary">{validationCommandPreview}</code>
+            <code class="block overflow-x-auto rounded-sm bg-background px-3 py-2 text-xs text-primary">{validationCommandPreview}</code>
           </div>
         </Callout>
       </div>
@@ -724,7 +724,7 @@
 
               <div>
                 <div class="text-xs uppercase tracking-wide text-muted-foreground">{FIXED_LABELS.settings.versions.updateCommand}</div>
-                <div class="mt-1 flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2">
+                <div class="mt-1 flex items-center gap-2 rounded-sm border border-border bg-background px-3 py-2">
                   <code class="min-w-0 flex-1 overflow-x-auto text-xs text-primary">{getUpdateCommand(tool.id)}</code>
                   <Button
                     variant="ghost"
@@ -749,7 +749,7 @@
 
           <div>
             <div class="text-xs uppercase tracking-wide text-muted-foreground">{FIXED_LABELS.settings.versions.projectCommand}</div>
-            <div class="mt-1 flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2">
+            <div class="mt-1 flex items-center gap-2 rounded-sm border border-border bg-background px-3 py-2">
               <code class="min-w-0 flex-1 overflow-x-auto text-xs text-primary">{UPDATE_COMMANDS.project}</code>
               <Button
                 variant="ghost"

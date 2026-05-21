@@ -24,7 +24,7 @@
 <div
   {...restProps}
   role="note"
-  class={cn('rounded-lg border px-4 py-3 text-sm', variantClasses[variant], className)}
+  class={cn('rounded-sm border px-4 py-3 text-sm', variantClasses[variant], className)}
 >
   {@render children?.()}
 </div>

@@ -409,7 +409,7 @@
               onOpenInNewTab: () => openActiveChange(change.name),
             })}
           >
-            <InteractiveCard tone="inset" class="overflow-hidden p-0">
+            <InteractiveCard tone="inset" radius="sm" class="overflow-hidden bg-background/60 shadow-none p-0">
               <button
                 type="button"
                 class="group w-full px-4 py-3 text-left"
@@ -463,7 +463,7 @@
 
               {#if changeCommands.length > 0}
                 <div
-                  class="cursor-pointer border-t border-border/60 px-5 py-3"
+                  class="cursor-pointer border-t border-border/40 bg-secondary/20 px-5 py-2.5"
                   role="button"
                   tabindex="0"
                   onclick={() => openActiveChange(change.name)}
@@ -522,7 +522,7 @@
                   },
             )}
           >
-            <InteractiveCard tone="inset" class="overflow-hidden p-0 {item.kind === 'archived-change' ? 'bg-muted/20' : ''}">
+            <InteractiveCard tone="inset" radius="sm" class="overflow-hidden shadow-none p-0 {item.kind === 'archived-change' ? 'bg-muted/20' : ''}">
               <button
                 type="button"
                 class="group flex w-full items-center gap-3 px-4 py-3 text-left"

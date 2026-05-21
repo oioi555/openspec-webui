@@ -17,7 +17,7 @@
   const boxSizeClasses: Record<Size, string> = {
     sm: 'h-6 w-6 rounded-sm',
     md: 'h-8 w-8 rounded-md',
-    lg: 'h-9 w-9 rounded-lg',
+    lg: 'h-9 w-9 rounded-md',
   };
 
   const iconSizeClasses: Record<Size, string> = {

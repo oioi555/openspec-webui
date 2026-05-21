@@ -16,7 +16,7 @@
   {...restProps}
   data-slot="inset-panel"
   class={cn(
-    'rounded-lg border px-4 py-4',
+    'rounded-md border px-4 py-4',
     dashed ? 'border-dashed border-border/80 bg-background/40' : 'border-border/70 bg-background/70',
     className,
   )}

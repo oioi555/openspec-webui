@@ -4,7 +4,7 @@
   import { cn } from '$lib/utils';
 
   type Tone = 'card' | 'inset';
-  type Radius = 'lg' | 'xl';
+  type Radius = 'none' | 'sm' | 'lg' | 'xl';
 
   interface Props {
     tone?: Tone;
@@ -20,13 +20,15 @@
   };
 
   const radiusClasses: Record<Radius, string> = {
+    none: 'rounded-none',
+    sm: 'rounded-sm',
     lg: 'rounded-lg',
     xl: 'rounded-xl',
   };
 
   let {
     tone = 'inset',
-    radius = 'xl',
+    radius = 'lg',
     class: className = '',
     children,
     ...restProps
@@ -37,7 +39,9 @@
   {...restProps}
   data-slot="interactive-card"
   class={cn(
-    'gap-0 border py-0 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md',
+    'gap-0 border py-0 shadow-sm transition-all',
+    tone === 'card' && 'hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md',
+    tone === 'inset' && 'hover:border-primary/40',
     toneClasses[tone],
     radiusClasses[radius],
     tone === 'inset' && 'hover:bg-secondary/40',
