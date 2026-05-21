@@ -75,7 +75,7 @@
     <ValidationExplorerSection {onItemSelected} />
   {:else}
     <ScrollArea.Root class="min-h-0 flex-1" viewportClass="h-full">
-      <div class="space-y-4 p-3">
+      <div class="divide-y divide-border/70">
         <ActiveChangesExplorerSection
           changes={activeChanges.value}
           {onItemSelected}

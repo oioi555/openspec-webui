@@ -27,6 +27,40 @@ test('ExplorerPane renders ValidationExplorerSection when validate preset is act
   assert.match(source, /layoutStore\.activityPreset === 'validate'/);
 });
 
+test('ExplorerPane default sections use a flush list wrapper without card-stack padding', async () => {
+  const source = await readFile(new URL('./ExplorerPane.svelte', import.meta.url), 'utf8');
+
+  assert.match(source, /<div class="divide-y divide-border\/70">/);
+  assert.doesNotMatch(source, /space-y-4 p-3/);
+  assert.match(source, /<ActiveChangesExplorerSection/);
+  assert.match(source, /<ArchiveExplorerSection/);
+  assert.match(source, /<SpecsExplorerSection/);
+});
+
+test('ExplorerSection uses flush headers, preserves collapse wiring, and frames empty states without card chrome', async () => {
+  const sectionSource = await readFile(new URL('../shared/explorer-section/explorer-section.svelte', import.meta.url), 'utf8');
+  const itemSource = await readFile(new URL('../shared/explorer-section/explorer-section-item.svelte', import.meta.url), 'utf8');
+  const activeChangesSource = await readFile(new URL('../shared/explorer-section/active-changes-explorer-section.svelte', import.meta.url), 'utf8');
+  const archiveSource = await readFile(new URL('../shared/explorer-section/archive-explorer-section.svelte', import.meta.url), 'utf8');
+  const specsSource = await readFile(new URL('../shared/explorer-section/specs-explorer-section.svelte', import.meta.url), 'utf8');
+
+  assert.doesNotMatch(sectionSource, /rounded-lg border border-border\/70 bg-card/);
+  assert.doesNotMatch(sectionSource, /ring-1 ring-ring\/40/);
+  assert.match(sectionSource, /class=\{cn\('bg-card', className\)\}/);
+  assert.match(sectionSource, /open && 'border-b border-border\/70'/);
+  assert.match(sectionSource, /focused && 'bg-primary\/5'/);
+  assert.match(sectionSource, /focused && 'bg-primary'\s*\)\s*}\s*><\/div>/);
+  assert.match(sectionSource, /onOpenChange=\{handleToggle\}/);
+  assert.match(sectionSource, /layoutStore\.focusSection\(section\)/);
+  assert.match(sectionSource, /layoutStore\.setSectionCollapsed\(section, true\)/);
+  assert.match(sectionSource, /border-b border-dashed border-border\/50 bg-secondary\/10/);
+  assert.match(itemSource, /const isActive = \$derived\(tabStore\.activeTab\?\.path === path\);/);
+  assert.match(itemSource, /active=\{isActive\}/);
+  assert.match(activeChangesSource, /class=\{index === sortedChanges\.length - 1 \? 'border-b-0' : ''\}/);
+  assert.match(archiveSource, /class=\{index === sortedChanges\.length - 1 \? 'border-b-0' : ''\}/);
+  assert.match(specsSource, /class=\{index === sortedSpecs\.length - 1 \? 'border-b-0' : ''\}/);
+});
+
 test('Dashboard renders a validation summary card in the five-card top grid and opens the validate preset', async () => {
   const source = await readFile(new URL('../../views/Dashboard.svelte', import.meta.url), 'utf8');
 

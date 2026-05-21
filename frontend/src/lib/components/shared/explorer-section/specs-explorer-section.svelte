@@ -60,13 +60,14 @@
   {headerExtra}
   emptyMessage={m.explorer_no_specs_found()}
 >
-  {#each sortedSpecs as spec}
+  {#each sortedSpecs as spec, index}
     {@const specPath = `/specs/${encodeURIComponent(spec.name)}`}
     <ExplorerSectionItem
       path={specPath}
       section="specs"
       kind="spec"
       {onItemSelected}
+      class={index === sortedSpecs.length - 1 ? 'border-b-0' : ''}
       name={spec.name}
       date={spec.lastModified ? formatDate(spec.lastModified) : null}
       validationStatus={validationStatusForSpec(spec.name)}

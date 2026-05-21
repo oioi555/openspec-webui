@@ -55,13 +55,14 @@
   {headerExtra}
   emptyMessage={m.explorer_no_archived_changes()}
 >
-  {#each sortedChanges as change}
+  {#each sortedChanges as change, index}
     {@const changePath = `/changes/${encodeURIComponent(change.name)}`}
     <ExplorerSectionItem
       path={changePath}
       section="archive"
       kind="archived-change"
       {onItemSelected}
+      class={index === sortedChanges.length - 1 ? 'border-b-0' : ''}
       name={change.name}
       displayName={formatChangeName(change.name)}
       date={change.lastModified ? formatDate(change.lastModified) : null}

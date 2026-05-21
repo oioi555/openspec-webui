@@ -102,10 +102,25 @@
   {...restProps}
   {open}
   onOpenChange={handleToggle}
-  class={cn('overflow-hidden rounded-lg border border-border/70 bg-card', focused && 'ring-1 ring-ring/40', className)}
+  class={cn('bg-card', className)}
 >
-  <div bind:this={headerRef} class="border-b border-border/70 bg-secondary/40 px-1 py-1 transition-colors hover:bg-secondary/70 scroll-mt-3">
-    <div class="flex items-center gap-2 px-1 py-1">
+  <div
+    bind:this={headerRef}
+    class={cn(
+      'relative scroll-mt-3 bg-secondary/30 px-3 py-2 transition-colors hover:bg-secondary/50',
+      open && 'border-b border-border/70',
+      focused && 'bg-primary/5'
+    )}
+  >
+    <div
+      aria-hidden="true"
+      class={cn(
+        'absolute inset-y-2 left-0 w-0.5 rounded-full bg-transparent transition-colors',
+        focused && 'bg-primary'
+      )}
+    ></div>
+
+    <div class="flex items-center gap-2">
       <Collapsible.Trigger class="flex min-w-0 flex-1 items-center gap-1.5 text-left">
         {#if icon}
           {@const Icon = icon}
@@ -149,7 +164,9 @@
 
   <Collapsible.Content class="bg-card">
     {#if count === 0 && emptyMessage}
-      <EmptyState message={emptyMessage} icon={resolvedEmptyIcon} class="px-3 py-6" />
+      <div class="border-b border-dashed border-border/50 bg-secondary/10">
+        <EmptyState message={emptyMessage} icon={resolvedEmptyIcon} class="px-4 py-6" />
+      </div>
     {:else}
       {@render children?.()}
     {/if}

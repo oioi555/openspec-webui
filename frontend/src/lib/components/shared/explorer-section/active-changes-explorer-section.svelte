@@ -49,13 +49,14 @@
   {headerExtra}
   emptyMessage={m.explorer_no_active_changes()}
 >
-  {#each sortedChanges as change}
+  {#each sortedChanges as change, index}
     {@const changePath = `/changes/${encodeURIComponent(change.name)}`}
     <ExplorerSectionItem
       path={changePath}
       section="active-changes"
       kind="active-change"
       {onItemSelected}
+      class={index === sortedChanges.length - 1 ? 'border-b-0' : ''}
       name={change.name}
       date={change.lastModified ? formatDate(change.lastModified) : null}
       specDeltaCount={change.specDeltaCount}
