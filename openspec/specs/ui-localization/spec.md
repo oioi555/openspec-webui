@@ -1,4 +1,9 @@
-## ADDED Requirements
+# ui-localization Specification
+
+## Purpose
+Localization support for the OpenSpec WebUI interface.
+
+## Requirements
 
 ### Requirement: Localize project initialization guidance
 The system SHALL localize the empty-state onboarding guidance, the add-project dialog hint, the setup links, and the related initialization error text in every supported locale. Command names such as `openspec init` and fixed OpenSpec terms such as `Settings`, `Dashboard`, `Archive`, `Specs`, `Specification`, `Design`, and `Spec Deltas` SHALL remain in English so they continue to match command names and project structure. When a translation is unavailable in the active locale, the system SHALL fall back to the base locale.

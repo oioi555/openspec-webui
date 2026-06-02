@@ -1,4 +1,9 @@
-## MODIFIED Requirements
+# project-context Specification
+
+## Purpose
+Defines the web UI three-pane layout and project context behavior.
+
+## Requirements
 
 ### Requirement: Three-pane layout
 The web UI SHALL provide an Obsidian-like three-pane layout with Activity Bar, Explorer Pane, and Main Viewer. The Activity Bar SHALL be the leftmost pane and always visible. The Explorer Pane SHALL be resizable and collapsible. The Main Viewer SHALL fill the remaining space. The layout SHALL support responsive breakpoints: at narrow widths the Explorer Pane SHALL become a drawer overlay instead of a side panel. When an active project exists, the top-left area SHALL show the project name and a project selector dropdown. When no project is active, the Main Viewer SHALL show the empty state instead of the Dashboard. The Activity Bar bottom control SHALL toggle the Explorer Pane only when an active project exists.

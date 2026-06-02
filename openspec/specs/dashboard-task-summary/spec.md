@@ -1,5 +1,8 @@
 # dashboard-task-summary Specification
 
+## Purpose
+Displays task completion summary on the Dashboard.
+
 ## Requirements
 
 ### Requirement: Dashboard displays a task summary card
