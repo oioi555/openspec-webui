@@ -49,12 +49,12 @@ function createPreferences(options: {
     format: options.format ?? 'standard',
     commandVisibility,
     availability: createAvailability(
-      options.availableExpandedCommands ?? ['new', 'continue', 'ff', 'verify', 'sync', 'bulk-archive']
+      options.availableExpandedCommands ?? ['new', 'continue', 'ff', 'verify', 'bulk-archive']
     ),
   };
 }
 
-function createChangeSummary(done: number, total: number): ChangeSummary {
+function createChangeSummary(done: number, total: number, specDeltaCount = 0): ChangeSummary {
   return {
     name: `change-${done}-${total}`,
     path: `/changes/change-${done}-${total}`,
@@ -66,7 +66,7 @@ function createChangeSummary(done: number, total: number): ChangeSummary {
       total,
       percentage: total === 0 ? 0 : (done / total) * 100,
     },
-    specDeltaCount: 0,
+    specDeltaCount,
     hasProposal: true,
     hasDesign: false,
     fileCount: 0,
@@ -75,9 +75,10 @@ function createChangeSummary(done: number, total: number): ChangeSummary {
   };
 }
 
-function createChangeContext(done: number, total: number): ChangeCommandContext {
+function createChangeContext(done: number, total: number, specDeltaCount = 0): ChangeCommandContext {
   return {
     isArchived: false,
+    specDeltaCount,
     taskProgress: {
       done,
       total,
@@ -106,7 +107,9 @@ test('getChangeCommands returns representative change workflows', () => {
   const completedPreferences = createPreferences();
 
   assert.deepEqual(getChangeCommands(createChangeContext(1, 3), incompletePreferences), ['apply', 'continue', 'ff']);
-  assert.deepEqual(getChangeCommands(createChangeContext(3, 3), completedPreferences), ['archive', 'verify', 'sync']);
+  assert.deepEqual(getChangeCommands(createChangeContext(1, 3, 2), incompletePreferences), ['apply', 'continue', 'ff', 'sync']);
+  assert.deepEqual(getChangeCommands(createChangeContext(3, 3), completedPreferences), ['verify', 'archive']);
+  assert.deepEqual(getChangeCommands(createChangeContext(3, 3, 2), completedPreferences), ['verify', 'sync', 'archive']);
 });
 
 test('getChangeCommands respects visibility toggles', () => {
@@ -117,8 +120,8 @@ test('getChangeCommands respects visibility toggles', () => {
     hiddenCommands: ['archive', 'sync'],
   });
 
-  assert.deepEqual(getChangeCommands(createChangeContext(1, 3), incompletePreferences), ['apply', 'ff']);
-  assert.deepEqual(getChangeCommands(createChangeContext(3, 3), completedPreferences), ['verify']);
+  assert.deepEqual(getChangeCommands(createChangeContext(1, 3, 2), incompletePreferences), ['apply', 'ff', 'sync']);
+  assert.deepEqual(getChangeCommands(createChangeContext(3, 3, 2), completedPreferences), ['verify']);
 });
 
 test('getWorkspaceCommands respects visibility toggles', () => {

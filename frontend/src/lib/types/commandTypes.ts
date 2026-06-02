@@ -1,9 +1,9 @@
 export type CommandFormat = 'standard' | 'claude-code' | 'skill';
 
-export const CORE_COMMANDS = ['propose', 'explore', 'apply', 'archive'] as const;
+export const CORE_COMMANDS = ['propose', 'explore', 'apply', 'sync', 'archive'] as const;
 export type CoreCommand = (typeof CORE_COMMANDS)[number];
 
-export const EXPANDED_COMMANDS = ['new', 'continue', 'ff', 'verify', 'sync', 'bulk-archive'] as const;
+export const EXPANDED_COMMANDS = ['new', 'continue', 'ff', 'verify', 'bulk-archive'] as const;
 export type ExpandedCommand = (typeof EXPANDED_COMMANDS)[number];
 
 export const ALL_COMMANDS = [...CORE_COMMANDS, ...EXPANDED_COMMANDS] as const;
@@ -14,6 +14,7 @@ export const CORE_COMMAND_LABELS: Record<CoreCommand, string> = {
   explore: 'Explore',
   apply: 'Apply',
   archive: 'Archive',
+  sync: 'Sync',
 };
 
 export const EXPANDED_COMMAND_LABELS: Record<ExpandedCommand, string> = {
@@ -21,6 +22,5 @@ export const EXPANDED_COMMAND_LABELS: Record<ExpandedCommand, string> = {
   continue: 'Continue',
   ff: 'Fast Forward',
   verify: 'Verify',
-  sync: 'Sync',
   'bulk-archive': 'Bulk Archive',
 };

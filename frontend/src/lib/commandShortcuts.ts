@@ -28,6 +28,7 @@ export interface CommandPreferencesSnapshot {
 
 export interface ChangeCommandContext {
   isArchived: boolean;
+  specDeltaCount: number;
   taskProgress: TaskProgress;
 }
 
@@ -83,6 +84,14 @@ function hasCompleteTaskProgress(progress: TaskProgress): boolean {
   return progress.total > 0 && progress.done === progress.total;
 }
 
+function hasSpecDeltas(change: Change | ChangeSummary | ChangeCommandContext): boolean {
+  if ('specDeltaCount' in change) {
+    return change.specDeltaCount > 0;
+  }
+
+  return change.specDeltas.length > 0;
+}
+
 export function getWorkspaceCommands(
   activeChanges: ChangeSummary[],
   preferences: CommandPreferencesSnapshot
@@ -130,16 +139,16 @@ export function getChangeCommands(
   if (hasCompleteTaskProgress(change.taskProgress)) {
     const commands: WorkflowCommand[] = [];
 
-    if (isCommandEnabled(preferences, 'archive')) {
-      commands.push('archive');
-    }
-
     if (isCommandEnabled(preferences, 'verify')) {
       commands.push('verify');
     }
 
-    if (isCommandEnabled(preferences, 'sync')) {
+    if (hasSpecDeltas(change) && isCommandEnabled(preferences, 'sync')) {
       commands.push('sync');
+    }
+
+    if (isCommandEnabled(preferences, 'archive')) {
+      commands.push('archive');
     }
 
     return commands;
@@ -157,6 +166,10 @@ export function getChangeCommands(
 
   if (isCommandEnabled(preferences, 'ff')) {
     commands.push('ff');
+  }
+
+  if (hasSpecDeltas(change) && isCommandEnabled(preferences, 'sync')) {
+    commands.push('sync');
   }
 
   return commands;

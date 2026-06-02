@@ -73,6 +73,26 @@ test('SettingsView.svelte preserves existing settings control wiring across all 
   assert.match(source, /versionStatusStore\.snapshot/);
 });
 
+test('commandTypes.ts keeps sync in core commands and out of expanded commands', async () => {
+  const source = await readFile(new URL('../../types/commandTypes.ts', import.meta.url), 'utf8');
+
+  const coreCommandsBlock = source.match(/export const CORE_COMMANDS = \[(.*?)\] as const;/s);
+  const expandedCommandsBlock = source.match(/export const EXPANDED_COMMANDS = \[(.*?)\] as const;/s);
+  const coreLabelsBlock = source.match(/export const CORE_COMMAND_LABELS:[\s\S]*?};/);
+  const expandedLabelsBlock = source.match(/export const EXPANDED_COMMAND_LABELS:[\s\S]*?};/);
+
+  assert.ok(coreCommandsBlock, 'CORE_COMMANDS block should exist');
+  assert.ok(expandedCommandsBlock, 'EXPANDED_COMMANDS block should exist');
+  assert.ok(coreLabelsBlock, 'CORE_COMMAND_LABELS block should exist');
+  assert.ok(expandedLabelsBlock, 'EXPANDED_COMMAND_LABELS block should exist');
+
+  assert.match(coreCommandsBlock[1], /'sync'/);
+  assert.doesNotMatch(expandedCommandsBlock[1], /'sync'/);
+  assert.match(coreLabelsBlock[0], /sync:\s*'Sync'/);
+  assert.doesNotMatch(expandedLabelsBlock[0], /sync:\s*'Sync'/);
+  assert.match(coreCommandsBlock[1], /'propose',\s*'explore',\s*'apply',\s*'sync',\s*'archive'/);
+});
+
 test('SettingsView and shared settings surfaces use restrained solid radii', async () => {
   const source = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
   const calloutSource = await readFile(

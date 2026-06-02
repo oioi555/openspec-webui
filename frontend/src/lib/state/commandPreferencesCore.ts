@@ -1,13 +1,13 @@
 import {
   ALL_COMMANDS,
-  EXPANDED_COMMANDS,
   type CommandFormat,
-  type ExpandedCommand,
   type WorkflowCommand,
 } from '../types/commandTypes';
 
 export type { CommandFormat } from '../types/commandTypes';
 export type CommandVisibility = Record<WorkflowCommand, boolean>;
+
+const LEGACY_EXPANDED_VISIBILITY_COMMANDS = ['new', 'continue', 'ff', 'verify', 'sync', 'bulk-archive'] as const;
 
 export interface CommandPreferences {
   format: CommandFormat;
@@ -74,8 +74,8 @@ function normalizeLegacyExpandedVisibility(value: unknown): CommandVisibility {
     return normalized;
   }
 
-  const candidate = value as Partial<Record<ExpandedCommand, unknown>>;
-  for (const command of EXPANDED_COMMANDS) {
+  const candidate = value as Partial<Record<WorkflowCommand, unknown>>;
+  for (const command of LEGACY_EXPANDED_VISIBILITY_COMMANDS) {
     const commandValue = candidate[command];
     if (typeof commandValue === 'boolean') {
       normalized[command] = commandValue;

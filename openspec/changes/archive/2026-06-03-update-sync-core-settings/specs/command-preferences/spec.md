@@ -1,9 +1,4 @@
-# command-preferences Specification
-
-## Purpose
-Settings for OpenSpec command visibility and preferences.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Two-column settings layout
 The settings dialog SHALL use a two-column layout with a left sidebar listing setting categories (General, Workflow, Commands, Versions) and a right content area showing the selected category's settings. Selecting a category in the sidebar SHALL update the right content area without closing the dialog. The General category SHALL include both theme settings and preview-tab behavior settings. The Versions category SHALL show version and update information for OpenSpec WebUI and OpenSpec CLI. The Workflow and Commands sections SHALL reuse shared OpenSpec documentation URL constants for their documentation links so those URLs remain consistent with other frontend surfaces. The Commands category SHALL render `sync` in the Core Commands group and SHALL NOT render `sync` in the Expanded Commands group, matching the OpenSpec core profile command list.

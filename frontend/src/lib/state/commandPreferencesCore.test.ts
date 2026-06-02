@@ -43,6 +43,7 @@ test('loads legacy default format as standard and preserves legacy expanded visi
         expandedVisibility: {
           continue: false,
           verify: false,
+          sync: false,
         },
       }),
     }),
@@ -54,8 +55,9 @@ test('loads legacy default format as standard and preserves legacy expanded visi
   assert.equal(store.format, 'standard');
   assert.equal(store.commandVisibility.continue, false);
   assert.equal(store.commandVisibility.verify, false);
+  assert.equal(store.commandVisibility.sync, false);
 
-  for (const command of CORE_COMMANDS) {
+  for (const command of CORE_COMMANDS.filter((command) => command !== 'sync')) {
     assert.equal(store.commandVisibility[command], true);
   }
 });
@@ -69,10 +71,12 @@ test('persists format and unified commandVisibility state', () => {
   store.setFormat('skill');
   store.setCommandVisibility('continue', false);
   store.setCommandVisibility('archive', false);
+  store.setCommandVisibility('sync', false);
 
   const expectedVisibility = createDefaultCommandVisibility();
   expectedVisibility.continue = false;
   expectedVisibility.archive = false;
+  expectedVisibility.sync = false;
 
   assert.equal(
     localStorage.getItem(COMMAND_PREFERENCES_STORAGE_KEY),
@@ -88,6 +92,7 @@ test('persists format and unified commandVisibility state', () => {
   assert.equal(reloadedStore.format, 'skill');
   assert.equal(reloadedStore.commandVisibility.continue, false);
   assert.equal(reloadedStore.commandVisibility.archive, false);
+  assert.equal(reloadedStore.commandVisibility.sync, false);
 });
 
 test('skill format persists format and unified visibility without storing derived command text', () => {

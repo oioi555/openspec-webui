@@ -206,12 +206,11 @@
   }
 
   function changeCommandsFor(change: TimestampedChange) {
-    const changeContext = {
+    return getChangeCommands({
       isArchived: change.isArchived ?? false,
+      specDeltaCount: change.specDeltaCount,
       taskProgress: change.taskProgress,
-    } as Parameters<typeof getChangeCommands>[0];
-
-    return getChangeCommands(changeContext, commandPreferencesSnapshot());
+    }, commandPreferencesSnapshot());
   }
 
   function validationStatusForActiveChange(name: string) {
