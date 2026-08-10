@@ -20,6 +20,7 @@ import { projectStore } from './projects.svelte.ts';
 import { shouldRestoreProjectBinding } from './projectsCore';
 import { handleProjectBoundMessage, handleProjectContextMessage } from './projectSync';
 import { resetSearchProjectScopedState } from './search.svelte.ts';
+import { storeDiscoveryStore } from './storeDiscovery.svelte.ts';
 import { tabStore } from './tabs.svelte.ts';
 import { validationStore } from './validation.svelte.ts';
 import { createArtifactValidationScheduler } from './validationAutoRunCore';
@@ -194,6 +195,11 @@ export async function initializeData() {
       return;
     }
 
+    // Load store discovery in parallel with project data (non-blocking)
+    const storeDiscoveryPromise = storeDiscoveryStore.refresh().catch(() => {
+      // Store discovery failures stay non-blocking
+    });
+
     const [projectData, statsData, specsData, changesData] = await Promise.all([
       getProject(),
       getStats(),
@@ -206,6 +212,8 @@ export async function initializeData() {
     state.specs = specsData;
     state.activeChanges = changesData.active;
     state.archivedChanges = changesData.archived;
+
+    await storeDiscoveryPromise;
   } catch (cause) {
     if (isNoActiveProjectError(cause)) {
       try {

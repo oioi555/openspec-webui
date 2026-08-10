@@ -1,9 +1,16 @@
 import { readdir, readFile, stat } from 'fs/promises';
-import { join } from 'path';
+import { join, relative } from 'path';
 import type { Spec, ParseResult } from '../shared/types.js';
 
 /**
- * Parse all specs from the specs/ directory
+ * Parse all specs from the specs/ directory, discovering capability specs
+ * recursively over `specs/**&#47;spec.md` at any depth in addition to top-level
+ * `specs/<capability>/spec.md` files.
+ *
+ * A directory that directly contains a `spec.md` counts as a capability; a
+ * parent directory that contains only nested directories and no direct
+ * `spec.md` is not rendered as a capability. Deleted retired spec files are
+ * omitted without errors.
  */
 export async function parseSpecs(openspecPath: string): Promise<ParseResult<Spec[]>> {
   const errors: string[] = [];
@@ -13,22 +20,9 @@ export async function parseSpecs(openspecPath: string): Promise<ParseResult<Spec
   const specsPath = join(openspecPath, 'specs');
 
   try {
-    const entries = await readdir(specsPath, { withFileTypes: true });
+    await walkSpecsDirectory(specsPath, specsPath, specs, errors, warnings);
 
-    for (const entry of entries) {
-      if (entry.isDirectory()) {
-        const capabilityPath = join(specsPath, entry.name);
-        const spec = await parseCapability(entry.name, capabilityPath);
-
-        if (spec.data) {
-          specs.push(spec.data);
-        }
-        errors.push(...spec.errors);
-        warnings.push(...spec.warnings);
-      }
-    }
-
-    // Sort specs alphabetically
+    // Sort specs alphabetically by relative capability name
     specs.sort((a, b) => a.name.localeCompare(b.name));
 
     return { data: specs, errors, warnings };
@@ -39,6 +33,59 @@ export async function parseSpecs(openspecPath: string): Promise<ParseResult<Spec
     }
     errors.push(`Failed to read specs directory: ${error}`);
     return { data: null, errors, warnings };
+  }
+}
+
+/**
+ * Recursively walk a specs directory. For each directory that directly
+ * contains a `spec.md`, parse it as a capability. Directories containing only
+ * nested directories (no direct `spec.md`) are skipped as capabilities but
+ * still traversed.
+ */
+async function walkSpecsDirectory(
+  specsPath: string,
+  currentPath: string,
+  specs: Spec[],
+  errors: string[],
+  warnings: string[]
+): Promise<void> {
+  const entries = await readdir(currentPath, { withFileTypes: true });
+
+  for (const entry of entries) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
+
+    // Skip dot-directories (e.g. `.git`, `.hidden`) like the CLI does.
+    if (entry.name.startsWith('.')) {
+      continue;
+    }
+
+    const childPath = join(currentPath, entry.name);
+    const specPath = join(childPath, 'spec.md');
+
+    let hasDirectSpec = false;
+    try {
+      const specStat = await stat(specPath);
+      hasDirectSpec = specStat.isFile();
+    } catch {
+      hasDirectSpec = false;
+    }
+
+    if (hasDirectSpec) {
+      const relativeName = relative(specsPath, childPath).split(/[\\/]/).join('/');
+      const spec = await parseCapability(relativeName, childPath);
+
+      if (spec.data) {
+        specs.push(spec.data);
+      }
+      errors.push(...spec.errors);
+      warnings.push(...spec.warnings);
+    }
+
+    // Recurse into nested directories regardless of whether this directory
+    // itself is a capability, so deeper `spec.md` files are still discovered.
+    await walkSpecsDirectory(specsPath, childPath, specs, errors, warnings);
   }
 }
 

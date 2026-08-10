@@ -23,6 +23,8 @@ function createOpenSpecData(): OpenSpecData {
       },
       legacyProjectDoc: null,
       migrationState: 'config-only',
+      pointerStoreId: null,
+      referenceStoreIds: [],
     },
     specs: [
       {
@@ -35,6 +37,12 @@ function createOpenSpecData(): OpenSpecData {
         name: 'priority-check',
         path: '/workspace/demo/openspec/specs/priority-check',
         specContent: '## Purpose\n\nPriority search content should win over metadata matches.',
+        lastModified: null,
+      },
+      {
+        name: 'network/auth',
+        path: '/workspace/demo/openspec/specs/network/auth',
+        specContent: '## Purpose\n\nNested auth spec with unique nested body content.',
         lastModified: null,
       },
     ],
@@ -259,4 +267,44 @@ test('searchOpenSpec prefers content excerpts and does not duplicate metadata ma
   assert.equal(results[0]?.name, 'priority-check');
   assert.equal(results[0]?.matchSource, 'content');
   assert.match(results[0]?.excerpt ?? '', /Priority search content should win/);
+});
+
+test('searchOpenSpec returns a nested spec for body content matches', () => {
+  const results = searchOpenSpec(createOpenSpecData(), 'nested auth spec');
+
+  assert.equal(results.length, 1);
+  assert.equal(results[0]?.type, 'spec');
+  assert.equal(results[0]?.name, 'network/auth');
+  assert.equal(results[0]?.matchSource, 'content');
+  assert.match(results[0]?.excerpt ?? '', /Nested auth spec/);
+});
+
+test('searchOpenSpec returns a nested spec for path metadata matches', () => {
+  const results = searchOpenSpec(createOpenSpecData(), 'openspec/specs/network/auth/spec.md');
+
+  assert.equal(results.length, 1);
+  assert.equal(results[0]?.type, 'spec');
+  assert.equal(results[0]?.name, 'network/auth');
+  assert.equal(results[0]?.path, '/workspace/demo/openspec/specs/network/auth');
+  assert.equal(results[0]?.matchSource, 'path');
+  assert.equal(results[0]?.excerpt, 'openspec/specs/network/auth/spec.md');
+});
+
+test('searchOpenSpec returns a nested spec for name metadata matches', () => {
+  const results = searchOpenSpec(createOpenSpecData(), 'network/auth');
+
+  assert.equal(results.length, 1);
+  assert.equal(results[0]?.type, 'spec');
+  assert.equal(results[0]?.name, 'network/auth');
+  assert.equal(results[0]?.matchSource, 'name');
+});
+
+test('searchOpenSpec does not duplicate a nested spec matching both body and metadata', () => {
+  const results = searchOpenSpec(createOpenSpecData(), 'nested');
+
+  // `nested` appears in the nested spec body and in its path metadata, but
+  // must be returned exactly once.
+  const nestedResults = results.filter((result) => result.name === 'network/auth');
+  assert.equal(nestedResults.length, 1);
+  assert.equal(nestedResults[0]?.matchSource, 'content');
 });

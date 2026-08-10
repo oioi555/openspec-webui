@@ -99,6 +99,11 @@ if (process.argv[2] === 'validate') {
   process.exit(Number(process.env.VALIDATE_EXIT_CODE || '0'));
 }
 
+if (process.argv[2] === 'store' && process.argv[3] === 'list') {
+  process.stdout.write(process.env.STORE_LIST_OUTPUT || '{"stores":[],"status":[]}');
+  process.exit(Number(process.env.STORE_LIST_EXIT_CODE || '0'));
+}
+
 if (unavailableRoots.has(cwd)) {
   process.stderr.write('workflow unavailable');
   process.exit(1);
@@ -1655,6 +1660,212 @@ test('validate classifies valid=false WARNING-only items as warning, not failed'
   } finally {
     delete process.env.VALIDATE_OUTPUT;
     delete process.env.VALIDATE_EXIT_CODE;
+    await runtime.close();
+  }
+});
+
+test('GET /api/stores returns registered stores without requiring a project header', async () => {
+  const configHome = await createTempDir('openspec-webui-stores-cfg-');
+  process.env.XDG_CONFIG_HOME = configHome;
+  const projectRoot = await createProjectFixture('stores-project');
+  await installFakeOpenSpecCommand({ readyProjectRoots: new Set([projectRoot]) });
+
+  process.env.STORE_LIST_OUTPUT = JSON.stringify({
+    stores: [
+      { id: 'store-a', root: '/store/a' },
+      { id: 'store-b', root: '/store/b' },
+    ],
+    status: [],
+  });
+
+  const runtime = await startServer();
+
+  try {
+    // No X-Project-Id header and no active project: the route must still work.
+    const result = await apiJson(runtime.baseUrl, '/api/stores');
+    assert.equal(result.response.status, 200);
+    assert.equal(result.body.status, 'stores');
+    assert.deepEqual(result.body.stores, [
+      { id: 'store-a', root: '/store/a' },
+      { id: 'store-b', root: '/store/b' },
+    ]);
+    assert.equal(result.body.reason, null);
+    assert.equal(typeof result.body.checkedAt, 'string');
+  } finally {
+    delete process.env.STORE_LIST_OUTPUT;
+    await runtime.close();
+  }
+});
+
+test('GET /api/stores returns empty when the CLI reports no stores', async () => {
+  const configHome = await createTempDir('openspec-webui-stores-empty-cfg-');
+  process.env.XDG_CONFIG_HOME = configHome;
+  const projectRoot = await createProjectFixture('stores-empty-project');
+  await installFakeOpenSpecCommand({ readyProjectRoots: new Set([projectRoot]) });
+
+  process.env.STORE_LIST_OUTPUT = JSON.stringify({ stores: [], status: [] });
+
+  const runtime = await startServer();
+
+  try {
+    const result = await apiJson(runtime.baseUrl, '/api/stores');
+    assert.equal(result.response.status, 200);
+    assert.equal(result.body.status, 'empty');
+    assert.deepEqual(result.body.stores, []);
+    assert.equal(result.body.reason, null);
+  } finally {
+    delete process.env.STORE_LIST_OUTPUT;
+    await runtime.close();
+  }
+});
+
+test('GET /api/stores returns unavailable with structured reason on CLI failure', async () => {
+  const configHome = await createTempDir('openspec-webui-stores-fail-cfg-');
+  process.env.XDG_CONFIG_HOME = configHome;
+  const projectRoot = await createProjectFixture('stores-fail-project');
+  await installFakeOpenSpecCommand({ readyProjectRoots: new Set([projectRoot]) });
+
+  process.env.STORE_LIST_OUTPUT = 'not valid json';
+  process.env.STORE_LIST_EXIT_CODE = '1';
+
+  const runtime = await startServer();
+
+  try {
+    const result = await apiJson(runtime.baseUrl, '/api/stores');
+    assert.equal(result.response.status, 200);
+    assert.equal(result.body.status, 'unavailable');
+    assert.deepEqual(result.body.stores, []);
+    assert.equal(result.body.reason.code, 'CLI_ERROR');
+    assert.equal(result.body.reason.exitCode, 1);
+  } finally {
+    delete process.env.STORE_LIST_OUTPUT;
+    delete process.env.STORE_LIST_EXIT_CODE;
+    await runtime.close();
+  }
+});
+
+test('GET /api/projects includes read-only relationship facts derived from config', async () => {
+  const configHome = await createTempDir('openspec-webui-projects-rel-cfg-');
+  process.env.XDG_CONFIG_HOME = configHome;
+  const projectRoot = await createProjectFixture('rel-project');
+  await writeFile(
+    join(projectRoot, 'openspec', 'config.yaml'),
+    `schema: default-workflow\ncontext: |\n  Relationship project context.\nstore: planning-store-1\nreferences:\n  - ref-a\n  - ref-b\n`,
+    'utf8'
+  );
+  await installFakeOpenSpecCommand({ readyProjectRoots: new Set([projectRoot]) });
+
+  const runtime = await startServer();
+
+  try {
+    await apiJson(runtime.baseUrl, '/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: projectRoot }),
+    });
+
+    const result = await apiJson(runtime.baseUrl, '/api/projects');
+    assert.equal(result.response.status, 200);
+    assert.equal(result.body.projects.length, 1);
+    assert.equal(result.body.projects[0].pointerStoreId, 'planning-store-1');
+    assert.deepEqual(result.body.projects[0].referenceStoreIds, ['ref-a', 'ref-b']);
+  } finally {
+    await runtime.close();
+  }
+});
+
+test('GET /api/projects degrades relationship facts to null/empty for projects without store config', async () => {
+  const configHome = await createTempDir('openspec-webui-projects-rel-none-cfg-');
+  process.env.XDG_CONFIG_HOME = configHome;
+  const projectRoot = await createProjectFixture('plain-rel-project');
+  await installFakeOpenSpecCommand({ readyProjectRoots: new Set([projectRoot]) });
+
+  const runtime = await startServer();
+
+  try {
+    await apiJson(runtime.baseUrl, '/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: projectRoot }),
+    });
+
+    const result = await apiJson(runtime.baseUrl, '/api/projects');
+    assert.equal(result.response.status, 200);
+    assert.equal(result.body.projects[0].pointerStoreId, null);
+    assert.deepEqual(result.body.projects[0].referenceStoreIds, []);
+  } finally {
+    await runtime.close();
+  }
+});
+
+test('POST /api/projects enriches the returned project with relationship facts', async () => {
+  const configHome = await createTempDir('openspec-webui-projects-post-rel-cfg-');
+  process.env.XDG_CONFIG_HOME = configHome;
+  const projectRoot = await createProjectFixture('post-rel-project');
+  await writeFile(
+    join(projectRoot, 'openspec', 'config.yaml'),
+    `schema: default-workflow\ncontext: |\n  Post relationship context.\nstore: post-store\nreferences:\n  - post-ref-a\n  - { id: post-ref-b, remote: git@example.com:post-ref-b.git }\n`,
+    'utf8'
+  );
+  await installFakeOpenSpecCommand({ readyProjectRoots: new Set([projectRoot]) });
+
+  const runtime = await startServer();
+
+  try {
+    const result = await apiJson(runtime.baseUrl, '/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: projectRoot }),
+    });
+    assert.equal(result.response.status, 201);
+    assert.equal(result.body.project.pointerStoreId, 'post-store');
+    assert.deepEqual(result.body.project.referenceStoreIds, ['post-ref-a', 'post-ref-b']);
+  } finally {
+    await runtime.close();
+  }
+});
+
+test('command availability filters onboard from workflows even when the CLI reports it', async () => {
+  const configHome = await createTempDir('openspec-webui-onboard-cfg-');
+  process.env.XDG_CONFIG_HOME = configHome;
+  const projectRoot = await createProjectFixture('onboard-project');
+  await installFakeOpenSpecCommand({ readyProjectRoots: new Set([projectRoot]) });
+
+  // Override the workflows response to include onboard.
+  const binDir = await createTempDir('openspec-webui-onboard-bin-');
+  const scriptPath = join(binDir, 'openspec');
+  await writeFile(
+    scriptPath,
+    `#!/usr/bin/env node
+const cwd = process.cwd();
+const key = process.argv[4];
+if (key === 'profile') { process.stdout.write('test-profile\\n'); process.exit(0); }
+if (key === 'workflows') { process.stdout.write('["new","onboard","verify"]\\n'); process.exit(0); }
+process.stderr.write('unsupported key:' + key);
+process.exit(1);
+`,
+    'utf8'
+  );
+  await chmod(scriptPath, 0o755);
+  process.env.PATH = `${binDir}:${process.env.PATH ?? ''}`;
+
+  const runtime = await startServer();
+
+  try {
+    await apiJson(runtime.baseUrl, '/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: projectRoot }),
+    });
+
+    const result = await apiJson(runtime.baseUrl, '/api/commands/availability');
+    assert.equal(result.response.status, 200);
+    assert.equal(result.body.availability.status, 'ready');
+    assert.ok(!result.body.availability.workflows.includes('onboard'));
+    assert.ok(result.body.availability.workflows.includes('new'));
+    assert.ok(result.body.availability.workflows.includes('verify'));
+    assert.ok(!result.body.availability.availableExpandedCommands.includes('onboard'));
+  } finally {
     await runtime.close();
   }
 });

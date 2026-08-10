@@ -81,6 +81,8 @@ function createData(openspecPath: string): OpenSpecData {
       },
       legacyProjectDoc: null,
       migrationState: 'config-only',
+      pointerStoreId: null,
+      referenceStoreIds: [],
     },
     specs: [],
     changes: {

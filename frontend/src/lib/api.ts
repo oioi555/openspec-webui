@@ -13,6 +13,7 @@ import {
   type Spec,
   type SpecSummary,
   type Stats,
+  type StoreDiscoveryResult,
   type StructuredApiError,
   type ValidationResult,
   type VersionStatusResponse,
@@ -40,6 +41,10 @@ export type {
   SpecDelta,
   SpecSummary,
   Stats,
+  StoreDiscoveryDiagnostic,
+  StoreDiscoveryResult,
+  StoreDiscoveryStatus,
+  StoreRecord,
   StructuredApiError,
   Task,
   TaskProgress,
@@ -255,4 +260,8 @@ export async function runValidation(options?: RunValidationOptions): Promise<Val
 export async function browseDirectory(dirPath?: string): Promise<BrowseResult> {
   const query = dirPath ? `?path=${encodeURIComponent(dirPath)}` : '';
   return fetchApi<BrowseResult>(`/fs/browse${query}`);
+}
+
+export async function getStores(): Promise<StoreDiscoveryResult> {
+  return fetchApi<StoreDiscoveryResult>('/stores');
 }

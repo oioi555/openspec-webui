@@ -73,6 +73,8 @@ export interface Project {
     description: string;
   } | null;
   migrationState: 'config-only' | 'legacy-present' | 'migration-needed';
+  pointerStoreId: string | null;
+  referenceStoreIds: string[];
 }
 
 export interface ProjectEntry {
@@ -81,6 +83,31 @@ export interface ProjectEntry {
   label: string;
   addedAt: number;
   lastOpenedAt: number;
+  pointerStoreId: string | null;
+  referenceStoreIds: string[];
+}
+
+// Store Discovery Types (mirrors src/shared/types.ts)
+
+export interface StoreRecord {
+  id: string;
+  root: string;
+}
+
+export type StoreDiscoveryStatus = 'stores' | 'empty' | 'unavailable';
+
+export interface StoreDiscoveryDiagnostic {
+  code: 'CLI_MISSING' | 'CLI_ERROR' | 'TIMEOUT' | 'MALFORMED_OUTPUT' | 'INVALID_SHAPE';
+  message: string;
+  exitCode?: number | null;
+  stderr?: string;
+}
+
+export interface StoreDiscoveryResult {
+  status: StoreDiscoveryStatus;
+  stores: StoreRecord[];
+  reason: StoreDiscoveryDiagnostic | null;
+  checkedAt: string | null;
 }
 
 export interface ProjectListResponse {

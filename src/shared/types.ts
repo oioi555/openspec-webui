@@ -8,6 +8,14 @@ export interface Project {
   planningContext: PlanningContext;
   legacyProjectDoc: LegacyProjectDoc | null;
   migrationState: ProjectMigrationState;
+  /**
+   * Read-only Store relationship facts derived from `openspec/config.yaml`.
+   * `pointerStoreId` is the `store:` pointer target (externalized planning).
+   * `referenceStoreIds` are the `references:` read-only context targets.
+   * These are never used to create or modify planning data.
+   */
+  pointerStoreId: string | null;
+  referenceStoreIds: string[];
 }
 
 export interface PlanningContextSource {
@@ -153,6 +161,48 @@ export interface SearchResult {
   matchLine: number;
   matchSource: SearchMatchSource;
   matchLocation?: SearchMatchLocation;
+}
+
+// Store Discovery Types
+
+/**
+ * A single OpenSpec v1.8 Store registered on this machine, as reported by
+ * `openspec store list --json`. `root` is the normalized Store root path.
+ */
+export interface StoreRecord {
+  id: string;
+  root: string;
+}
+
+export type StoreDiscoveryStatus = 'stores' | 'empty' | 'unavailable';
+
+/**
+ * Structured diagnostic describing why Store discovery is unavailable.
+ */
+export interface StoreDiscoveryDiagnostic {
+  code:
+    | 'CLI_MISSING'
+    | 'CLI_ERROR'
+    | 'TIMEOUT'
+    | 'MALFORMED_OUTPUT'
+    | 'INVALID_SHAPE';
+  message: string;
+  exitCode?: number | null;
+  stderr?: string;
+}
+
+/**
+ * Tri-state result of read-only Store discovery.
+ * - `stores`: one or more registered Stores parsed successfully.
+ * - `empty`: the CLI reported no registered Stores.
+ * - `unavailable`: the CLI is missing, failed, timed out, or returned
+ *   malformed output; `reason` carries a structured diagnostic.
+ */
+export interface StoreDiscoveryResult {
+  status: StoreDiscoveryStatus;
+  stores: StoreRecord[];
+  reason: StoreDiscoveryDiagnostic | null;
+  checkedAt: string | null;
 }
 
 // API Response Types

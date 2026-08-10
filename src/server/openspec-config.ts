@@ -4,6 +4,13 @@ const expandedWorkflowCommands = ['new', 'continue', 'ff', 'verify', 'sync', 'bu
 
 export type ExpandedWorkflowCommand = (typeof expandedWorkflowCommands)[number];
 
+/**
+ * Commands that must never be exposed as available workflows, even if the
+ * upstream CLI reports them. `onboard` is intentionally excluded from every
+ * command surface per the v1.8 workflow.
+ */
+const blockedWorkflowCommands = new Set(['onboard']);
+
 export interface CommandAvailability {
   status: 'ready' | 'unavailable';
   profile: string | null;
@@ -49,7 +56,7 @@ export async function inspectCommandAvailability(cwd: string): Promise<CommandAv
       throw new Error('Invalid workflows response from OpenSpec config');
     }
 
-    const workflows = parsed as string[];
+    const workflows = parsed.filter((item) => !blockedWorkflowCommands.has(item));
 
     return {
       status: 'ready',

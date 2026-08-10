@@ -20,6 +20,7 @@ export const FIXED_LABELS = {
     loading: 'Loading...',
     name: 'Name',
     nextStep: 'Next Step',
+    open: 'Open',
     path: 'Path',
     progress: 'Progress',
     quoteCopy: 'Quote Copy',
@@ -143,6 +144,7 @@ export const FIXED_LABELS = {
     verify: 'Verify',
     sync: 'Sync',
     bulkArchive: 'Bulk Archive',
+    update: 'Update',
   },
   dashboard: {
     openProjectSelector: 'Open project selector',
@@ -150,6 +152,7 @@ export const FIXED_LABELS = {
     tasks: 'Tasks',
     recentActivity: 'Recent Activity',
     planningContext: 'OpenSpec Planning Context',
+    storeRelationship: 'Store Relationship',
     focusSection: 'Focus section',
     migrationNeeded: 'Migration needed',
     legacyDetected: 'Legacy project.md detected',
@@ -261,6 +264,8 @@ export function getWorkflowCommandLabel(command: WorkflowCommand): string {
       return FIXED_LABELS.workflowCommands.sync;
     case 'bulk-archive':
       return FIXED_LABELS.workflowCommands.bulkArchive;
+    case 'update':
+      return FIXED_LABELS.workflowCommands.update;
   }
 }
 

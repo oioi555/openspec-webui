@@ -3,6 +3,10 @@ import { execFile } from 'child_process';
 import type { OpenSpecData } from '../../parser/index.js';
 import { parseSpec, parseChangeByName, searchOpenSpec } from '../../parser/index.js';
 import {
+  normalizePointerStoreId,
+  normalizeReferenceStoreIds,
+} from '../../parser/project.js';
+import {
   inspectCommandAvailability,
   type CommandAvailability,
 } from '../openspec-config.js';
@@ -13,6 +17,9 @@ import {
   type ProjectRegistry,
 } from '../project-registry.js';
 import type { VersionSnapshotService } from '../version-status.js';
+import type { StoreDiscoveryService } from '../store-discovery.js';
+import { readFile } from 'fs/promises';
+import { parseDocument } from 'yaml';
 import type {
   ValidationItem,
   ValidationItemSeverity,
@@ -44,6 +51,7 @@ interface RegisterApiRoutesOptions {
     | 'setCommandAvailabilityCache'
   >;
   versionSnapshotService: Pick<VersionSnapshotService, 'getSnapshot' | 'refresh'>;
+  storeDiscoveryService: StoreDiscoveryService;
   onProjectRemoved?: (removedProjectId: string, nextProjectId: string | null) => Promise<void> | void;
 }
 
@@ -99,6 +107,70 @@ export function buildValidationCommandString(args: string[]): string {
   return `openspec ${args.join(' ')}`;
 }
 
+export interface ProjectRelationshipFacts {
+  pointerStoreId: string | null;
+  referenceStoreIds: string[];
+}
+
+/**
+ * Resolve the OpenSpec config file path for a project root, preferring
+ * `config.yaml` when both `config.yaml` and `config.yml` exist. Returns null
+ * when neither exists.
+ */
+async function resolveProjectConfigPath(projectRoot: string): Promise<string | null> {
+  const yamlPath = join(projectRoot, 'openspec', 'config.yaml');
+  const ymlPath = join(projectRoot, 'openspec', 'config.yml');
+
+  try {
+    await readFile(yamlPath, 'utf-8');
+    return yamlPath;
+  } catch {
+    // fall through to .yml
+  }
+
+  try {
+    await readFile(ymlPath, 'utf-8');
+    return ymlPath;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Derive read-only Store relationship facts from a project root's
+ * `openspec/config.yaml` (or `config.yml`). Invalid or missing optional
+ * shapes degrade to null/empty without invalidating the project. Never writes
+ * planning data.
+ */
+export async function deriveProjectRelationshipFacts(
+  projectRoot: string
+): Promise<ProjectRelationshipFacts> {
+  const configPath = await resolveProjectConfigPath(projectRoot);
+  if (!configPath) {
+    return { pointerStoreId: null, referenceStoreIds: [] };
+  }
+
+  try {
+    const configContent = await readFile(configPath, 'utf-8');
+    const document = parseDocument(configContent);
+    if (document.errors.length > 0) {
+      return { pointerStoreId: null, referenceStoreIds: [] };
+    }
+
+    const parsed = (document.toJS() ?? {}) as {
+      store?: unknown;
+      references?: unknown;
+    };
+
+    return {
+      pointerStoreId: normalizePointerStoreId(parsed.store),
+      referenceStoreIds: normalizeReferenceStoreIds(parsed.references),
+    };
+  } catch {
+    return { pointerStoreId: null, referenceStoreIds: [] };
+  }
+}
+
 /**
  * Register API routes
  */
@@ -106,7 +178,7 @@ export async function registerApiRoutes(
   fastify: FastifyInstance,
   options: RegisterApiRoutesOptions
 ) {
-  const { registry, versionSnapshotService, onProjectRemoved } = options;
+  const { registry, versionSnapshotService, storeDiscoveryService, onProjectRemoved } = options;
 
   function readProjectIdHeader(request: FastifyRequest): string | null {
     const rawValue = request.headers['x-project-id'];
@@ -186,10 +258,26 @@ export async function registerApiRoutes(
   }
 
   // List projects
-  fastify.get('/api/projects', async () => ({
-    projects: registry.listProjects(),
-    activeProjectId: registry.getActiveProject()?.id ?? null,
-  }));
+  fastify.get('/api/projects', async () => {
+    const projects = registry.listProjects();
+    const projectsWithRelationships = await Promise.all(
+      projects.map(async (entry) => ({
+        ...entry,
+        ...(await deriveProjectRelationshipFacts(entry.path)),
+      }))
+    );
+
+    return {
+      projects: projectsWithRelationships,
+      activeProjectId: registry.getActiveProject()?.id ?? null,
+    };
+  });
+
+  // Read-only Store discovery (machine-global; does not require X-Project-Id)
+  fastify.get('/api/stores', async () => {
+    const result = await storeDiscoveryService.listStores();
+    return result;
+  });
 
   // Add or reactivate a project
   fastify.post<{ Body: AddProjectRequestBody }>('/api/projects', async (request, reply) => {
@@ -200,9 +288,13 @@ export async function registerApiRoutes(
 
     try {
       const result = await registry.addProject(projectPath);
+      const relationships = await deriveProjectRelationshipFacts(result.entry.path);
 
       return reply.status(result.status === 'created' ? 201 : 200).send({
-        project: result.entry,
+        project: {
+          ...result.entry,
+          ...relationships,
+        },
         activeProjectId: result.entry.id,
       });
     } catch (error) {

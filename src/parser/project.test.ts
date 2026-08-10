@@ -163,3 +163,92 @@ test('parseProject returns null data when config.yaml is missing', async () => {
   assert.equal(result.data, null);
   assert.deepEqual(result.errors, ['config.yaml not found']);
 });
+
+test('parseProject parses store pointer and references relationship facts', async () => {
+  const openspecPath = await createProjectFixture('pointer-project', {
+    configYaml: `schema: default-workflow\ncontext: |\n  Pointer project context.\nstore: planning-store-1\nreferences:\n  - ref-store-a\n  - ref-store-b\n`,
+  });
+
+  const result = await parseProject(openspecPath);
+
+  assert.deepEqual(result.errors, []);
+  assert.equal(result.data?.pointerStoreId, 'planning-store-1');
+  assert.deepEqual(result.data?.referenceStoreIds, ['ref-store-a', 'ref-store-b']);
+});
+
+test('parseProject degrades invalid optional store shapes to null/empty', async () => {
+  const openspecPath = await createProjectFixture('degraded-shapes-project', {
+    configYaml: `schema: default-workflow\ncontext: |\n  Degraded shapes context.\nstore:\n  nested: object\nreferences: not-an-array\n`,
+  });
+
+  const result = await parseProject(openspecPath);
+
+  assert.deepEqual(result.errors, []);
+  assert.equal(result.data?.pointerStoreId, null);
+  assert.deepEqual(result.data?.referenceStoreIds, []);
+});
+
+test('parseProject defaults relationship facts to null/empty when absent', async () => {
+  const openspecPath = await createProjectFixture('plain-project');
+
+  const result = await parseProject(openspecPath);
+
+  assert.deepEqual(result.errors, []);
+  assert.equal(result.data?.pointerStoreId, null);
+  assert.deepEqual(result.data?.referenceStoreIds, []);
+});
+
+test('parseProject normalizes references with object entries, trims, and dedupes', async () => {
+  const openspecPath = await createProjectFixture('ref-objects-project', {
+    configYaml: `schema: default-workflow\ncontext: |\n  Ref objects context.\nreferences:\n  - ref-a\n  - { id: ref-b, remote: git@example.com:ref-b.git }\n  - '  ref-a  '\n  - { id: '  ref-c  ' }\n  - 42\n  - { id: 123 }\n  - ref-b\n`,
+  });
+
+  const result = await parseProject(openspecPath);
+
+  assert.deepEqual(result.errors, []);
+  // ref-a appears twice (string + trimmed duplicate) -> once; ref-b twice -> once;
+  // ref-c trimmed; invalid entries (42, {id:123}) ignored.
+  assert.deepEqual(result.data?.referenceStoreIds, ['ref-a', 'ref-b', 'ref-c']);
+});
+
+test('parseProject reads config.yml when config.yaml is absent', async () => {
+  const sandbox = await createTempDir('openspec-webui-parser-project-');
+  const openspecPath = join(sandbox, 'yml-project', 'openspec');
+  await mkdir(openspecPath, { recursive: true });
+
+  await writeFile(
+    join(openspecPath, 'config.yml'),
+    `schema: default-workflow\ncontext: |\n  Yml context.\nstore: yml-store\nreferences:\n  - yml-ref\n`,
+    'utf8'
+  );
+
+  const result = await parseProject(openspecPath);
+
+  assert.deepEqual(result.errors, []);
+  assert.equal(result.data?.path, join(openspecPath, 'config.yml'));
+  assert.equal(result.data?.pointerStoreId, 'yml-store');
+  assert.deepEqual(result.data?.referenceStoreIds, ['yml-ref']);
+});
+
+test('parseProject prefers config.yaml when both config.yaml and config.yml exist', async () => {
+  const sandbox = await createTempDir('openspec-webui-parser-project-');
+  const openspecPath = join(sandbox, 'both-config-project', 'openspec');
+  await mkdir(openspecPath, { recursive: true });
+
+  await writeFile(
+    join(openspecPath, 'config.yaml'),
+    `schema: default-workflow\ncontext: |\n  Yaml context.\nstore: yaml-store\n`,
+    'utf8'
+  );
+  await writeFile(
+    join(openspecPath, 'config.yml'),
+    `schema: default-workflow\ncontext: |\n  Yml context.\nstore: yml-store\n`,
+    'utf8'
+  );
+
+  const result = await parseProject(openspecPath);
+
+  assert.deepEqual(result.errors, []);
+  assert.equal(result.data?.path, join(openspecPath, 'config.yaml'));
+  assert.equal(result.data?.pointerStoreId, 'yaml-store');
+});

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { tick } from 'svelte';
-  import { Bookmark, ChevronDown, ChevronRight, LayoutDashboard, Calendar, CircleCheckBig, FileText, FolderPen, History, SquarePen, FlaskConical } from '@lucide/svelte';
+  import { Bookmark, ChevronDown, ChevronRight, LayoutDashboard, Calendar, CircleCheckBig, FileText, FolderPen, History, SquarePen, FlaskConical, Store, ExternalLink, Info } from '@lucide/svelte';
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
   import { Callout } from '$lib/components/shared/callout';
@@ -32,6 +32,11 @@
   import { FIXED_LABELS, getChangeTaskCountLabel, getOtherFileCountLabel, getSpecDeltaCountLabel, getWorkflowSchemaFallbackLabel } from '$lib/uiText';
   import { getTaskProgressIconVariant } from '$lib/visualSemantics';
   import { deriveValidationListIconState, deriveValidationTargetSummary } from '$lib/state/validationCore';
+  import { storeDiscoveryStore } from '$lib/state/storeDiscovery.svelte.ts';
+  import { resolveStoreRelationship, resolveStoreRoot, mergeUnifiedProjectList } from '$lib/storeHelpers';
+  import { OPENSPEC_STORES_GUIDE_URL } from '$lib/openspecDocs';
+  import { projectStore } from '$lib/state/projects.svelte.ts';
+  import { toast } from 'svelte-sonner';
 
   type TimestampedChange = {
     name: string;
@@ -257,6 +262,93 @@
       : { variant: null, title: '' }
   );
 
+  // Store relationship state
+  // Use the active registry project's path (the project root), not the config file path
+  let activeRegistryProject = $derived(
+    projectStore.projects.find((p) => p.id === projectStore.activeProjectId) ?? null
+  );
+
+  let storeRelationship = $derived.by(() => {
+    if (!project.value || !activeRegistryProject) return null;
+    const rel = resolveStoreRelationship(
+      {
+        path: activeRegistryProject.path,
+        pointerStoreId: project.value.pointerStoreId ?? null,
+        referenceStoreIds: project.value.referenceStoreIds ?? [],
+      },
+      storeDiscoveryStore.stores,
+    );
+    return rel.hasRelationship ? rel : null;
+  });
+
+  // Fix 7: compute merged rows once for pointer and reference lookups
+  let mergedRows = $derived(
+    mergeUnifiedProjectList(projectStore.projects, storeDiscoveryStore.stores)
+  );
+
+  let pointerStoreRow = $derived.by(() => {
+    if (!storeRelationship?.pointerStoreId) return null;
+    return mergedRows.find((r) => r.storeId === storeRelationship?.pointerStoreId) ?? null;
+  });
+
+  async function handleOpenPlanningStore() {
+    const rel = storeRelationship;
+    if (!rel?.pointerStoreId) return;
+
+    // Find the store root
+    const storeRoot = resolveStoreRoot(rel.pointerStoreId, [], storeDiscoveryStore.stores);
+    if (!storeRoot) {
+      // Store not resolved from discovery
+      toast.error(t(m.dashboard_store_not_found, { storeId: rel.pointerStoreId }));
+      return;
+    }
+
+    // Check if it's already a registered project
+    const existingRow = pointerStoreRow;
+    if (existingRow?.projectId) {
+      // Already registered - just bind it
+      try {
+        await projectStore.bindProject(existingRow.projectId);
+      } catch {
+        toast.error(t(m.error_failed_to_switch_project));
+      }
+      return;
+    }
+
+    // Store exists only in CLI discovery - add as project then activate
+    try {
+      await projectStore.addProject(storeRoot);
+    } catch {
+      toast.error(t(m.error_failed_to_add_project));
+    }
+  }
+
+  async function handleOpenReferencedStore(storeId: string) {
+    const storeRoot = resolveStoreRoot(storeId, [], storeDiscoveryStore.stores);
+    if (!storeRoot) {
+      toast.error(t(m.dashboard_store_not_found, { storeId }));
+      return;
+    }
+
+    // Check if already registered
+    const existingRow = mergedRows.find((r) => r.storeId === storeId);
+
+    if (existingRow?.projectId) {
+      try {
+        await projectStore.bindProject(existingRow.projectId);
+      } catch {
+        toast.error(t(m.error_failed_to_switch_project));
+      }
+      return;
+    }
+
+    try {
+      await projectStore.addProject(storeRoot);
+    } catch {
+      toast.error(t(m.error_failed_to_add_project));
+    }
+  }
+
   function getProjectSelectorAriaLabel() {
     return FIXED_LABELS.dashboard.openProjectSelector;
   }
@@ -271,9 +363,12 @@
   <!-- Header -->
   <div>
     <div class="flex items-start justify-between gap-4">
-      <h1 class="flex items-center gap-2 text-2xl font-bold text-foreground">
+      <h1 class="flex items-center gap-2 text-2xl font-bold text-foreground flex-wrap">
         <IconBox icon={LayoutDashboard} variant="info" size="lg"/>
         {project.value?.name ?? FIXED_LABELS.appName}
+        {#if storeRelationship?.isStoreRoot}
+          <Badge variant="secondary" class="text-xs">{t(m.dashboard_store_root_badge)}</Badge>
+        {/if}
         <Button
           variant="ghost"
           size="icon"
@@ -294,6 +389,123 @@
       {/if}
     </div>
   </div>
+
+  <!-- Store Relationship Card (only for pointer/references, not pure Store root) -->
+  {#if storeRelationship && (storeRelationship.pointerStoreId || storeRelationship.referenceStoreIds.length > 0)}
+    <SurfaceCard shadow="sm">
+      <SectionHeader>
+        <h2 class="flex items-center gap-2 text-lg font-semibold text-foreground">
+          <Store class="h-5 w-5 text-muted-foreground" />
+          {FIXED_LABELS.dashboard.storeRelationship}
+        </h2>
+      </SectionHeader>
+      <div class="space-y-4 px-6 py-4">
+        {#if storeRelationship.pointerStoreId}
+          <div class="space-y-3">
+            {#if pointerStoreRow}
+              <div class="flex items-start gap-3">
+                <Store class="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm text-muted-foreground">
+                    {t(m.dashboard_pointer_store_description, { storeId: storeRelationship.pointerStoreId })}
+                  </p>
+                  <p class="mt-1 truncate text-xs text-muted-foreground" title={pointerStoreRow.path}>
+                    {pointerStoreRow.path}
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                class="ml-7"
+                onclick={handleOpenPlanningStore}
+              >
+                <Store class="mr-2 h-4 w-4" />
+                {t(m.dashboard_open_planning_store)}
+              </Button>
+            {:else}
+              <!-- Store id declared but not found in discovery -->
+              <div class="flex items-start gap-3">
+                <Info class="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm text-muted-foreground">
+                    {#if storeDiscoveryStore.status === 'unavailable'}
+                      {t(m.dashboard_store_discovery_unavailable, { storeId: storeRelationship.pointerStoreId })}
+                    {:else}
+                      {t(m.dashboard_store_not_found, { storeId: storeRelationship.pointerStoreId })}
+                    {/if}
+                  </p>
+                  <a
+                    href={OPENSPEC_STORES_GUIDE_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <ExternalLink class="h-3 w-3" />
+                    {t(m.dashboard_store_unavailable_link)}
+                  </a>
+                </div>
+              </div>
+            {/if}
+          </div>
+        {/if}
+
+        {#if storeRelationship.referenceStoreIds.length > 0}
+          <div class="space-y-2">
+            <p class="text-sm text-muted-foreground">
+              {t(m.dashboard_references_description, { count: storeRelationship.referenceStoreIds.length })}
+            </p>
+            {#each storeRelationship.referenceStoreIds as refStoreId}
+              {@const refRow = mergedRows.find((r) => r.storeId === refStoreId) ?? null}
+              {#if refRow}
+                <div class="flex items-center justify-between gap-3 rounded-md border border-border/50 p-3">
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-2">
+                      <Store class="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <span class="font-medium text-sm truncate">{refRow.label}</span>
+                      <Badge variant="outline" class="text-xs shrink-0">{refStoreId}</Badge>
+                    </div>
+                    <p class="mt-0.5 truncate text-xs text-muted-foreground" title={refRow.path}>{refRow.path}</p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    class="shrink-0"
+                    onclick={() => handleOpenReferencedStore(refStoreId)}
+                  >
+                    {FIXED_LABELS.common.open}
+                  </Button>
+                </div>
+              {:else}
+                <div class="flex items-start gap-3 text-sm text-muted-foreground">
+                  <Store class="mt-0.5 h-4 w-4 shrink-0" />
+                  <div>
+                    <p class="font-medium">{refStoreId}</p>
+                    <p class="text-xs mt-0.5">
+                      {#if storeDiscoveryStore.status === 'unavailable'}
+                        {t(m.dashboard_store_discovery_unavailable, { storeId: refStoreId })}
+                      {:else}
+                        {t(m.dashboard_store_not_found, { storeId: refStoreId })}
+                      {/if}
+                    </p>
+                    <a
+                      href={OPENSPEC_STORES_GUIDE_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <ExternalLink class="h-3 w-3" />
+                      {t(m.dashboard_store_unavailable_link)}
+                    </a>
+                  </div>
+                </div>
+              {/if}
+            {/each}
+          </div>
+        {/if}
+      </div>
+    </SurfaceCard>
+  {/if}
 
   <!-- Summary Cards -->
   <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">

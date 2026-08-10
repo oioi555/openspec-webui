@@ -86,8 +86,8 @@ test('resolveProjectSelection prefers the stored browser-local project when it s
     resolveProjectSelection(
       {
         projects: [
-          { id: 'project-a', path: '/tmp/a', label: 'A', addedAt: 1, lastOpenedAt: 1 },
-          { id: 'project-b', path: '/tmp/b', label: 'B', addedAt: 2, lastOpenedAt: 2 },
+          { id: 'project-a', path: '/tmp/a', label: 'A', addedAt: 1, lastOpenedAt: 1, pointerStoreId: null, referenceStoreIds: [] },
+          { id: 'project-b', path: '/tmp/b', label: 'B', addedAt: 2, lastOpenedAt: 2, pointerStoreId: null, referenceStoreIds: [] },
         ],
         activeProjectId: 'project-a',
       },
@@ -104,7 +104,7 @@ test('resolveProjectSelection falls back to the server default and clears the st
   assert.deepEqual(
     resolveProjectSelection(
       {
-        projects: [{ id: 'project-a', path: '/tmp/a', label: 'A', addedAt: 1, lastOpenedAt: 1 }],
+        projects: [{ id: 'project-a', path: '/tmp/a', label: 'A', addedAt: 1, lastOpenedAt: 1, pointerStoreId: null, referenceStoreIds: [] }],
         activeProjectId: 'project-a',
       },
       'project-b'

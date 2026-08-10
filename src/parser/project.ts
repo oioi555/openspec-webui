@@ -17,6 +17,61 @@ interface ParsedConfigFile {
   schema?: unknown;
   context?: unknown;
   rules?: unknown;
+  store?: unknown;
+  references?: unknown;
+}
+
+/**
+ * Parse the optional `store:` pointer id from config.yaml. Invalid optional
+ * shapes degrade to null without invalidating an otherwise valid context.
+ */
+export function normalizePointerStoreId(value: unknown): string | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+/**
+ * Parse the optional `references:` list of Store ids from config.yaml.
+ * Accepts both string entries and object entries with a string `id` (e.g.
+ * `{ id, remote }`). Entries are trimmed, invalid entries ignored, and
+ * duplicates removed by id preserving first occurrence. Invalid optional
+ * shapes degrade to an empty array.
+ */
+export function normalizeReferenceStoreIds(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const ids: string[] = [];
+  const seen = new Set<string>();
+
+  for (const item of value) {
+    let rawId: unknown;
+    if (typeof item === 'string') {
+      rawId = item;
+    } else if (item && typeof item === 'object' && !Array.isArray(item)) {
+      rawId = (item as Record<string, unknown>).id;
+    } else {
+      continue;
+    }
+
+    if (typeof rawId !== 'string') {
+      continue;
+    }
+
+    const trimmed = rawId.trim();
+    if (trimmed.length === 0 || seen.has(trimmed)) {
+      continue;
+    }
+
+    seen.add(trimmed);
+    ids.push(trimmed);
+  }
+
+  return ids;
 }
 
 function folderNameToProjectName(folderName: string): string {
@@ -204,17 +259,45 @@ function formatYamlIssues(issues: Array<{ message: string }>): string[] {
     .filter((message) => message.length > 0);
 }
 
+/**
+ * Resolve the OpenSpec config file path, preferring `config.yaml` when both
+ * `config.yaml` and `config.yml` exist. Returns null when neither exists.
+ */
+async function resolveConfigPath(openspecPath: string): Promise<string | null> {
+  const yamlPath = join(openspecPath, 'config.yaml');
+  const ymlPath = join(openspecPath, 'config.yml');
+
+  try {
+    await readFile(yamlPath, 'utf-8');
+    return yamlPath;
+  } catch {
+    // fall through to .yml
+  }
+
+  try {
+    await readFile(ymlPath, 'utf-8');
+    return ymlPath;
+  } catch {
+    return null;
+  }
+}
+
 export async function parseProject(openspecPath: string): Promise<ParseResult<Project>> {
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  const configPath = join(openspecPath, 'config.yaml');
   const projectPath = join(openspecPath, 'project.md');
   const projectRoot = dirname(resolve(openspecPath));
   const folderName = basename(projectRoot);
   const name = folderNameToProjectName(folderName);
 
   try {
+    const configPath = await resolveConfigPath(openspecPath);
+    if (!configPath) {
+      errors.push('config.yaml not found');
+      return { data: null, errors, warnings };
+    }
+
     const configContent = await readFile(configPath, 'utf-8');
     const legacyProjectDoc = await readOptionalLegacyProjectDoc(projectPath, warnings);
     const document = parseDocument(configContent);
@@ -248,6 +331,8 @@ export async function parseProject(openspecPath: string): Promise<ParseResult<Pr
           planningContext,
           legacyProjectDoc,
           migrationState: determineMigrationState('', legacyProjectDoc),
+          pointerStoreId: null,
+          referenceStoreIds: [],
         },
         errors,
         warnings,
@@ -287,6 +372,8 @@ export async function parseProject(openspecPath: string): Promise<ParseResult<Pr
         planningContext,
         legacyProjectDoc,
         migrationState,
+        pointerStoreId: normalizePointerStoreId(parsedConfig.store),
+        referenceStoreIds: normalizeReferenceStoreIds(parsedConfig.references),
       },
       errors,
       warnings,

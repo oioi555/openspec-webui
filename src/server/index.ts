@@ -13,6 +13,7 @@ import { WebSocketManager } from './websocket/handler.js';
 import { registerApiRoutes } from './routes/api.js';
 import { createProjectRegistry, ProjectRegistryError } from './project-registry.js';
 import { createVersionSnapshotService, type VersionSnapshotService } from './version-status.js';
+import { createStoreDiscoveryService, type StoreDiscoveryService } from './store-discovery.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -35,6 +36,7 @@ export async function createServer(options: ServerOptions): Promise<Server> {
 
   const wsManager = new WebSocketManager();
   const versionSnapshotService = options.versionSnapshotService ?? createVersionSnapshotService();
+  const storeDiscoveryService = createStoreDiscoveryService();
   const projectRegistry = createProjectRegistry({
     onActiveFileChange: async (projectId, event, data) => {
       console.log(`File ${event.type}: ${event.path}`);
@@ -177,6 +179,7 @@ export async function createServer(options: ServerOptions): Promise<Server> {
   await registerApiRoutes(fastify, {
     registry: projectRegistry,
     versionSnapshotService,
+    storeDiscoveryService,
     onProjectRemoved: async (removedProjectId, nextProjectId) => {
       for (const client of wsManager.getClientsBoundTo(removedProjectId)) {
         wsManager.bindClient(client, nextProjectId);

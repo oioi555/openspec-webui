@@ -18,6 +18,7 @@ const SKILL_NAMES: Record<WorkflowCommand, string> = {
   continue: 'openspec-continue-change',
   ff: 'openspec-ff-change',
   'bulk-archive': 'openspec-bulk-archive-change',
+  update: 'openspec-update-change',
 };
 
 export interface CommandPreferencesSnapshot {
@@ -104,6 +105,10 @@ export function getWorkspaceCommands(
 
   if (isCommandEnabled(preferences, 'explore')) {
     commands.push('explore');
+  }
+
+  if (isCommandEnabled(preferences, 'update')) {
+    commands.push('update');
   }
 
   if (isCommandEnabled(preferences, 'new')) {

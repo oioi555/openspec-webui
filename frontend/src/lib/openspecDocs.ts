@@ -4,3 +4,5 @@ export const OPENSPEC_OPSX_REFERENCE_DOCS_URL = 'https://github.com/Fission-AI/O
 export const OPENSPEC_SUPPORTED_TOOLS_DOCS_URL = 'https://github.com/Fission-AI/OpenSpec/blob/main/docs/supported-tools.md';
 export const OPENSPEC_COMMANDS_DOCS_URL = 'https://github.com/Fission-AI/OpenSpec/blob/main/docs/commands.md';
 export const OPENSPEC_WORKFLOWS_DOCS_URL = 'https://github.com/Fission-AI/OpenSpec/blob/main/docs/workflows.md';
+export const OPENSPEC_STORES_GUIDE_URL = 'https://github.com/Fission-AI/OpenSpec/blob/main/docs/stores-beta/user-guide.md';
+export const OPENSPEC_STORE_CLI_REFERENCE_URL = 'https://github.com/Fission-AI/OpenSpec/blob/main/docs/cli.md#stores-standalone-openspec-repos';

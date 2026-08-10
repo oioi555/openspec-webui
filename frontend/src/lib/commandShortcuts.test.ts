@@ -33,6 +33,7 @@ function createPreferences(options: {
     explore: true,
     apply: true,
     archive: true,
+    update: true,
     new: true,
     continue: true,
     ff: true,
@@ -98,7 +99,7 @@ test('getWorkspaceCommands returns representative workspace workflows', () => {
 
   assert.deepEqual(
     getWorkspaceCommands([createChangeSummary(1, 2), createChangeSummary(2, 2)], preferences),
-    ['propose', 'explore', 'new', 'continue', 'ff', 'bulk-archive'],
+    ['propose', 'explore', 'update', 'new', 'continue', 'ff', 'bulk-archive'],
   );
 });
 
@@ -131,6 +132,6 @@ test('getWorkspaceCommands respects visibility toggles', () => {
 
   assert.deepEqual(
     getWorkspaceCommands([createChangeSummary(1, 2), createChangeSummary(2, 2)], preferences),
-    ['propose', 'new', 'ff', 'bulk-archive'],
+    ['propose', 'update', 'new', 'ff', 'bulk-archive'],
   );
 });

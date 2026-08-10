@@ -1,0 +1,94 @@
+{
+  "changeId": "support-openspec-v1-8",
+  "revisions": [
+    {
+      "id": "rev-e6d46d30",
+      "description": "Move machine-global registered Store discovery out of the Explorer sidebar into the Project Selector, with deduplicated Store badges and a conditional dashboard relationship view.",
+      "reason": "A permanent STORES sidebar section makes globally registered Stores look like children of every active project and obscures `store:` pointer versus `references:` relationships.",
+      "author": "AI",
+      "createdAt": "2026-08-09T14:32:27.850Z",
+      "metadata": {
+        "type": "behavior",
+        "updateTarget": [
+          "design",
+          "delta-specs"
+        ]
+      }
+    },
+    {
+      "id": "rev-debe4e8a",
+      "description": "Make the Project Selector the always-visible Store configuration guidance surface, including validated version-pinned Store Guide and CLI links even when no Stores are registered.",
+      "reason": "Users decide whether and how to configure Stores while viewing the Project Selector; hiding guidance until stores exist prevents the intended terminal-first discovery flow.",
+      "author": "AI",
+      "createdAt": "2026-08-09T14:45:23.576Z",
+      "metadata": {
+        "type": "behavior",
+        "updateTarget": [
+          "design",
+          "delta-specs"
+        ]
+      }
+    },
+    {
+      "id": "rev-7070634b",
+      "description": "Replace the separate Registered Stores catalog and automatic Open Store flow with Store metadata enrichment on existing Project Selector project rows only.",
+      "reason": "The Project Selector must remain the WebUI project registry. CLI Store discovery annotates matching registered project rows; a Store absent from that list is not directly openable in the WebUI.",
+      "author": "AI",
+      "createdAt": "2026-08-09T14:53:43.142Z",
+      "metadata": {
+        "type": "behavior",
+        "updateTarget": [
+          "design",
+          "delta-specs"
+        ]
+      }
+    },
+    {
+      "id": "rev-56f9787a",
+      "description": "Merge CLI-registered Stores and WebUI projects into one deduplicated, openable Project Selector list, and move native Store guidance to the selector header.",
+      "reason": "Registered Stores are ordinary OpenSpec projects intentionally registered by the user, so they must be visible and selectable; the prior metadata-only model incorrectly hid Store-only roots and placed guidance away from the decision point.",
+      "author": "AI",
+      "createdAt": "2026-08-09T15:12:28.060Z",
+      "metadata": {
+        "type": "behavior",
+        "updateTarget": [
+          "design",
+          "delta-specs"
+        ]
+      }
+    },
+    {
+      "id": "rev-2c9103ea",
+      "description": "Use living official OpenSpec Store documentation links in the Project Selector header instead of duplicating Store concepts and lifecycle instructions in WebUI copy.",
+      "reason": "Stores are beta and their concepts, registration, and removal behavior may change; OpenSpec official documentation must remain the authoritative source.",
+      "author": "AI",
+      "createdAt": "2026-08-09T15:17:07.663Z",
+      "metadata": {
+        "type": "behavior",
+        "updateTarget": [
+          "design",
+          "delta-specs"
+        ]
+      }
+    },
+    {
+      "id": "rev-298db418",
+      "description": "Represent a pure Store root with a compact Dashboard header badge instead of a full Store Relationship card; reserve the card for actionable pointer or reference relationships.",
+      "reason": "Store-root identity is passive metadata, while pointer and reference relationships provide navigation actions and need stronger visual prominence.",
+      "author": "AI",
+      "createdAt": "2026-08-10T04:30:44.680Z",
+      "metadata": {
+        "type": "behavior",
+        "affectedField": "Dashboard Store relationship presentation",
+        "updateTarget": [
+          "design",
+          "delta-specs"
+        ],
+        "source": {
+          "file": "frontend/src/lib/views/Dashboard.svelte",
+          "function": "Dashboard Store relationship rendering"
+        }
+      }
+    }
+  ]
+}
