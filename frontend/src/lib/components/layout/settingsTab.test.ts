@@ -398,6 +398,67 @@ test('SettingsView.svelte has Tools section with read-only content and refresh',
   assert.equal(source.toLowerCase().includes('installed tools'), false, 'Must not use "installed tools"');
 });
 
+test('SettingsView.svelte Tools section shows active repository and copyable openspec init command', async () => {
+  const source = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
+
+  // buildToolsInitCommand is imported beside buildProjectUpdateCommand from core
+  assert.match(source, /import \{ buildProjectUpdateCommand, buildToolsInitCommand \} from '\$lib\/state\/projectVersionStatusCore'/);
+
+  // OPENSPEC_INIT_DOCS_URL is imported from openspecDocs
+  assert.match(source, /import.*?OPENSPEC_INIT_DOCS_URL.*?from '\$lib\/openspecDocs'/s);
+
+  // activeRepositoryPath is derived from the active project's path
+  assert.match(source, /activeRepositoryPath.*=.*\$derived/);
+  assert.match(source, /projectStore\.projects\.find\(\(p\) => p\.id === projectStore\.activeProjectId\)\?\.path \?\? null/);
+
+  const toolsStart = source.indexOf('id="settings-tools"');
+  const toolsEnd = source.indexOf('<!-- commands section -->', toolsStart);
+  assert.ok(toolsStart > 0, 'tools section should exist');
+  const toolsBlock = source.slice(toolsStart, toolsEnd);
+
+  // Init-command block at the bottom of the Tools body, styled to match Versions update-command pattern
+  assert.match(toolsBlock, /settings_tools_init_command_caption/);
+  assert.match(toolsBlock, /settings_tools_init_command_aria/);
+
+  // Full path available as tooltip on the code element
+  assert.match(toolsBlock, /title=\{activeRepositoryPath\}/);
+
+  // Command block uses the same border/background pattern as Versions section
+  assert.match(toolsBlock, /rounded-sm border border-border bg-background px-3 py-2/);
+
+  // Copy button is wired to handleCopyCommand(buildToolsInitCommand(activeRepositoryPath), activeRepositoryPath)
+  assert.match(toolsBlock, /buildToolsInitCommand\(activeRepositoryPath\)/);
+  assert.match(toolsBlock, /handleCopyCommand\(buildToolsInitCommand\(activeRepositoryPath\), activeRepositoryPath\)/);
+
+  // Both documentation links render in the same paragraph: supported-tools and openspec init reference
+  assert.match(toolsBlock, /OPENSPEC_SUPPORTED_TOOLS_DOCS_URL/);
+  assert.match(toolsBlock, /OPENSPEC_INIT_DOCS_URL/);
+  assert.match(toolsBlock, /FIXED_LABELS\.settings\.docs\.initCommand/);
+});
+
+test('SettingsView.svelte Tools section shows empty state and keeps docs links and refresh when no project is active', async () => {
+  const source = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
+
+  const toolsStart = source.indexOf('id="settings-tools"');
+  const toolsEnd = source.indexOf('<!-- commands section -->', toolsStart);
+  assert.ok(toolsStart > 0, 'tools section should exist');
+  const toolsBlock = source.slice(toolsStart, toolsEnd);
+
+  // Empty-state message rendered when no active project
+  assert.match(toolsBlock, /settings_tools_no_active_project/);
+
+  // The empty-state message sits in the {:else} branch of the inline init-command supplement
+  assert.match(toolsBlock, /\{:else\}/);
+
+  // Both documentation links remain visible
+  assert.match(toolsBlock, /OPENSPEC_SUPPORTED_TOOLS_DOCS_URL/);
+  assert.match(toolsBlock, /OPENSPEC_INIT_DOCS_URL/);
+
+  // Refresh control remains visible
+  assert.match(toolsBlock, /commandPreferencesStore\.refreshAvailability/);
+  assert.match(toolsBlock, /settings_tools_refreshing/);
+});
+
 test('SettingsView.svelte Commands section uses availability.workflows for expanded gating', async () => {
   const source = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
 

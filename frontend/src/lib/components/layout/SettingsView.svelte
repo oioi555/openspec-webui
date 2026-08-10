@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Copy, ExternalLink, FlaskConical, Info, ListChecks, Monitor, Moon, RefreshCw, Settings, Sun, Wrench } from '@lucide/svelte';
-  import { buildProjectUpdateCommand } from '$lib/state/projectVersionStatusCore';
+  import { buildProjectUpdateCommand, buildToolsInitCommand } from '$lib/state/projectVersionStatusCore';
   import { projectVersionStatusStore } from '$lib/state/projectVersionStatus.svelte.ts';
   import { Callout } from '$lib/components/shared/callout';
   import { OptionCard } from '$lib/components/shared/option-card';
@@ -11,6 +11,7 @@
   import { t } from '$lib/i18n';
   import {
     OPENSPEC_COMMANDS_DOCS_URL,
+    OPENSPEC_INIT_DOCS_URL,
     OPENSPEC_SUPPORTED_TOOLS_DOCS_URL,
     OPENSPEC_WORKFLOWS_DOCS_URL,
   } from '$lib/openspecDocs';
@@ -151,6 +152,10 @@
   let integrations = $derived(commandPreferencesStore.availability.integrations);
   let versionSnapshot = $derived(versionStatusStore.snapshot);
   let projectVersionSnapshot = $derived(projectVersionStatusStore.snapshot);
+
+  let activeRepositoryPath = $derived(
+    projectStore.projects.find((p) => p.id === projectStore.activeProjectId)?.path ?? null,
+  );
 
   let checkedAtLabel = $derived.by(() => {
     const iso = versionSnapshot?.checkedAt ?? null;
@@ -452,6 +457,16 @@
             {FIXED_LABELS.settings.docs.supportedTools}
             <ExternalLink class="h-3.5 w-3.5" />
           </a>
+          ·
+          <a
+            href={OPENSPEC_INIT_DOCS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-1 underline hover:text-foreground"
+          >
+            {FIXED_LABELS.settings.docs.initCommand}
+            <ExternalLink class="h-3.5 w-3.5" />
+          </a>
         </p>
 
         {#if commandPreferencesStore.availabilityLoading && !availabilityReady}
@@ -482,6 +497,26 @@
           <Callout variant="info">
             {t(m.settings_tools_no_integrations)}
           </Callout>
+        {/if}
+
+        {#if activeRepositoryPath}
+          <div>
+            <div class="text-xs uppercase tracking-wide text-muted-foreground">{t(m.settings_tools_init_command_caption)}</div>
+            <div class="mt-1 flex items-center gap-2 rounded-sm border border-border bg-background px-3 py-2">
+              <code class="min-w-0 flex-1 overflow-x-auto text-xs text-primary" title={activeRepositoryPath}>{buildToolsInitCommand(activeRepositoryPath)}</code>
+              <Button
+                variant="ghost"
+                size="icon"
+                class="size-8 shrink-0 text-muted-foreground hover:text-foreground"
+                aria-label={t(m.settings_tools_init_command_aria, { path: activeRepositoryPath })}
+                onclick={() => handleCopyCommand(buildToolsInitCommand(activeRepositoryPath), activeRepositoryPath)}
+              >
+                <Copy class="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        {:else}
+          <p class="text-xs text-muted-foreground">{t(m.settings_tools_no_active_project)}</p>
         {/if}
       </div>
     </SurfaceCard>

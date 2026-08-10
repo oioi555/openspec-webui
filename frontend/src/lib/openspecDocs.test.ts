@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import {
+  OPENSPEC_INIT_DOCS_URL,
   OPENSPEC_INSTALL_DOCS_URL,
   OPENSPEC_STORES_GUIDE_URL,
   OPENSPEC_STORE_CLI_REFERENCE_URL,
@@ -23,4 +24,11 @@ test('OPENSPEC_STORE_CLI_REFERENCE_URL points to the official CLI stores section
 
 test('existing documentation URLs are unchanged', () => {
   assert.equal(OPENSPEC_INSTALL_DOCS_URL, 'https://github.com/Fission-AI/OpenSpec#quick-start');
+});
+
+test('OPENSPEC_INIT_DOCS_URL points to the official CLI openspec init section', () => {
+  assert.equal(
+    OPENSPEC_INIT_DOCS_URL,
+    'https://github.com/Fission-AI/OpenSpec/blob/main/docs/cli.md#openspec-init',
+  );
 });

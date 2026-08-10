@@ -5,6 +5,7 @@ import type {
 } from '$lib/types/api';
 
 export const PROJECT_UPDATE_COMMAND = 'openspec update';
+export const PROJECT_INIT_COMMAND = 'openspec init';
 
 export function isProjectVersionUpdateStatus(value: unknown): value is ProjectVersionUpdateStatus {
   return value === 'up-to-date' || value === 'update-available' || value === 'unknown';
@@ -170,4 +171,13 @@ export function deriveProjectUpdateStatus(
 export function buildProjectUpdateCommand(path: string): string {
   const quotedPath = /\s/.test(path) ? `'${path}'` : path;
   return `${PROJECT_UPDATE_COMMAND} ${quotedPath}`;
+}
+
+/**
+ * Builds `openspec init <path>`, quoting the path with single quotes only
+ * when it contains whitespace so the command runs safely in a shell.
+ */
+export function buildToolsInitCommand(path: string): string {
+  const quotedPath = /\s/.test(path) ? `'${path}'` : path;
+  return `${PROJECT_INIT_COMMAND} ${quotedPath}`;
 }

@@ -2,8 +2,10 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import {
+  PROJECT_INIT_COMMAND,
   PROJECT_UPDATE_COMMAND,
   buildProjectUpdateCommand,
+  buildToolsInitCommand,
   compareVersions,
   deriveProjectUpdateStatus,
   normalizeProjectVersionStatusEntry,
@@ -136,4 +138,17 @@ test('buildProjectUpdateCommand quotes paths containing whitespace', () => {
 
 test('buildProjectUpdateCommand does not escape single quotes inside the path', () => {
   assert.equal(buildProjectUpdateCommand("/home/user/it's project"), "openspec update '/home/user/it's project'");
+});
+
+test('buildToolsInitCommand produces openspec init with the path', () => {
+  assert.equal(PROJECT_INIT_COMMAND, 'openspec init');
+  assert.equal(buildToolsInitCommand('/home/user/proj'), 'openspec init /home/user/proj');
+});
+
+test('buildToolsInitCommand quotes paths containing whitespace', () => {
+  assert.equal(buildToolsInitCommand('/home/user/my project'), "openspec init '/home/user/my project'");
+});
+
+test('buildToolsInitCommand does not escape single quotes inside the path', () => {
+  assert.equal(buildToolsInitCommand("/home/user/it's project"), "openspec init '/home/user/it's project'");
 });

@@ -106,6 +106,7 @@ export const FIXED_LABELS = {
     docs: {
       opsxReference: 'OPSX Reference',
       supportedTools: 'Supported Tools',
+      initCommand: 'openspec init reference',
       commands: 'Commands',
       workflows: 'Workflows',
     },

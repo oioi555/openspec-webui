@@ -25,6 +25,12 @@ const ONBOARDING_COMMAND_KEYS = [
   'empty_project_init_hint',
 ] as const;
 
+const TOOLS_COMMAND_KEYS = [
+  'settings_tools_init_command_caption',
+  'settings_tools_init_command_aria',
+  'settings_tools_no_active_project',
+] as const;
+
 class MockStorage {
   #values = new Map<string, string>();
 
@@ -167,6 +173,18 @@ test('translated onboarding guidance keeps `openspec init` in English', async ()
     const messages = await readJson<Record<string, string>>(`../../messages/${locale}.json`);
 
     for (const key of ONBOARDING_COMMAND_KEYS) {
+      assert.match(messages[key], /openspec init/, `${locale}.${key} should keep openspec init in English`);
+    }
+  }
+});
+
+test('translated tools section keeps `openspec init` in English', async () => {
+  const settings = await readJson<{ locales: string[] }>('../../project.inlang/settings.json');
+
+  for (const locale of settings.locales.filter((candidate) => candidate !== 'en')) {
+    const messages = await readJson<Record<string, string>>(`../../messages/${locale}.json`);
+
+    for (const key of TOOLS_COMMAND_KEYS) {
       assert.match(messages[key], /openspec init/, `${locale}.${key} should keep openspec init in English`);
     }
   }
