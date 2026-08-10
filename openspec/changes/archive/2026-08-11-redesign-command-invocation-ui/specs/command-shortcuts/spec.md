@@ -1,47 +1,14 @@
-# command-shortcuts Specification
+## REMOVED Requirements
 
-## Purpose
-Generates and surfaces copyable OpenSpec commands in the web UI using tool-identified invocation candidates detected for the active repository, with visibility rules that adapt to workspace state and change completion status.
+### Requirement: Generate command text from the active syntax preference
+**Reason**: The global `standard | claude-code | skill` command-format preference is retired. Command text is now produced from detected invocation-form candidates for the active repository (see "Generate invocation-form candidates"), so a persisted format no longer determines generation.
+**Migration**: Use the new invocation-form candidate model. Stored `format` / legacy `aiTool` localStorage values are ignored and cleaned up by the command-preferences migration (see `command-preferences` delta).
 
-## Requirements
+### Requirement: Show workspace command buttons on Dashboard and Changes
+**Reason**: The workspace command row is reclassified by the surface criterion (whether the WebUI can identify the command target from the copy surface). `continue` and `ff` target a single existing change, so they are change-only and no longer appear in the workspace command row; the workspace row is limited to workspace-only commands (`propose`, `explore`, `new`, `bulk-archive`). The prior incomplete-change workspace shortcut behavior is removed.
+**Migration**: See the ADDED requirement "Show workspace-only command buttons on Dashboard and Changes" for the updated workspace row, and "Show change-scoped command buttons in ChangeViewer" for where `continue` and `ff` now render.
 
-### Requirement: Show workspace-only command buttons on Dashboard and Changes
-The system SHALL render copy-command buttons inline within the ACTIVE CHANGES section header surface using the `CommandChip` component from `$lib/components/shared/command-chip/`, whether that surface is shown in the persistent Explorer Pane or the temporary narrow-width Home drawer. The system SHALL include `propose` and `explore` only when those commands are present in the CLI-reported `workflows` list for the active project and are enabled via visibility settings, SHALL include `new` only when that command is present in the CLI-reported `workflows` list, is available, and is enabled, SHALL include `bulk-archive` only when at least one active change is fully complete and that command is present in the CLI-reported `workflows` list, is available, and is enabled, SHALL NOT include `continue`, `ff`, `apply`, `update`, `verify`, `sync`, or `archive` in the workspace command row, and SHALL NOT include `onboard` in the workspace command row. The row SHALL remain compact, SHALL wrap when many commands are visible, and SHALL preserve command-emphasis styling distinct from standard action buttons.
-
-#### Scenario: Show enabled workspace commands on Home
-- **WHEN** the operator views the Home surface and the CLI-reported `workflows` list includes `propose` and `explore`
-- **THEN** the UI shows `CommandChip` controls for `propose` and `explore` if those commands are enabled via visibility settings
-
-#### Scenario: Hide update from the workspace command row
-- **WHEN** the workspace command row is rendered and the CLI-reported `workflows` list includes `update`
-- **THEN** no `CommandChip` or generated command text for `update` is shown in the workspace command row
-
-#### Scenario: Hide continue and ff from the workspace command row
-- **WHEN** the workspace command row is rendered and at least one active change still has incomplete tasks and the CLI-reported `workflows` list includes `continue` and `ff`
-- **THEN** no `CommandChip` or generated command text for `continue` or `ff` is shown in the workspace command row
-- **AND** `continue` and `ff` remain available only on change-scoped command surfaces
-
-#### Scenario: Show bulk archive when completed active changes exist
-- **WHEN** at least one active change is fully complete and the CLI-reported `workflows` list includes `bulk-archive`
-- **THEN** the UI shows a `CommandChip` for `bulk-archive` only if that command is available and enabled
-
-#### Scenario: Wrap a dense workspace command row
-- **WHEN** multiple workspace commands are simultaneously visible
-- **THEN** the command row wraps across lines with compact spacing
-- **AND** the chips remain visually grouped apart from surrounding title / count UI
-
-#### Scenario: Copy a workspace command without arguments
-- **WHEN** the operator activates a workspace command button with a single detected invocation form
-- **THEN** the system copies only the command text
-- **AND** does not append a change name
-
-#### Scenario: Show workspace commands in narrow-width home drawer
-- **WHEN** the viewport width is less than 768px and the operator opens the Home drawer
-- **THEN** the ACTIVE CHANGES section header in that drawer shows the same `CommandChip` controls as the persistent Explorer Pane
-
-#### Scenario: Hide onboard from the workspace command row
-- **WHEN** the workspace command row is rendered
-- **THEN** no `CommandChip` or generated command text for `onboard` is shown
+## MODIFIED Requirements
 
 ### Requirement: Show change-scoped command buttons in ChangeViewer
 The system SHALL render change-scoped copy-command buttons inline within the ChangeViewer header using `CommandChip` components. The system SHALL also render change-scoped copy-command buttons within each Dashboard Active Changes list item using `CommandChip` components via `CommandShortcutBar`. The system SHALL show `apply` only when the change still has incomplete tasks, `apply` is present in the CLI-reported `workflows` list for the active project, and the command is enabled; SHALL show `continue` and `ff` for incomplete changes only when those commands are present in the CLI-reported `workflows` list, are available, and are enabled; SHALL show `update` (labeled `Revise Plan`) for any active, unarchived change when `update` is present in the CLI-reported `workflows` list and the command is enabled, regardless of task completion status; and SHALL show `sync` for any active, unarchived change that has one or more spec deltas and the command is enabled, regardless of task completion status. The system SHALL show `verify` only when the change has no incomplete tasks and the command is enabled, and SHALL show `archive` only when the change has no incomplete tasks and the command is enabled. Change-scoped command chips SHALL be ordered left-to-right by workflow stage so later-stage actions appear farther right; incomplete changes SHALL order implementation-continuation commands before `sync` with `update` immediately after `apply`, and completed changes SHALL order commands as `verify`, `update`, `sync`, `archive`. In Dashboard list items, the command chips SHALL be visually separated from the primary open-change action and SHALL be preceded by a `Next Step` cue label. The entire `Next Step` command row, including its background and label, SHALL be a non-navigating command region. The primary change summary above that row SHALL remain the explicit open-change action.
@@ -121,16 +88,45 @@ The system SHALL render change-scoped copy-command buttons inline within the Cha
 - **THEN** the system copies the command plus the current change name
 - **AND** does not append a task label
 
-### Requirement: Exclude onboard from all command surfaces
-The system SHALL NOT render, generate, or report the `onboard` command in any command chip, generated command text, command availability response, or command preference surface, even when the underlying CLI reports `onboard` as available.
+## ADDED Requirements
 
-#### Scenario: Onboard absent from generated commands and chips
-- **WHEN** the operator invokes any command generation or command chip surface and the underlying CLI reports `onboard` as available
-- **THEN** no generated command text or `CommandChip` references the `onboard` command
+### Requirement: Show workspace-only command buttons on Dashboard and Changes
+The system SHALL render copy-command buttons inline within the ACTIVE CHANGES section header surface using the `CommandChip` component from `$lib/components/shared/command-chip/`, whether that surface is shown in the persistent Explorer Pane or the temporary narrow-width Home drawer. The system SHALL include `propose` and `explore` only when those commands are present in the CLI-reported `workflows` list for the active project and are enabled via visibility settings, SHALL include `new` only when that command is present in the CLI-reported `workflows` list, is available, and is enabled, SHALL include `bulk-archive` only when at least one active change is fully complete and that command is present in the CLI-reported `workflows` list, is available, and is enabled, SHALL NOT include `continue`, `ff`, `apply`, `update`, `verify`, `sync`, or `archive` in the workspace command row, and SHALL NOT include `onboard` in the workspace command row. The row SHALL remain compact, SHALL wrap when many commands are visible, and SHALL preserve command-emphasis styling distinct from standard action buttons.
 
-#### Scenario: Availability response filters onboard
-- **WHEN** the server resolves the command availability for the active project
-- **THEN** the availability response does not include the `onboard` command
+#### Scenario: Show enabled workspace commands on Home
+- **WHEN** the operator views the Home surface and the CLI-reported `workflows` list includes `propose` and `explore`
+- **THEN** the UI shows `CommandChip` controls for `propose` and `explore` if those commands are enabled via visibility settings
+
+#### Scenario: Hide update from the workspace command row
+- **WHEN** the workspace command row is rendered and the CLI-reported `workflows` list includes `update`
+- **THEN** no `CommandChip` or generated command text for `update` is shown in the workspace command row
+
+#### Scenario: Hide continue and ff from the workspace command row
+- **WHEN** the workspace command row is rendered and at least one active change still has incomplete tasks and the CLI-reported `workflows` list includes `continue` and `ff`
+- **THEN** no `CommandChip` or generated command text for `continue` or `ff` is shown in the workspace command row
+- **AND** `continue` and `ff` remain available only on change-scoped command surfaces
+
+#### Scenario: Show bulk archive when completed active changes exist
+- **WHEN** at least one active change is fully complete and the CLI-reported `workflows` list includes `bulk-archive`
+- **THEN** the UI shows a `CommandChip` for `bulk-archive` only if that command is available and enabled
+
+#### Scenario: Wrap a dense workspace command row
+- **WHEN** multiple workspace commands are simultaneously visible
+- **THEN** the command row wraps across lines with compact spacing
+- **AND** the chips remain visually grouped apart from surrounding title / count UI
+
+#### Scenario: Copy a workspace command without arguments
+- **WHEN** the operator activates a workspace command button with a single detected invocation form
+- **THEN** the system copies only the command text
+- **AND** does not append a change name
+
+#### Scenario: Show workspace commands in narrow-width home drawer
+- **WHEN** the viewport width is less than 768px and the operator opens the Home drawer
+- **THEN** the ACTIVE CHANGES section header in that drawer shows the same `CommandChip` controls as the persistent Explorer Pane
+
+#### Scenario: Hide onboard from the workspace command row
+- **WHEN** the workspace command row is rendered
+- **THEN** no `CommandChip` or generated command text for `onboard` is shown
 
 ### Requirement: Generate tool-identified invocation candidates
 The system SHALL internally generate copyable command text from the official OpenSpec invocation forms: `/opsx:<id>`, `/opsx-<id>`, `@opsx-<id>`, `/openspec-<skill>`, `/skill:openspec-<skill>`, and `$openspec-<skill>`. Forms based on a workflow id SHALL interpolate the workflow id; forms based on a skill name SHALL interpolate the workflow's resolved skill name (for example `sync` → `openspec-sync-specs`). The system SHALL append no positional arguments for workspace-scoped commands and SHALL append `<change-name>` for change-scoped commands. User-facing copy choices SHALL be identified by tool name rather than by invocation-form id, prefix, or format name. When exactly one tool invocation is detected for the active repository, activating a copy control SHALL copy that tool's command directly. When multiple tool invocations are detected, activating a copy control SHALL open a `Choose tool` menu and SHALL copy only after the operator explicitly selects a tool. When no integration is detected, the menu SHALL offer the supported tool catalog by tool name. Undetected tools or a custom command SHALL be available through an `Other tool…` entry. Different tools SHALL remain separate choices even when they produce the same command string; only duplicate evidence for the same tool and form SHALL be collapsed. The system SHALL NOT auto-copy a previously used tool without confirmation and SHALL NOT fix a tool or form globally, per repository, or per command.

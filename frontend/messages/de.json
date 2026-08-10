@@ -54,7 +54,6 @@
   "settings_theme_system_description": "Verwende die Einstellung deines Betriebssystems.",
   "settings_explorer_description": "Steuere, ob ein einfacher Klick im Explorer einen wiederverwendbaren Vorschau-Tab oder einen normalen bestätigten Tab öffnet.",
   "settings_enable_preview_tabs_description": "Standardmäßig aktiviert. Wenn aktiviert, verwendet ein einfacher Klick einen Vorschau-Tab erneut. Mit Strg+Klick oder dem Kontextmenü des Elements öffnest du einen normalen Tab.",
-  "settings_workflow_description": "Wähle, wie kopierter OpenSpec-Workflow-Text für dein Coding-Tool formatiert werden soll.",
   "settings_profile_unknown": "unbekannt",
   "settings_commands_description": "Lege fest, welche Workflow-Kurzbefehle in den Befehlszeilen für Workspace und Änderungen angezeigt werden.",
   "settings_validation_description": "Lege fest, wie die Validierung aus dem Validation-Panel ausgeführt wird.",

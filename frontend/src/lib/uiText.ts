@@ -1,5 +1,6 @@
 import type { SearchResult, ValidationItemType } from './types/api';
 import type { WorkflowCommand } from './types/commandTypes';
+import { getWorkflowLabel } from './workflowMetadata';
 
 export const FIXED_LABELS = {
   appName: 'OpenSpec WebUI',
@@ -80,7 +81,7 @@ export const FIXED_LABELS = {
     title: 'Settings',
     sections: {
       general: 'General',
-      workflow: 'Workflow',
+      tools: 'Tools',
       commands: 'Commands',
       validation: 'Validation',
       versions: 'Versions',
@@ -89,7 +90,7 @@ export const FIXED_LABELS = {
       language: 'Language',
       theme: 'Theme',
       explorer: 'Explorer',
-      workflow: 'Workflow',
+      tools: 'Tools & Integrations',
       commands: 'Commands',
       validation: 'Validation',
       versions: 'Versions',
@@ -108,10 +109,16 @@ export const FIXED_LABELS = {
       commands: 'Commands',
       workflows: 'Workflows',
     },
-    workflowFormats: {
-      standard: 'Standard',
-      claudeCode: 'Claude Code',
-      skill: 'Skill',
+    tools: {
+      delivery: 'Delivery',
+      example: 'Example',
+      source: 'Detected',
+      commands: 'Commands',
+      skills: 'Skills',
+      both: 'Commands & Skills',
+      noIntegrations: 'No tool integrations detected. Copy commands are still available in all six official formats.',
+      refresh: 'Refresh',
+      refreshing: 'Refreshing…',
     },
     workspaceCommand: 'Workspace',
     changeCommand: 'Change',
@@ -144,7 +151,7 @@ export const FIXED_LABELS = {
     verify: 'Verify',
     sync: 'Sync',
     bulkArchive: 'Bulk Archive',
-    update: 'Update',
+    update: 'Revise Plan',
   },
   dashboard: {
     openProjectSelector: 'Open project selector',
@@ -243,30 +250,7 @@ export const FIXED_LABELS = {
 } as const;
 
 export function getWorkflowCommandLabel(command: WorkflowCommand): string {
-  switch (command) {
-    case 'propose':
-      return FIXED_LABELS.workflowCommands.propose;
-    case 'explore':
-      return FIXED_LABELS.workflowCommands.explore;
-    case 'apply':
-      return FIXED_LABELS.workflowCommands.apply;
-    case 'archive':
-      return FIXED_LABELS.workflowCommands.archive;
-    case 'new':
-      return FIXED_LABELS.workflowCommands.new;
-    case 'continue':
-      return FIXED_LABELS.workflowCommands.continue;
-    case 'ff':
-      return FIXED_LABELS.workflowCommands.ff;
-    case 'verify':
-      return FIXED_LABELS.workflowCommands.verify;
-    case 'sync':
-      return FIXED_LABELS.workflowCommands.sync;
-    case 'bulk-archive':
-      return FIXED_LABELS.workflowCommands.bulkArchive;
-    case 'update':
-      return FIXED_LABELS.workflowCommands.update;
-  }
+  return getWorkflowLabel(command);
 }
 
 export function getSearchResultTypeLabel(type: SearchResult['type']): string {

@@ -54,7 +54,6 @@
   "settings_theme_system_description": "Sigue la configuración de tu sistema operativo.",
   "settings_explorer_description": "Controla si un clic en el Explorador abre una pestaña de vista previa reutilizable o una pestaña normal confirmada.",
   "settings_enable_preview_tabs_description": "Activado por defecto. Cuando está habilitado, un clic reutiliza una pestaña de vista previa. Usa Ctrl+Click o el menú contextual del elemento para abrir una pestaña normal.",
-  "settings_workflow_description": "Elige cómo debe formatearse el texto del flujo de trabajo de OpenSpec copiado para tu herramienta de programación.",
   "settings_profile_unknown": "desconocido",
   "settings_commands_description": "Activa o desactiva qué accesos directos del flujo de trabajo deben aparecer en las filas de comandos del espacio de trabajo y de cambios.",
   "settings_validation_description": "Configura cómo se ejecuta la validación desde el panel Validation.",

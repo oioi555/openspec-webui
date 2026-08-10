@@ -2,6 +2,11 @@
   import type { Snippet } from 'svelte';
   import { cn } from '$lib/utils';
   import { getDropdownMenuContext } from './context';
+  import {
+    getMenuItems,
+    focusFirst,
+    handleMenuKeydown,
+  } from './menuNavigation';
 
   type Side = 'top' | 'bottom';
   type Align = 'start' | 'center' | 'end';
@@ -34,6 +39,35 @@
     dropdownMenu.setContentElement(contentElement);
   });
 
+  // Focus the first enabled menuitem after the content mounts.
+  // Uses a microtask so the DOM is fully rendered before querying.
+  $effect(() => {
+    if (!dropdownMenu.isOpen() || !contentElement) return;
+
+    const frame = requestAnimationFrame(() => {
+      if (!contentElement) return;
+      const items = getMenuItems(contentElement);
+      if (items.length > 0) {
+        focusFirst(items);
+      } else {
+        // No focusable items — make content itself focusable for keyboard users.
+        contentElement.tabIndex = -1;
+        contentElement.focus();
+      }
+    });
+
+    return () => cancelAnimationFrame(frame);
+  });
+
+  function closeAndReturnFocus() {
+    const trigger = dropdownMenu.getTriggerElement();
+    dropdownMenu.setOpen(false);
+    // Return focus to trigger after the DOM updates.
+    requestAnimationFrame(() => {
+      trigger?.focus();
+    });
+  }
+
   function handleWindowPointerdown(event: PointerEvent) {
     if (!dropdownMenu.isOpen()) {
       return;
@@ -51,23 +85,30 @@
       return;
     }
 
-    dropdownMenu.setOpen(false);
+    closeAndReturnFocus();
   }
 
-  function handleWindowKeydown(event: KeyboardEvent) {
-    if (dropdownMenu.isOpen() && event.key === 'Escape') {
-      dropdownMenu.setOpen(false);
+  function handleContentKeydown(event: KeyboardEvent) {
+    if (!contentElement) return;
+
+    const result = handleMenuKeydown(event, contentElement);
+
+    if (result === 'escape') {
+      event.preventDefault();
+      closeAndReturnFocus();
     }
   }
 </script>
 
-<svelte:window onpointerdown={handleWindowPointerdown} onkeydown={handleWindowKeydown} />
+<svelte:window onpointerdown={handleWindowPointerdown} />
 
 {#if dropdownMenu.isOpen()}
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <div
     bind:this={contentElement}
     {...restProps}
     role="menu"
+    onkeydown={handleContentKeydown}
     class={cn(
       'absolute z-50 min-w-40 rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-lg',
       sideClasses[side],

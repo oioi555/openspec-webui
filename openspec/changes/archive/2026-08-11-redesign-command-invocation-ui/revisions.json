@@ -1,0 +1,24 @@
+{
+  "changeId": "redesign-command-invocation-ui",
+  "revisions": [
+    {
+      "id": "rev-aecb8a1d",
+      "description": "DashboardのChangeコマンド領域を詳細画面へのナビゲーション対象から外し、コピー候補の表示単位を技術的なinvocation formからユーザーが認識するtool identityへ変更する。異なるtoolが同一文字列を生成してもtool選択肢は維持し、format ID/prefixは内部情報として扱う。",
+      "reason": "実装後の実使用で、Dashboard上のコマンド操作がChange詳細へ遷移して二重操作を要求し、copy menuがtoolではなくformatを表示していたため。",
+      "author": "AI",
+      "createdAt": "2026-08-10T10:26:43.450Z",
+      "metadata": {
+        "type": "behavior",
+        "affectedField": "CommandShortcutBar tool choices and Dashboard next-step command row",
+        "updateTarget": [
+          "design",
+          "delta-specs"
+        ],
+        "source": {
+          "file": "frontend/src/lib/components/shared/CommandShortcutBar.svelte",
+          "function": "copy-time tool selector"
+        }
+      }
+    }
+  ]
+}

@@ -160,10 +160,19 @@ test('Active Changes rows use bounded solid task-card styling instead of hover l
   assert.match(cardMatch[0], /radius="sm"/);
   assert.match(cardMatch[0], /bg-background\/60 shadow-none p-0/);
 
+  // overflow-hidden must NOT be present — it clips the DropdownMenu.Content
+  // which is absolutely positioned inside the card.  The dropdown needs to
+  // render outside the card bounds to be usable.
+  assert.doesNotMatch(
+    cardMatch[0],
+    /overflow-hidden/,
+    'Active Change card must not have overflow-hidden — it clips the command dropdown menu',
+  );
+
   assert.match(
     loopBody,
-    /class="cursor-pointer border-t border-border\/40 bg-secondary\/20 px-5 py-2\.5"/,
-    'Next Step sub-row should use a weaker internal separator and subtle background',
+    /class="rounded-b-sm border-t border-border\/40 bg-secondary\/20 px-5 py-2\.5"/,
+    'Next Step sub-row should use rounded-b-sm to respect card corners and a weaker internal separator',
   );
 
   // InteractiveCard still preserves lift for outer card-tone surfaces, while
@@ -185,10 +194,10 @@ test('Active Changes rows use bounded solid task-card styling instead of hover l
 });
 
 // ---------------------------------------------------------------------------
-// 4. Next Step row container opens the change
+// 4. Next Step row is a non-interactive container
 // ---------------------------------------------------------------------------
 
-test('Next Step command row container itself opens the change via openActiveChange', async () => {
+test('Next Step command row is a plain container — no role, tabindex, or onclick', async () => {
   const source = await dashboardSource;
 
   const eachBlock = source.match(
@@ -197,17 +206,7 @@ test('Next Step command row container itself opens the change via openActiveChan
   assert.ok(eachBlock, 'Should find the sortedActiveChanges each block');
   const loopBody = eachBlock[1];
 
-  // The Next Step row should be wrapped in a clickable container that calls
-  // openActiveChange(change.name). This makes the background/label area open
-  // the change, while command chips inside stop propagation.
-  const nextStepRow = loopBody.match(
-    /<div[^>]*border-t[^>]*onclick=\{[^}]*openActiveChange\(change\.name\)[^}]*\}[^>]*>[\s\S]*?nextStep/,
-  ) ?? loopBody.match(
-    /onclick=\{\(\) => openActiveChange\(change\.name\)\}[\s\S]*?border-t[\s\S]*?nextStep/i,
-  );
-
-  // More robust: find the command row section and verify it has an onclick
-  // that opens the change. The row is inside {#if changeCommands.length > 0}.
+  // The command row section should exist
   const commandRowSection = loopBody.match(
     /\{#if changeCommands\.length > 0\}([\s\S]*?)\{\/if\}/,
   );
@@ -215,30 +214,31 @@ test('Next Step command row container itself opens the change via openActiveChan
 
   const rowContent = commandRowSection[1];
 
-  // The outermost div of the command row should have an onclick calling
-  // openActiveChange(change.name) so clicking the background/label opens the change.
-  assert.match(
+  // The outermost div of the command row must NOT have onclick, role="button",
+  // or tabindex — it is a plain non-interactive container.  Command chips
+  // handle their own click/keyboard events and stop propagation.
+  assert.doesNotMatch(
     rowContent,
-    /onclick=\{\(\) => openActiveChange\(change\.name\)\}/,
-    'Next Step row container must call openActiveChange(change.name) on click',
+    /onclick=\{[^}]*openActiveChange/,
+    'Next Step row must NOT have an onclick that opens the change',
   );
 
-  assert.match(
+  assert.doesNotMatch(
     rowContent,
     /role="button"/,
-    'Next Step row container should expose button semantics for accessibility',
+    'Next Step row must NOT have role="button"',
   );
 
-  assert.match(
+  assert.doesNotMatch(
     rowContent,
     /tabindex="0"/,
-    'Next Step row container should be keyboard focusable',
+    'Next Step row must NOT be keyboard-focusable via tabindex',
   );
 
-  assert.match(
+  assert.doesNotMatch(
     rowContent,
-    /onkeydown=\{\(event\) => \{[\s\S]*event\.key === 'Enter' \|\| event\.key === ' '[\s\S]*openActiveChange\(change\.name\);[\s\S]*\}\}/,
-    'Next Step row container should open the change on Enter/Space',
+    /onkeydown/,
+    'Next Step row must NOT have an onkeydown handler',
   );
 
   // The border separator should still be present
@@ -263,7 +263,7 @@ test('CommandShortcutBar does not import or call tabStore or layoutStore', async
 
   // It should use the clipboard API for copying
   assert.match(source, /navigator\.clipboard\.writeText/);
-  assert.match(source, /copyCommand/);
+  assert.match(source, /copyText/);
 });
 
 test('command chips stop click propagation so clicking a chip does not open the change', async () => {
@@ -293,7 +293,7 @@ test('command chips stop click propagation so clicking a chip does not open the 
 
   assert.match(
     commandSource,
-    /onclick=\{\(event\) => \{[\s\S]*event\.stopPropagation\(\);[\s\S]*copyCommand\(command\);[\s\S]*\}\}/,
+    /onclick=\{\(event\) => \{[\s\S]*event\.stopPropagation\(\);[\s\S]*copyText\(choices\[0\]\.text\);[\s\S]*\}\}/,
     'Command chip click handler should stop propagation before copying the command',
   );
 

@@ -1,4 +1,12 @@
 import { execFile } from 'child_process';
+import {
+  detectToolIntegrations,
+  deriveDistinctForms,
+  getSupportedToolOptions,
+  type DetectedIntegration,
+  type InvocationFormId,
+  type ToolInvocationOption,
+} from './tool-integration-detection.js';
 
 const expandedWorkflowCommands = ['new', 'continue', 'ff', 'verify', 'sync', 'bulk-archive'] as const;
 
@@ -11,10 +19,29 @@ export type ExpandedWorkflowCommand = (typeof expandedWorkflowCommands)[number];
  */
 const blockedWorkflowCommands = new Set(['onboard']);
 
+export type CommandDelivery = 'commands' | 'skills' | 'both' | null;
+
 export interface CommandAvailability {
   status: 'ready' | 'unavailable';
   profile: string | null;
   workflows: string[];
+  /** Delivery mode from `openspec config get delivery` (defensively parsed). */
+  delivery: CommandDelivery;
+  /** Detected OpenSpec tool integrations for the active repository (hints only). */
+  integrations: DetectedIntegration[];
+  /** Deduplicated distinct invocation-form candidates from detection. */
+  forms: InvocationFormId[];
+  /**
+   * Static catalog of supported tool-to-form options for the copy-time
+   * selector, derived from the server signature table. Always present — even
+   * when CLI config or detection fails — so the UI can offer tool choices with
+   * zero detections.
+   */
+  toolOptions: ToolInvocationOption[];
+  /**
+   * @deprecated Staged removal — superseded by `workflows` gating; retained as
+   * a transition field during the migration.
+   */
   availableExpandedCommands: ExpandedWorkflowCommand[];
   error: string | null;
 }
@@ -36,17 +63,54 @@ function readOpenSpecConfigValue(cwd: string, key: string): Promise<string> {
   });
 }
 
-export async function inspectCommandAvailability(cwd: string): Promise<CommandAvailability> {
+/**
+ * Injectable reader seam for OpenSpec CLI config reads. Production uses
+ * `readOpenSpecConfigValue`; tests may substitute a deterministic runner so
+ * `inspectCommandAvailability` can be exercised without a real CLI.
+ */
+export type OpenSpecConfigReader = (cwd: string, key: string) => Promise<string>;
+
+/**
+ * Defensively parse the CLI `delivery` config value (`commands` | `skills` |
+ * `both`). Any other value (empty, whitespace, unknown, malformed) degrades to
+ * null — never an error.
+ */
+export function parseDelivery(value: string | null): CommandDelivery {
+  if (value === 'commands' || value === 'skills' || value === 'both') {
+    return value;
+  }
+  return null;
+}
+
+export async function inspectCommandAvailability(
+  cwd: string,
+  reader: OpenSpecConfigReader = readOpenSpecConfigValue
+): Promise<CommandAvailability> {
   let profile: string | null = null;
+  let delivery: CommandDelivery = null;
 
   try {
-    profile = (await readOpenSpecConfigValue(cwd, 'profile')) || null;
+    profile = (await reader(cwd, 'profile')) || null;
   } catch {
     profile = null;
   }
 
   try {
-    const workflowOutput = await readOpenSpecConfigValue(cwd, 'workflows');
+    delivery = parseDelivery(await reader(cwd, 'delivery'));
+  } catch {
+    delivery = null;
+  }
+
+  // Detection is repo-scoped and independent of the CLI; failures degrade to an
+  // empty list so availability never becomes an application error.
+  const integrations = await detectToolIntegrations(cwd);
+  const forms = deriveDistinctForms(integrations);
+  // The static tool catalog is independent of CLI config and detection; it is
+  // always included so the UI can offer tool choices even with zero detections.
+  const toolOptions = getSupportedToolOptions();
+
+  try {
+    const workflowOutput = await reader(cwd, 'workflows');
     if (!workflowOutput) {
       throw new Error('No workflows returned from OpenSpec config');
     }
@@ -62,6 +126,10 @@ export async function inspectCommandAvailability(cwd: string): Promise<CommandAv
       status: 'ready',
       profile,
       workflows,
+      delivery,
+      integrations,
+      forms,
+      toolOptions,
       availableExpandedCommands: workflows.filter(isExpandedWorkflowCommand),
       error: null,
     };
@@ -70,6 +138,10 @@ export async function inspectCommandAvailability(cwd: string): Promise<CommandAv
       status: 'unavailable',
       profile,
       workflows: [],
+      delivery,
+      integrations,
+      forms,
+      toolOptions,
       availableExpandedCommands: [],
       error: error instanceof Error ? error.message : 'Failed to inspect OpenSpec workflows',
     };

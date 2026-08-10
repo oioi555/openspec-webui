@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Command, Copy, ExternalLink, FlaskConical, Info, ListChecks, Monitor, Moon, RefreshCw, Settings, Sparkles, Sun, Terminal, Wrench } from '@lucide/svelte';
+  import { Copy, ExternalLink, FlaskConical, Info, ListChecks, Monitor, Moon, RefreshCw, Settings, Sun, Wrench } from '@lucide/svelte';
   import { Callout } from '$lib/components/shared/callout';
   import { OptionCard } from '$lib/components/shared/option-card';
   import { InsetPanel, SectionHeader, SurfaceCard } from '$lib/components/shared/surface';
@@ -9,7 +9,6 @@
   import { t } from '$lib/i18n';
   import {
     OPENSPEC_COMMANDS_DOCS_URL,
-    OPENSPEC_OPSX_REFERENCE_DOCS_URL,
     OPENSPEC_SUPPORTED_TOOLS_DOCS_URL,
     OPENSPEC_WORKFLOWS_DOCS_URL,
   } from '$lib/openspecDocs';
@@ -20,23 +19,19 @@
   import { copyToClipboard } from '$lib/utils';
   import { versionStatusStore } from '$lib/state/versionStatus.svelte.ts';
   import { RELEASE_PAGE_URLS, UPDATE_COMMANDS, type VersionedToolId } from '$lib/state/versionStatusCore';
-  import type { ToolVersionStatus } from '$lib/types/api';
-  import type { CommandFormat, WorkflowCommand } from '$lib/types/commandTypes';
+  import type { DetectedIntegration, ToolVersionStatus } from '$lib/types/api';
+  import type { WorkflowCommand } from '$lib/types/commandTypes';
   import {
     CORE_COMMANDS,
     EXPANDED_COMMANDS,
   } from '$lib/types/commandTypes';
-  import {
-    buildCommand,
-    isExpandedCommandAvailable,
-  } from '$lib/commandShortcuts';
   import { commandPreferencesStore } from '$lib/state/commandPreferences.svelte.ts';
   import { tabStore } from '$lib/state/tabs.svelte.ts';
   import { themeStore, type Theme } from '$lib/state/theme.svelte.ts';
   import { uiPreferencesStore } from '$lib/state/uiPreferences.svelte.ts';
   import { validationPreferencesStore } from '$lib/state/validationPreferences.svelte.ts';
 
-  type Section = 'general' | 'workflow' | 'commands' | 'validation' | 'versions';
+  type Section = 'general' | 'tools' | 'commands' | 'validation' | 'versions';
 
   interface Props {
     initialSection?: Section;
@@ -47,7 +42,7 @@
 
   const SECTION_IDS: Record<Section, string> = {
     general: 'settings-general',
-    workflow: 'settings-workflow',
+    tools: 'settings-tools',
     commands: 'settings-commands',
     validation: 'settings-validation',
     versions: 'settings-versions',
@@ -60,9 +55,9 @@
       icon: Settings
     },
     {
-      id: 'workflow' as const,
-      label: FIXED_LABELS.settings.sections.workflow,
-      icon: Command
+      id: 'tools' as const,
+      label: FIXED_LABELS.settings.sections.tools,
+      icon: Wrench
     },
     {
       id: 'commands' as const,
@@ -83,10 +78,6 @@
 
   let activeSection = $state<Section>('general');
   let contentEl: HTMLDivElement | undefined = $state();
-
-  function setFormat(format: CommandFormat) {
-    commandPreferencesStore.setFormat(format);
-  }
 
   function setTheme(theme: Theme) {
     themeStore.setTheme(theme);
@@ -154,9 +145,8 @@
     validationPreferencesStore.setConcurrency(parsed);
   }
 
-  let previewWorkspaceCommand = $derived(buildCommand('propose', commandPreferencesStore.format));
-  let previewChangeCommand = $derived(buildCommand('apply', commandPreferencesStore.format, 'my-change'));
   let availabilityReady = $derived(commandPreferencesStore.availability.status === 'ready');
+  let integrations = $derived(commandPreferencesStore.availability.integrations);
   let versionSnapshot = $derived(versionStatusStore.snapshot);
 
   let checkedAtLabel = $derived.by(() => {
@@ -167,6 +157,17 @@
 
   function getLocaleHeadingLabel() {
     return FIXED_LABELS.settings.headings.language;
+  }
+
+  function getDeliveryLabel(integration: DetectedIntegration): string {
+    switch (integration.delivery) {
+      case 'commands':
+        return FIXED_LABELS.settings.tools.commands;
+      case 'skills':
+        return FIXED_LABELS.settings.tools.skills;
+      case 'both':
+        return FIXED_LABELS.settings.tools.both;
+    }
   }
 
   function getVersionStatusLabel(status: ToolVersionStatus) {
@@ -382,71 +383,74 @@
       </div>
     </SurfaceCard>
 
-    <!-- workflow section -->
-    <SurfaceCard id="settings-workflow" data-settings-section="workflow">
+    <!-- tools section -->
+    <SurfaceCard id="settings-tools" data-settings-section="tools">
       <SectionHeader>
-        <h2 class="text-lg font-semibold text-foreground">{FIXED_LABELS.settings.sections.workflow}</h2>
-        <p class="mt-1 text-sm text-muted-foreground">{t(m.settings_workflow_description)}</p>
+        <div class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h2 class="text-lg font-semibold text-foreground">{FIXED_LABELS.settings.headings.tools}</h2>
+            <p class="mt-1 text-sm text-muted-foreground">{t(m.settings_tools_description)}</p>
+          </div>
+
+          <div class="flex shrink-0 items-center gap-2 pt-0.5">
+            <Button
+              variant="ghost"
+              size="icon"
+              class="size-8 text-muted-foreground hover:text-foreground"
+              disabled={commandPreferencesStore.availabilityLoading}
+              aria-label={commandPreferencesStore.availabilityLoading ? t(m.settings_tools_refreshing) : t(m.settings_tools_refresh)}
+              onclick={() => commandPreferencesStore.refreshAvailability()}
+            >
+              <RefreshCw class={`h-4 w-4 ${commandPreferencesStore.availabilityLoading ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
+        </div>
       </SectionHeader>
 
-      <div class="space-y-3 p-4">
-        <p class="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-          <Info class="h-5 w-5 text-info" />
+      <div class="space-y-4 p-4">
+        <p class="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <Info class="h-5 w-5 shrink-0 text-info" />
           {t(m.docs_intro)}
-          <a href={OPENSPEC_OPSX_REFERENCE_DOCS_URL} target="_blank" class="underline hover:text-foreground">{FIXED_LABELS.settings.docs.opsxReference}</a> ·
-          <a href={OPENSPEC_SUPPORTED_TOOLS_DOCS_URL} target="_blank" class="underline hover:text-foreground">{FIXED_LABELS.settings.docs.supportedTools}</a>
+          <a
+            href={OPENSPEC_SUPPORTED_TOOLS_DOCS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-1 underline hover:text-foreground"
+          >
+            {FIXED_LABELS.settings.docs.supportedTools}
+            <ExternalLink class="h-3.5 w-3.5" />
+          </a>
         </p>
-        <div class="grid gap-3 md:grid-cols-3">
-          <OptionCard
-            icon={Terminal}
-            label={FIXED_LABELS.settings.workflowFormats.standard}
-            selected={commandPreferencesStore.format === 'standard'}
-            name="workflow"
-            value="standard"
-            onchange={() => setFormat('standard')}
-          >
-            {#snippet description()}
-              <code class="rounded bg-background px-1.5 py-0.5 text-xs text-primary">/opsx-propose</code>
-            {/snippet}
-          </OptionCard>
 
-          <OptionCard
-            icon={Sparkles}
-            label={FIXED_LABELS.settings.workflowFormats.claudeCode}
-            selected={commandPreferencesStore.format === 'claude-code'}
-            name="workflow"
-            value="claude-code"
-            onchange={() => setFormat('claude-code')}
-          >
-            {#snippet description()}
-              <code class="rounded bg-background px-1.5 py-0.5 text-xs text-primary">/opsx:propose</code>
-            {/snippet}
-          </OptionCard>
-
-          <OptionCard
-            icon={Wrench}
-            label={FIXED_LABELS.settings.workflowFormats.skill}
-            selected={commandPreferencesStore.format === 'skill'}
-            name="workflow"
-            value="skill"
-            onchange={() => setFormat('skill')}
-          >
-            {#snippet description()}
-              <code class="rounded bg-background px-1.5 py-0.5 text-xs text-primary">/openspec-propose</code>
-            {/snippet}
-          </OptionCard>
-        </div>
-
-        <Callout variant="info">
-          <div class="space-y-1 text-sm">
-            <div>
-              {FIXED_LABELS.settings.workspaceCommand}: <code class="rounded bg-background px-1.5 py-0.5 text-xs text-primary">{previewWorkspaceCommand}</code>
-            </div>
-            <div>
-              {FIXED_LABELS.settings.changeCommand}: <code class="rounded bg-background px-1.5 py-0.5 text-xs text-primary">{previewChangeCommand}</code>
-            </div>
+        {#if commandPreferencesStore.availabilityLoading && !availabilityReady}
+          <Callout variant="info">
+            {t(m.settings_commands_checking)}
+          </Callout>
+        {:else if integrations.length > 0}
+          <div class="divide-y divide-border overflow-hidden rounded-md border border-border bg-secondary/50">
+            {#each integrations as integration (integration.tool + integration.source)}
+              <div class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-2">
+                    <span class="font-medium text-foreground">{integration.tool}</span>
+                    <Badge variant="secondary">{getDeliveryLabel(integration)}</Badge>
+                  </div>
+                  <div class="mt-1 text-xs text-muted-foreground">
+                    {FIXED_LABELS.settings.tools.source}: <code class="rounded bg-background px-1 py-0.5">{integration.source}</code>
+                  </div>
+                </div>
+                <div class="min-w-0 shrink-0 sm:text-right">
+                  <div class="text-xs uppercase tracking-wide text-muted-foreground">{FIXED_LABELS.settings.tools.example}</div>
+                  <code class="mt-0.5 block max-w-full overflow-x-auto rounded bg-background px-1.5 py-0.5 text-xs text-primary">{integration.example}</code>
+                </div>
+              </div>
+            {/each}
           </div>
-        </Callout>
+        {:else}
+          <Callout variant="info">
+            {t(m.settings_tools_no_integrations)}
+          </Callout>
+        {/if}
       </div>
     </SurfaceCard>
 
@@ -457,8 +461,8 @@
         <div>
           <h2 class="text-lg font-semibold text-foreground">{FIXED_LABELS.settings.sections.commands}</h2>
           <p class="mt-1 text-sm text-muted-foreground">{t(m.settings_commands_description)}</p>
-          <p class="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-            <Info class="h-5 w-5 text-info" />
+          <p class="flex flex-wrap items-center gap-2 mt-1 text-sm text-muted-foreground">
+            <Info class="h-5 w-5 shrink-0 text-info" />
             {t(m.docs_intro)}
             <a href={OPENSPEC_COMMANDS_DOCS_URL} target="_blank" class="underline hover:text-foreground">{FIXED_LABELS.settings.docs.commands}</a> ·
             <a href={OPENSPEC_WORKFLOWS_DOCS_URL} target="_blank" class="underline hover:text-foreground">{FIXED_LABELS.settings.docs.workflows}</a>
@@ -521,7 +525,7 @@
 
           <div class="divide-y divide-border overflow-hidden rounded-md border border-border bg-secondary/50">
             {#each EXPANDED_COMMANDS as command}
-              {@const isAvailable = isExpandedCommandAvailable(command, commandPreferencesStore.availability)}
+              {@const isAvailable = availabilityReady && commandPreferencesStore.availability.workflows.includes(command)}
               <label class="flex items-center justify-between gap-4 px-4 py-3 text-sm">
                 <div>
                   <div class="font-medium text-foreground">{getWorkflowCommandLabel(command)}</div>

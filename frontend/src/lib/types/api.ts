@@ -1,4 +1,4 @@
-import type { ExpandedCommand } from './commandTypes';
+import type { InvocationFormId } from './commandTypes';
 
 export type ApiErrorCode =
   | 'ACTIVATION_FAILED'
@@ -246,11 +246,38 @@ export interface SearchResult {
   matchLocation?: SearchMatchLocation;
 }
 
+export type CommandDelivery = 'commands' | 'skills' | 'both' | null;
+
+export interface DetectedIntegration {
+  tool: string;
+  delivery: 'commands' | 'skills' | 'both';
+  form: InvocationFormId;
+  example: string;
+  source: string;
+}
+
+export interface ToolInvocationOption {
+  tool: string;
+  form: InvocationFormId;
+}
+
 export interface CommandAvailability {
   status: 'ready' | 'unavailable';
   profile: string | null;
   workflows: string[];
-  availableExpandedCommands: ExpandedCommand[];
+  /** Delivery mode from `openspec config get delivery` (defensively parsed). */
+  delivery: CommandDelivery;
+  /** Detected OpenSpec tool integrations for the active repository (hints only). */
+  integrations: DetectedIntegration[];
+  /** Deduplicated distinct invocation-form candidates from detection. */
+  forms: InvocationFormId[];
+  /**
+   * Static catalog of supported tool-to-form options for the copy-time
+   * selector. Always present — even when the server detects nothing or the CLI
+   * config is unavailable — so the UI can offer official tool choices with
+   * zero detections.
+   */
+  toolOptions: ToolInvocationOption[];
   error: string | null;
 }
 

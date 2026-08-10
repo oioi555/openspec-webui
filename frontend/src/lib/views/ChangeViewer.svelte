@@ -83,7 +83,6 @@
 
   function commandPreferencesSnapshot() {
     return {
-      format: commandPreferencesStore.format,
       commandVisibility: commandPreferencesStore.commandVisibility,
       availability: commandPreferencesStore.availability,
     };

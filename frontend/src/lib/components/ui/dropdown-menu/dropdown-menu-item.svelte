@@ -25,15 +25,27 @@
 
   const dropdownMenu = getDropdownMenuContext();
 
-  function handleClick() {
-    if (disabled) {
-      return;
-    }
+  function closeAndReturnFocus() {
+    const trigger = dropdownMenu.getTriggerElement();
+    dropdownMenu.setOpen(false);
+    requestAnimationFrame(() => {
+      trigger?.focus();
+    });
+  }
 
+  function handleSelect() {
+    if (disabled) return;
     onSelect();
-
     if (closeOnSelect) {
-      dropdownMenu.setOpen(false);
+      closeAndReturnFocus();
+    }
+  }
+
+  function handleKeydown(event: KeyboardEvent) {
+    if (disabled) return;
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleSelect();
     }
   }
 </script>
@@ -48,7 +60,8 @@
     inset && 'pl-8',
     className,
   )}
-  onclick={handleClick}
+  onclick={handleSelect}
+  onkeydown={handleKeydown}
 >
   {@render children?.()}
 </button>

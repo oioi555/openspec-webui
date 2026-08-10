@@ -18,6 +18,19 @@
   $effect(() => {
     dropdownMenu.setTriggerElement(triggerElement);
   });
+
+  function handleKeydown(event: KeyboardEvent) {
+    if (disabled) return;
+
+    // ArrowDown/ArrowUp open the menu.  The Content component's $effect will
+    // focus the first/last item respectively after the DOM updates.
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      if (!dropdownMenu.isOpen()) {
+        event.preventDefault();
+        dropdownMenu.setOpen(true);
+      }
+    }
+  }
 </script>
 
 <button
@@ -29,6 +42,7 @@
   disabled={disabled}
   class={cn('inline-flex items-center gap-2', className)}
   onclick={() => !disabled && dropdownMenu.setOpen(!dropdownMenu.isOpen())}
+  onkeydown={handleKeydown}
 >
   {@render children?.()}
 </button>

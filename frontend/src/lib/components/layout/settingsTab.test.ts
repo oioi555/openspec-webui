@@ -16,7 +16,7 @@ test('tabs.svelte.ts includes settings in TabType and defines a regular closeabl
 
   // openSettings is exported via the store
   assert.match(source, /openSettings\s*\(/);
-  assert.match(source, /SettingsSection = 'general' \| 'workflow' \| 'commands' \| 'validation' \| 'versions'/);
+  assert.match(source, /SettingsSection = 'general' \| 'tools' \| 'commands' \| 'validation' \| 'versions'/);
 
   // normalizePath maps /settings to home (non-routable) when preserveSettings is not set
   assert.match(source, /!options\?\.preserveSettings\s*&&\s*withLeadingSlash\s*===\s*'\/settings'/);
@@ -36,14 +36,14 @@ test('SettingsView.svelte includes five section anchors, IntersectionObserver, s
 
   // Five section ids
   assert.match(source, /id="settings-general"/);
-  assert.match(source, /id="settings-workflow"/);
+  assert.match(source, /id="settings-tools"/);
   assert.match(source, /id="settings-commands"/);
   assert.match(source, /id="settings-validation"/);
   assert.match(source, /id="settings-versions"/);
 
   // data-settings-section anchors for IntersectionObserver
   assert.match(source, /data-settings-section="general"/);
-  assert.match(source, /data-settings-section="workflow"/);
+  assert.match(source, /data-settings-section="tools"/);
   assert.match(source, /data-settings-section="commands"/);
   assert.match(source, /data-settings-section="validation"/);
   assert.match(source, /data-settings-section="versions"/);
@@ -63,7 +63,7 @@ test('SettingsView.svelte preserves existing settings control wiring across all 
 
   assert.match(source, /themeStore\.value/);
   assert.match(source, /localeStore\.value/);
-  assert.match(source, /commandPreferencesStore\.format/);
+  assert.match(source, /commandPreferencesStore\.availability/);
   assert.match(source, /validationPreferencesStore\.strict/);
   assert.match(source, /validationPreferencesStore\.autoRun/);
   assert.match(source, /validationPreferencesStore\.autoRunOnArtifactChange/);
@@ -73,24 +73,26 @@ test('SettingsView.svelte preserves existing settings control wiring across all 
   assert.match(source, /versionStatusStore\.snapshot/);
 });
 
-test('commandTypes.ts keeps sync in core commands and out of expanded commands', async () => {
+test('commandTypes.ts keeps sync and update in core commands and out of expanded commands', async () => {
   const source = await readFile(new URL('../../types/commandTypes.ts', import.meta.url), 'utf8');
+  const workflowMetadataSource = await readFile(new URL('../../workflowMetadata.ts', import.meta.url), 'utf8');
 
   const coreCommandsBlock = source.match(/export const CORE_COMMANDS = \[(.*?)\] as const;/s);
   const expandedCommandsBlock = source.match(/export const EXPANDED_COMMANDS = \[(.*?)\] as const;/s);
-  const coreLabelsBlock = source.match(/export const CORE_COMMAND_LABELS:[\s\S]*?};/);
-  const expandedLabelsBlock = source.match(/export const EXPANDED_COMMAND_LABELS:[\s\S]*?};/);
 
   assert.ok(coreCommandsBlock, 'CORE_COMMANDS block should exist');
   assert.ok(expandedCommandsBlock, 'EXPANDED_COMMANDS block should exist');
-  assert.ok(coreLabelsBlock, 'CORE_COMMAND_LABELS block should exist');
-  assert.ok(expandedLabelsBlock, 'EXPANDED_COMMAND_LABELS block should exist');
 
   assert.match(coreCommandsBlock[1], /'sync'/);
   assert.doesNotMatch(expandedCommandsBlock[1], /'sync'/);
-  assert.match(coreLabelsBlock[0], /sync:\s*'Sync'/);
-  assert.doesNotMatch(expandedLabelsBlock[0], /sync:\s*'Sync'/);
+  assert.match(coreCommandsBlock[1], /'update'/);
+  assert.doesNotMatch(expandedCommandsBlock[1], /'update'/);
   assert.match(coreCommandsBlock[1], /'propose',\s*'explore',\s*'apply',\s*'sync',\s*'archive'/);
+
+  // Workflow labels are centralized in the metadata module (was
+  // CORE_COMMAND_LABELS / EXPANDED_COMMAND_LABELS in commandTypes.ts).
+  assert.match(workflowMetadataSource, /sync: \{ id: 'sync', label: 'Sync'/);
+  assert.match(workflowMetadataSource, /update: \{ id: 'update', label: 'Revise Plan'/);
 });
 
 test('SettingsView and shared settings surfaces use restrained solid radii', async () => {
@@ -146,7 +148,7 @@ test('MainViewer.svelte renders SettingsView for settings tabs inside the same m
   assert.equal(settingsBlock.includes('max-w-7xl'), true,
     'settings branch should wrap SettingsView in max-w-7xl, same as Dashboard');
   assert.match(settingsBlock, /<SettingsView/);
-  assert.match(source, /initialSection\?: 'general' \| 'workflow' \| 'commands' \| 'validation' \| 'versions'/);
+  assert.match(source, /initialSection\?: 'general' \| 'tools' \| 'commands' \| 'validation' \| 'versions'/);
 });
 
 test('TabBar.svelte includes a settings icon mapping in its TAB_ICONS record', async () => {
@@ -228,4 +230,101 @@ test('SettingsView.svelte disables the refresh button while version status loadi
   // RefreshCw icon is present with animate-spin while the lookup is in-flight
   assert.match(versionsBlock, /<RefreshCw/);
   assert.match(versionsBlock, /versionStatusStore\.loading \? 'animate-spin' : ''/);
+});
+
+test('SettingsView.svelte removes old format/buildCommand/isExpandedCommandAvailable API references', async () => {
+  const source = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
+
+  // Old format API is gone
+  assert.equal(source.includes('buildCommand('), false, 'buildCommand should be removed');
+  assert.equal(source.includes('CommandFormat'), false, 'CommandFormat type should be removed');
+  assert.equal(source.includes('setFormat('), false, 'setFormat should be removed');
+  assert.equal(source.includes("commandPreferencesStore.format"), false, 'format property should be removed');
+  assert.equal(source.includes('isExpandedCommandAvailable'), false, 'isExpandedCommandAvailable should be removed');
+  assert.equal(source.includes('workflowFormats'), false, 'workflowFormats labels should be removed');
+
+  // Tools section does NOT use OptionCard (general section still does for theme)
+  const toolsStart = source.indexOf('id="settings-tools"');
+  const toolsEnd = source.indexOf('<!-- commands section -->', toolsStart);
+  assert.ok(toolsStart > 0, 'tools section should exist');
+  const toolsBlock = source.slice(toolsStart, toolsEnd);
+  assert.equal(toolsBlock.includes('OptionCard'), false, 'OptionCard should not be used in Tools section');
+});
+
+test('SettingsView.svelte has Tools section with read-only content and refresh', async () => {
+  const source = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
+
+  // Tools section exists
+  assert.match(source, /id="settings-tools"/);
+  assert.match(source, /data-settings-section="tools"/);
+
+  // Sidebar label uses 'tools' section id
+  assert.match(source, /'tools' as const/);
+
+  // Tools heading
+  assert.match(source, /headings\.tools/);
+
+  // Description uses i18n
+  assert.match(source, /settings_tools_description/);
+
+  // Supported tools docs link
+  assert.match(source, /OPENSPEC_SUPPORTED_TOOLS_DOCS_URL/);
+
+  // Refresh button with loading state
+  assert.match(source, /commandPreferencesStore\.refreshAvailability/);
+  assert.match(source, /commandPreferencesStore\.availabilityLoading/);
+  assert.match(source, /settings_tools_refreshing/);
+
+  // Integration list rendering
+  assert.match(source, /integrations\.length/);
+  assert.match(source, /settings_tools_no_integrations/);
+
+  // Integration details: tool, delivery, example, source
+  assert.match(source, /integration\.tool/);
+  assert.match(source, /integration\.delivery/);
+  assert.match(source, /integration\.example/);
+  assert.match(source, /integration\.source/);
+
+  // Delivery label helper
+  assert.match(source, /getDeliveryLabel/);
+  assert.match(source, /FIXED_LABELS\.settings\.tools\.commands/);
+  assert.match(source, /FIXED_LABELS\.settings\.tools\.skills/);
+  assert.match(source, /FIXED_LABELS\.settings\.tools\.both/);
+
+  // ExternalLink icon for docs
+  assert.match(source, /ExternalLink/);
+
+  // No "installed tools" wording
+  assert.equal(source.toLowerCase().includes('installed tools'), false, 'Must not use "installed tools"');
+});
+
+test('SettingsView.svelte Commands section uses availability.workflows for expanded gating', async () => {
+  const source = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
+
+  // Expanded commands use availability.workflows.includes instead of isExpandedCommandAvailable
+  assert.match(source, /availability\.workflows\.includes\(command\)/);
+  assert.match(source, /commandPreferencesStore\.availability\.workflows\.includes/);
+});
+
+test('uiText.ts delegates getWorkflowCommandLabel to workflowMetadata and has tools labels', async () => {
+  const source = await readFile(new URL('../../uiText.ts', import.meta.url), 'utf8');
+
+  // Delegates to workflowMetadata
+  assert.match(source, /import \{ getWorkflowLabel \} from '\.\/workflowMetadata'/);
+  assert.match(source, /return getWorkflowLabel\(command\)/);
+
+  // tools section/heading labels
+  assert.match(source, /tools: 'Tools'/);
+  assert.match(source, /tools: 'Tools & Integrations'/);
+
+  // tools object with delivery labels
+  assert.match(source, /tools: \{/);
+  assert.match(source, /delivery: 'Delivery'/);
+  assert.match(source, /noIntegrations:/);
+
+  // update label is Revise Plan
+  assert.match(source, /update: 'Revise Plan'/);
+
+  // No old workflowFormats
+  assert.equal(source.includes('workflowFormats'), false, 'workflowFormats should be removed');
 });

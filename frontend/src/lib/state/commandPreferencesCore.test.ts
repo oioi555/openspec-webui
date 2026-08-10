@@ -29,13 +29,42 @@ class MockStorage {
   removeItem(key: string) {
     this.#values.delete(key);
   }
+
+  getSnapshot(): Record<string, string> {
+    return Object.fromEntries(this.#values);
+  }
 }
 
 afterEach(() => {
   delete (globalThis as { localStorage?: Storage }).localStorage;
 });
 
-test('loads legacy default format as standard and preserves legacy expanded visibility', () => {
+test('ignores a stored format value after upgrade and preserves visibility', () => {
+  const visibility = createDefaultCommandVisibility();
+  visibility.continue = false;
+  visibility.verify = false;
+
+  Object.assign(globalThis, {
+    localStorage: new MockStorage({
+      [COMMAND_PREFERENCES_STORAGE_KEY]: JSON.stringify({
+        format: 'claude-code',
+        commandVisibility: visibility,
+      }),
+    }),
+  });
+
+  const store = createCommandPreferencesStore();
+  store.initialize();
+
+  assert.equal(store.commandVisibility.continue, false);
+  assert.equal(store.commandVisibility.verify, false);
+
+  for (const command of CORE_COMMANDS) {
+    assert.equal(store.commandVisibility[command], true);
+  }
+});
+
+test('ignores a legacy aiTool value and preserves legacy expanded visibility', () => {
   Object.assign(globalThis, {
     localStorage: new MockStorage({
       [COMMAND_PREFERENCES_STORAGE_KEY]: JSON.stringify({
@@ -52,7 +81,6 @@ test('loads legacy default format as standard and preserves legacy expanded visi
   const store = createCommandPreferencesStore();
   store.initialize();
 
-  assert.equal(store.format, 'standard');
   assert.equal(store.commandVisibility.continue, false);
   assert.equal(store.commandVisibility.verify, false);
   assert.equal(store.commandVisibility.sync, false);
@@ -62,13 +90,39 @@ test('loads legacy default format as standard and preserves legacy expanded visi
   }
 });
 
-test('persists format and unified commandVisibility state', () => {
+test('drops retired format and aiTool fields on the next write while keeping visibility', () => {
+  const visibility = createDefaultCommandVisibility();
+  visibility.sync = false;
+
+  const storage = new MockStorage({
+    [COMMAND_PREFERENCES_STORAGE_KEY]: JSON.stringify({
+      format: 'claude-code',
+      aiTool: 'default',
+      commandVisibility: visibility,
+    }),
+  });
+  Object.assign(globalThis, { localStorage: storage });
+
+  const store = createCommandPreferencesStore();
+  store.initialize();
+  store.setCommandVisibility('archive', false);
+
+  const stored = JSON.parse(storage.getItem(COMMAND_PREFERENCES_STORAGE_KEY) ?? '{}') as Record<string, unknown>;
+
+  assert.equal('format' in stored, false, 'format should be dropped on write');
+  assert.equal('aiTool' in stored, false, 'aiTool should be dropped on write');
+  assert.deepEqual(stored.commandVisibility, {
+    ...visibility,
+    archive: false,
+  });
+});
+
+test('persists unified commandVisibility state', () => {
   const localStorage = new MockStorage();
   Object.assign(globalThis, { localStorage });
 
   const store = createCommandPreferencesStore();
   store.initialize();
-  store.setFormat('skill');
   store.setCommandVisibility('continue', false);
   store.setCommandVisibility('archive', false);
   store.setCommandVisibility('sync', false);
@@ -78,37 +132,16 @@ test('persists format and unified commandVisibility state', () => {
   expectedVisibility.archive = false;
   expectedVisibility.sync = false;
 
-  assert.equal(
-    localStorage.getItem(COMMAND_PREFERENCES_STORAGE_KEY),
-    JSON.stringify({
-      format: 'skill',
-      commandVisibility: expectedVisibility,
-    }),
-  );
+  assert.deepEqual(JSON.parse(localStorage.getItem(COMMAND_PREFERENCES_STORAGE_KEY) ?? '{}'), {
+    commandVisibility: expectedVisibility,
+  });
 
   const reloadedStore = createCommandPreferencesStore();
   reloadedStore.initialize();
 
-  assert.equal(reloadedStore.format, 'skill');
   assert.equal(reloadedStore.commandVisibility.continue, false);
   assert.equal(reloadedStore.commandVisibility.archive, false);
   assert.equal(reloadedStore.commandVisibility.sync, false);
-});
-
-test('skill format persists format and unified visibility without storing derived command text', () => {
-  const localStorage = new MockStorage();
-  Object.assign(globalThis, { localStorage });
-
-  const store = createCommandPreferencesStore();
-  store.initialize();
-  store.setFormat('skill');
-
-  const stored = JSON.parse(localStorage.getItem(COMMAND_PREFERENCES_STORAGE_KEY) ?? '{}') as Record<string, unknown>;
-
-  assert.deepEqual(stored, {
-    format: 'skill',
-    commandVisibility: createDefaultCommandVisibility(),
-  });
 });
 
 test('defaults all core commands to visible when storage is empty', () => {

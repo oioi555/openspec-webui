@@ -71,7 +71,6 @@ test('project onboarding components share docs links and keep onboarding actions
   }
 
   for (const source of [settingsViewSource]) {
-    assert.match(source, /OPENSPEC_OPSX_REFERENCE_DOCS_URL/);
     assert.match(source, /OPENSPEC_SUPPORTED_TOOLS_DOCS_URL/);
     assert.match(source, /OPENSPEC_COMMANDS_DOCS_URL/);
     assert.match(source, /OPENSPEC_WORKFLOWS_DOCS_URL/);
@@ -84,7 +83,6 @@ test('project onboarding components share docs links and keep onboarding actions
   assert.match(addProjectDialogSource, /projectStore\.clearError\(\)/);
   assert.match(emptyProjectStateSource, /t\(m\.empty_project_init_hint\)/);
   assert.match(emptyProjectStateSource, /layoutStore\.openOverlay\('add-project'\)/);
-  assert.match(settingsViewSource, /FIXED_LABELS\.settings\.docs\.opsxReference/);
   assert.match(settingsViewSource, /FIXED_LABELS\.settings\.docs\.supportedTools/);
   assert.match(settingsViewSource, /FIXED_LABELS\.settings\.docs\.commands/);
   assert.match(settingsViewSource, /FIXED_LABELS\.settings\.docs\.workflows/);

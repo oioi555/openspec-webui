@@ -10,6 +10,7 @@ import {
   inspectCommandAvailability,
   type CommandAvailability,
 } from '../openspec-config.js';
+import { getSupportedToolOptions } from '../tool-integration-detection.js';
 import {
   ProjectRegistryError,
   createNoActiveProjectError,
@@ -203,6 +204,10 @@ export async function registerApiRoutes(
         status: 'unavailable',
         profile: null,
         workflows: [],
+        delivery: null,
+        integrations: [],
+        forms: [],
+        toolOptions: getSupportedToolOptions(),
         availableExpandedCommands: [],
         error: 'No active project selected',
       } satisfies CommandAvailability;

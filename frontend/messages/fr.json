@@ -54,7 +54,6 @@
   "settings_theme_system_description": "Suivez le réglage de votre système d’exploitation.",
   "settings_explorer_description": "Définissez si un simple clic dans l’Explorateur ouvre un onglet d’aperçu réutilisable ou un onglet normal confirmé.",
   "settings_enable_preview_tabs_description": "Activé par défaut. Lorsqu’il est activé, un simple clic réutilise un onglet d’aperçu. Utilisez Ctrl+clic ou le menu contextuel de l’élément pour ouvrir un onglet normal.",
-  "settings_workflow_description": "Choisissez le format du texte de workflow OpenSpec copié pour votre outil de développement.",
   "settings_profile_unknown": "inconnu",
   "settings_commands_description": "Activez ou désactivez les raccourcis de workflow affichés dans les lignes de commandes de l’espace de travail et des changements.",
   "settings_validation_description": "Configurez l’exécution de la validation depuis le panneau Validation.",

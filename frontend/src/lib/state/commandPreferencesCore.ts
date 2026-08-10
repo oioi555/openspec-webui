@@ -1,16 +1,19 @@
 import {
   ALL_COMMANDS,
-  type CommandFormat,
   type WorkflowCommand,
 } from '../types/commandTypes';
 
-export type { CommandFormat } from '../types/commandTypes';
 export type CommandVisibility = Record<WorkflowCommand, boolean>;
 
 const LEGACY_EXPANDED_VISIBILITY_COMMANDS = ['new', 'continue', 'ff', 'verify', 'sync', 'bulk-archive'] as const;
 
+/**
+ * Persisted command preferences. The retired `format` (`standard` | `claude-code`
+ * | `skill`) and legacy `aiTool` fields are gone: they are ignored on load and
+ * dropped on the next write (see `normalizeCommandPreferences`). Visibility
+ * preferences are preserved unchanged.
+ */
 export interface CommandPreferences {
-  format: CommandFormat;
   commandVisibility: CommandVisibility;
 }
 
@@ -32,21 +35,8 @@ export function createDefaultCommandVisibility(): CommandVisibility {
 
 export function createDefaultCommandPreferences(): CommandPreferences {
   return {
-    format: 'standard',
     commandVisibility: createDefaultCommandVisibility(),
   };
-}
-
-export function normalizeCommandFormat(value: unknown): CommandFormat {
-  if (value === 'default') {
-    return 'standard';
-  }
-
-  if (value === 'standard' || value === 'claude-code' || value === 'skill') {
-    return value;
-  }
-
-  return 'standard';
 }
 
 export function normalizeCommandVisibility(value: unknown): CommandVisibility {
@@ -85,6 +75,12 @@ function normalizeLegacyExpandedVisibility(value: unknown): CommandVisibility {
   return normalized;
 }
 
+/**
+ * Normalizes a stored preferences object. Stored `format` and legacy `aiTool`
+ * values are deliberately ignored and never carried into the normalized object,
+ * so the next preferences write persists an object without them. Visibility is
+ * read from `commandVisibility`, falling back to the legacy `expandedVisibility`.
+ */
 export function normalizeCommandPreferences(value: unknown): CommandPreferences {
   const defaults = createDefaultCommandPreferences();
 
@@ -92,12 +88,9 @@ export function normalizeCommandPreferences(value: unknown): CommandPreferences 
     return defaults;
   }
 
-  const candidate = value as Partial<Record<keyof CommandPreferences, unknown>> & LegacyCommandPreferences;
+  const candidate = value as { commandVisibility?: unknown; expandedVisibility?: unknown };
 
   return {
-    format: candidate.format !== undefined
-      ? normalizeCommandFormat(candidate.format)
-      : normalizeCommandFormat(candidate.aiTool),
     commandVisibility: candidate.commandVisibility !== undefined
       ? normalizeCommandVisibility(candidate.commandVisibility)
       : normalizeLegacyExpandedVisibility(candidate.expandedVisibility),
@@ -146,26 +139,12 @@ function saveCommandPreferences(preferences: CommandPreferences) {
 
 export function createCommandPreferencesStoreWithAdapter(adapter: CommandPreferencesAdapter) {
   return {
-    get format() {
-      return adapter.get().format;
-    },
-
     get commandVisibility() {
       return adapter.get().commandVisibility;
     },
 
     initialize() {
       adapter.set(loadCommandPreferences());
-    },
-
-    setFormat(format: CommandFormat) {
-      const nextPreferences = {
-        ...adapter.get(),
-        format,
-      };
-
-      saveCommandPreferences(nextPreferences);
-      adapter.set(nextPreferences);
     },
 
     setCommandVisibility(command: WorkflowCommand, visible: boolean) {

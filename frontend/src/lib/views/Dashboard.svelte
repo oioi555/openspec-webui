@@ -77,7 +77,6 @@
 
   function commandPreferencesSnapshot() {
     return {
-      format: commandPreferencesStore.format,
       commandVisibility: commandPreferencesStore.commandVisibility,
       availability: commandPreferencesStore.availability,
     };
@@ -620,7 +619,7 @@
               onOpenInNewTab: () => openActiveChange(change.name),
             })}
           >
-            <InteractiveCard tone="inset" radius="sm" class="overflow-hidden bg-background/60 shadow-none p-0">
+            <InteractiveCard tone="inset" radius="sm" class="bg-background/60 shadow-none p-0">
               <button
                 type="button"
                 class="group w-full px-4 py-3 text-left"
@@ -673,18 +672,7 @@
               </button>
 
               {#if changeCommands.length > 0}
-                <div
-                  class="cursor-pointer border-t border-border/40 bg-secondary/20 px-5 py-2.5"
-                  role="button"
-                  tabindex="0"
-                  onclick={() => openActiveChange(change.name)}
-                  onkeydown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault();
-                      openActiveChange(change.name);
-                    }
-                  }}
-                >
+                <div class="rounded-b-sm border-t border-border/40 bg-secondary/20 px-5 py-2.5">
                   <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div class="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{FIXED_LABELS.common.nextStep}</div>
                     <div class="flex max-w-full sm:justify-end">

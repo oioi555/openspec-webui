@@ -5,6 +5,8 @@ import {
   type Change,
   type ChangeSummary,
   type CommandAvailability,
+  type DetectedIntegration,
+  type ToolInvocationOption,
   type Project,
   type ProjectListResponse,
   type ProjectSelectionResponse,
@@ -18,6 +20,7 @@ import {
   type ValidationResult,
   type VersionStatusResponse,
 } from './types/api';
+import { INVOCATION_FORM_IDS, type InvocationFormId } from './types/commandTypes';
 const API_BASE = '/api';
 let activeProjectContextId: string | null = null;
 
@@ -30,6 +33,9 @@ export type {
   ChangeFile,
   ChangeSummary,
   CommandAvailability,
+  CommandDelivery,
+  DetectedIntegration,
+  ToolInvocationOption,
   FileGroup,
   Project,
   ProjectEntry,
@@ -231,9 +237,87 @@ export async function search(query: string): Promise<SearchResult[]> {
   return data.results;
 }
 
+function isCommandDelivery(value: unknown): value is 'commands' | 'skills' | 'both' {
+  return value === 'commands' || value === 'skills' || value === 'both';
+}
+
+function isInvocationFormId(value: unknown): value is InvocationFormId {
+  return INVOCATION_FORM_IDS.includes(value as InvocationFormId);
+}
+
+function isDetectedIntegration(value: unknown): value is DetectedIntegration {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as Partial<DetectedIntegration>;
+  return typeof candidate.tool === 'string'
+    && isCommandDelivery(candidate.delivery)
+    && isInvocationFormId(candidate.form)
+    && typeof candidate.example === 'string'
+    && typeof candidate.source === 'string';
+}
+
+function isToolInvocationOption(value: unknown): value is ToolInvocationOption {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as Partial<ToolInvocationOption>;
+  return typeof candidate.tool === 'string' && isInvocationFormId(candidate.form);
+}
+
+function createUnavailableCommandAvailability(error: string | null): CommandAvailability {
+  return {
+    status: 'unavailable',
+    profile: null,
+    workflows: [],
+    delivery: null,
+    integrations: [],
+    forms: [],
+    toolOptions: [],
+    error,
+  };
+}
+
+/**
+ * Defensive parse of the `/commands/availability` payload. The server contract
+ * is additive (`delivery`, `integrations`, `forms`); during the staged
+ * migration a response may predate them, so each new field is defaulted rather
+ * than trusted. Unknown extra fields (e.g. the retired
+ * `availableExpandedCommands`) are intentionally ignored. Malformed payloads
+ * degrade to `unavailable`, never an app error.
+ */
+export function normalizeCommandAvailability(value: unknown): CommandAvailability {
+  if (!value || typeof value !== 'object') {
+    return createUnavailableCommandAvailability(null);
+  }
+
+  const candidate = value as Partial<CommandAvailability>;
+
+  return {
+    status: candidate.status === 'ready' ? 'ready' : 'unavailable',
+    profile: typeof candidate.profile === 'string' ? candidate.profile : null,
+    workflows: Array.isArray(candidate.workflows)
+      ? candidate.workflows.filter((workflow): workflow is string => typeof workflow === 'string')
+      : [],
+    delivery: isCommandDelivery(candidate.delivery) ? candidate.delivery : null,
+    integrations: Array.isArray(candidate.integrations)
+      ? candidate.integrations.filter(isDetectedIntegration)
+      : [],
+    forms: Array.isArray(candidate.forms)
+      ? candidate.forms.filter(isInvocationFormId)
+      : [],
+    toolOptions: Array.isArray(candidate.toolOptions)
+      ? candidate.toolOptions.filter(isToolInvocationOption)
+      : [],
+    error: typeof candidate.error === 'string' ? candidate.error : null,
+  };
+}
+
 export async function getCommandAvailability(): Promise<CommandAvailability> {
-  const data = await fetchApi<{ availability: CommandAvailability }>('/commands/availability');
-  return data.availability;
+  const data = await fetchApi<{ availability: unknown }>('/commands/availability');
+  return normalizeCommandAvailability(data.availability);
 }
 
 export async function getVersionStatus(): Promise<VersionStatusResponse> {

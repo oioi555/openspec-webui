@@ -112,6 +112,10 @@ function createRegistryHarness() {
     status: 'ready',
     profile: 'test',
     workflows: ['new'],
+    delivery: null,
+    integrations: [],
+    forms: [],
+    toolOptions: [],
     availableExpandedCommands: ['new'],
     error: null,
   };

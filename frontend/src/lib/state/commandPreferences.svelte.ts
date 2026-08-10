@@ -7,17 +7,15 @@ import type { WorkflowCommand } from '$lib/types/commandTypes';
 import {
   createCommandPreferencesStoreWithAdapter,
   loadCommandPreferences,
-  type CommandFormat,
   type CommandPreferences,
   type CommandVisibility,
 } from './commandPreferencesCore';
 
-export type { CommandFormat, CommandPreferences, CommandVisibility } from './commandPreferencesCore';
+export type { CommandPreferences, CommandVisibility } from './commandPreferencesCore';
 
 export interface CommandPreferencesState {
   initialized: boolean;
   availabilityLoading: boolean;
-  format: CommandFormat;
   commandVisibility: CommandVisibility;
   availability: CommandAvailability;
 }
@@ -26,7 +24,10 @@ const defaultAvailability: CommandAvailability = {
   status: 'unavailable',
   profile: null,
   workflows: [],
-  availableExpandedCommands: [],
+  delivery: null,
+  integrations: [],
+  forms: [],
+  toolOptions: [],
   error: null,
 };
 
@@ -53,7 +54,10 @@ function createCommandPreferencesStore() {
         status: 'unavailable',
         profile: null,
         workflows: [],
-        availableExpandedCommands: [],
+        delivery: null,
+        integrations: [],
+        forms: [],
+        toolOptions: [],
         error: cause instanceof Error ? cause.message : t(m.error_failed_to_load_command_availability),
       };
     } finally {
@@ -68,10 +72,6 @@ function createCommandPreferencesStore() {
 
     get availabilityLoading() {
       return availabilityLoading;
-    },
-
-    get format() {
-      return preferencesStore.format;
     },
 
     get commandVisibility() {
@@ -94,10 +94,6 @@ function createCommandPreferencesStore() {
     },
 
     refreshAvailability,
-
-    setFormat(format: CommandFormat) {
-      preferencesStore.setFormat(format);
-    },
 
     setCommandVisibility(command: WorkflowCommand, visible: boolean) {
       preferencesStore.setCommandVisibility(command, visible);

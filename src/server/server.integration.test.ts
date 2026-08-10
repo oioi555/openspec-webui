@@ -119,6 +119,11 @@ if (key === 'profile') {
   process.exit(0);
 }
 
+if (key === 'delivery') {
+  process.stdout.write(process.env.OPENSPEC_DELIVERY || 'both\\n');
+  process.exit(0);
+}
+
 if (key === 'workflows') {
   process.stdout.write('["new","verify"]\\n');
   process.exit(0);
@@ -365,6 +370,13 @@ test('server integration covers explicit websocket binding, scoped API routing, 
     assert.equal(result.body.availability.status, 'ready');
     assert.deepEqual(result.body.availability.availableExpandedCommands, ['new', 'verify']);
     assert.equal(result.body.availability.profile, 'test-profile');
+    assert.equal(result.body.availability.delivery, 'both');
+    assert.deepEqual(result.body.availability.integrations, []);
+    assert.deepEqual(result.body.availability.forms, []);
+    // Static tool catalog is present even with zero detections.
+    const staticToolOptions = result.body.availability.toolOptions as Array<Record<string, unknown>>;
+    assert.ok(Array.isArray(staticToolOptions) && staticToolOptions.length > 0);
+    assert.ok(staticToolOptions.some((o) => o.tool === 'Claude Code'));
 
     result = await apiJson(runtime.baseUrl, '/api/projects', {
       method: 'POST',
@@ -476,6 +488,13 @@ test('server integration covers explicit websocket binding, scoped API routing, 
       assert.equal(result.response.status, 200);
       assert.equal(result.body.availability.status, 'unavailable');
       assert.equal(result.body.availability.error, 'No active project selected');
+      assert.equal(result.body.availability.delivery, null);
+      assert.deepEqual(result.body.availability.integrations, []);
+      assert.deepEqual(result.body.availability.forms, []);
+      // Static tool catalog is present even when no project is selected.
+      const staticToolOptions = result.body.availability.toolOptions as Array<Record<string, unknown>>;
+      assert.ok(Array.isArray(staticToolOptions) && staticToolOptions.length > 0);
+      assert.ok(staticToolOptions.some((o) => o.tool === 'Claude Code'));
     } finally {
       betaClient.ws.close();
     }
@@ -1865,6 +1884,133 @@ process.exit(1);
     assert.ok(result.body.availability.workflows.includes('new'));
     assert.ok(result.body.availability.workflows.includes('verify'));
     assert.ok(!result.body.availability.availableExpandedCommands.includes('onboard'));
+  } finally {
+    await runtime.close();
+  }
+});
+
+test('availability route reports detected tool integrations and distinct forms', async () => {
+  const configHome = await createTempDir('openspec-webui-server-config-');
+  process.env.XDG_CONFIG_HOME = configHome;
+  const projectRoot = await createProjectFixture('detection-project');
+
+  // Repo-local OpenSpec-generated artifacts: a colon command, a dash command,
+  // and a Kimi skill root.
+  await mkdir(join(projectRoot, '.claude', 'commands', 'opsx'), { recursive: true });
+  await writeFile(join(projectRoot, '.claude', 'commands', 'opsx', 'propose.md'), 'propose', 'utf8');
+  await mkdir(join(projectRoot, '.cursor', 'commands'), { recursive: true });
+  await writeFile(join(projectRoot, '.cursor', 'commands', 'opsx-propose.md'), 'propose', 'utf8');
+  await mkdir(join(projectRoot, '.kimi-code', 'skills', 'openspec-propose'), { recursive: true });
+  await writeFile(
+    join(projectRoot, '.kimi-code', 'skills', 'openspec-propose', 'SKILL.md'),
+    '# openspec-propose',
+    'utf8'
+  );
+
+  await installFakeOpenSpecCommand({ readyProjectRoots: new Set([projectRoot]) });
+
+  const runtime = await startServer();
+
+  try {
+    await apiJson(runtime.baseUrl, '/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: projectRoot }),
+    });
+
+    const result = await apiJson(runtime.baseUrl, '/api/commands/availability');
+    assert.equal(result.response.status, 200);
+    assert.equal(result.body.availability.status, 'ready');
+    assert.equal(result.body.availability.delivery, 'both');
+
+    const byTool = new Map(
+      (result.body.availability.integrations as Array<Record<string, unknown>>).map((i) => [
+        i.tool,
+        i,
+      ])
+    );
+
+    assert.deepEqual(byTool.get('Claude Code'), {
+      tool: 'Claude Code',
+      delivery: 'commands',
+      form: 'opsx-colon',
+      example: '/opsx:propose',
+      source: '.claude/commands/opsx/propose.md',
+    });
+    assert.deepEqual(byTool.get('Cursor'), {
+      tool: 'Cursor',
+      delivery: 'commands',
+      form: 'opsx-dash',
+      example: '/opsx-propose',
+      source: '.cursor/commands/opsx-propose.md',
+    });
+    assert.deepEqual(byTool.get('Kimi Code'), {
+      tool: 'Kimi Code',
+      delivery: 'skills',
+      form: 'skill-colon',
+      example: '/skill:openspec-propose',
+      source: '.kimi-code/skills/openspec-propose/SKILL.md',
+    });
+
+    assert.deepEqual(result.body.availability.forms, ['opsx-colon', 'opsx-dash', 'skill-colon']);
+    // Static tool catalog is always present alongside detection.
+    const toolOptions = result.body.availability.toolOptions as Array<Record<string, unknown>>;
+    assert.ok(toolOptions.some((o) => o.tool === 'Claude Code' && o.form === 'opsx-colon'));
+    assert.ok(toolOptions.some((o) => o.tool === 'Cursor' && o.form === 'opsx-dash'));
+    assert.ok(toolOptions.some((o) => o.tool === 'Kimi Code' && o.form === 'skill-colon'));
+    assert.ok(toolOptions.some((o) => o.tool === 'Shared .agents' && o.form === 'skill-slash'));
+    assert.ok(toolOptions.some((o) => o.tool === 'Codex' && o.form === 'skill-dollar'));
+    // Existing transition field remains present.
+    assert.deepEqual(result.body.availability.availableExpandedCommands, ['new', 'verify']);
+  } finally {
+    await runtime.close();
+  }
+});
+
+test('availability route surfaces both skill-slash and skill-dollar for a shared .agents root', async () => {
+  const configHome = await createTempDir('openspec-webui-server-config-');
+  process.env.XDG_CONFIG_HOME = configHome;
+  const projectRoot = await createProjectFixture('agents-ambiguity-project');
+
+  // Only a shared `.agents` skill tree exists — the Codex target and the
+  // vendor-neutral Shared `.agents` target are indistinguishable from the
+  // artifact alone, so the API must surface both candidate forms.
+  await mkdir(join(projectRoot, '.agents', 'skills', 'openspec-propose'), { recursive: true });
+  await writeFile(
+    join(projectRoot, '.agents', 'skills', 'openspec-propose', 'SKILL.md'),
+    '# openspec-propose',
+    'utf8'
+  );
+
+  await installFakeOpenSpecCommand({ readyProjectRoots: new Set([projectRoot]) });
+
+  const runtime = await startServer();
+
+  try {
+    await apiJson(runtime.baseUrl, '/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: projectRoot }),
+    });
+
+    const result = await apiJson(runtime.baseUrl, '/api/commands/availability');
+    assert.equal(result.response.status, 200);
+    assert.equal(result.body.availability.status, 'ready');
+
+    const agents = (result.body.availability.integrations as Array<Record<string, unknown>>).find(
+      (i) => i.tool === 'Shared .agents / Codex'
+    );
+    assert.deepEqual(agents, {
+      tool: 'Shared .agents / Codex',
+      delivery: 'skills',
+      form: 'skill-slash',
+      example: '/openspec-propose or $openspec-propose',
+      source: '.agents/skills/openspec-propose/SKILL.md',
+    });
+
+    // Two distinct forms: the frontend must open an explicit candidate menu
+    // rather than performing a single-direct copy for `.agents` evidence.
+    assert.deepEqual(result.body.availability.forms, ['skill-slash', 'skill-dollar']);
   } finally {
     await runtime.close();
   }
