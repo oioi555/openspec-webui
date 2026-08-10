@@ -1,5 +1,7 @@
 <script lang="ts">
   import { Copy, ExternalLink, FlaskConical, Info, ListChecks, Monitor, Moon, RefreshCw, Settings, Sun, Wrench } from '@lucide/svelte';
+  import { buildProjectUpdateCommand } from '$lib/state/projectVersionStatusCore';
+  import { projectVersionStatusStore } from '$lib/state/projectVersionStatus.svelte.ts';
   import { Callout } from '$lib/components/shared/callout';
   import { OptionCard } from '$lib/components/shared/option-card';
   import { InsetPanel, SectionHeader, SurfaceCard } from '$lib/components/shared/surface';
@@ -19,7 +21,7 @@
   import { copyToClipboard } from '$lib/utils';
   import { versionStatusStore } from '$lib/state/versionStatus.svelte.ts';
   import { RELEASE_PAGE_URLS, UPDATE_COMMANDS, type VersionedToolId } from '$lib/state/versionStatusCore';
-  import type { DetectedIntegration, ToolVersionStatus } from '$lib/types/api';
+  import type { DetectedIntegration, ProjectVersionUpdateStatus, ToolVersionStatus } from '$lib/types/api';
   import type { WorkflowCommand } from '$lib/types/commandTypes';
   import {
     CORE_COMMANDS,
@@ -148,6 +150,7 @@
   let availabilityReady = $derived(commandPreferencesStore.availability.status === 'ready');
   let integrations = $derived(commandPreferencesStore.availability.integrations);
   let versionSnapshot = $derived(versionStatusStore.snapshot);
+  let projectVersionSnapshot = $derived(projectVersionStatusStore.snapshot);
 
   let checkedAtLabel = $derived.by(() => {
     const iso = versionSnapshot?.checkedAt ?? null;
@@ -200,6 +203,30 @@
     return 'secondary';
   }
 
+  function getProjectStatusDotClass(status: ProjectVersionUpdateStatus): string {
+    switch (status) {
+      case 'up-to-date':
+        return 'bg-emerald-500';
+      case 'update-available':
+        return 'bg-amber-500';
+      case 'unknown':
+      default:
+        return 'bg-muted-foreground/50';
+    }
+  }
+
+  function getProjectStatusLabel(status: ProjectVersionUpdateStatus): string {
+    switch (status) {
+      case 'up-to-date':
+        return t(m.settings_versions_project_up_to_date);
+      case 'update-available':
+        return t(m.settings_versions_project_update_available);
+      case 'unknown':
+      default:
+        return t(m.settings_versions_project_unknown);
+    }
+  }
+
   function getReleasePageUrl(toolId: VersionedToolId) {
     return RELEASE_PAGE_URLS[toolId];
   }
@@ -210,6 +237,11 @@
 
   async function handleCopyCommand(command: string, label: string) {
     await copyToClipboard(command, label);
+  }
+
+  async function handleRefreshVersions() {
+    await versionStatusStore.manualRefresh();
+    await projectVersionStatusStore.manualRefresh();
   }
 
   // Track active section via IntersectionObserver
@@ -647,11 +679,11 @@
               variant="ghost"
               size="icon"
               class="size-8 text-muted-foreground hover:text-foreground"
-              disabled={versionStatusStore.loading}
+              disabled={versionStatusStore.loading || projectVersionStatusStore.loading}
               aria-label={t(m.settings_versions_refresh_aria)}
-              onclick={() => versionStatusStore.manualRefresh()}
+              onclick={() => handleRefreshVersions()}
             >
-              <RefreshCw class={`h-4 w-4 ${versionStatusStore.loading ? 'animate-spin' : ''}`} />
+              <RefreshCw class={`h-4 w-4 ${versionStatusStore.loading || projectVersionStatusStore.loading ? 'animate-spin' : ''}`} />
             </Button>
           </div>
         </div>
@@ -749,30 +781,37 @@
           <div>
             <h4 class="font-medium text-foreground">{FIXED_LABELS.settings.versions.afterUpdatingOpenSpec}</h4>
             <p class="mt-1 text-sm text-muted-foreground">{t(m.settings_versions_post_update_description)}</p>
-          </div>
-
-          <div>
-            <div class="text-xs uppercase tracking-wide text-muted-foreground">{FIXED_LABELS.settings.versions.projectCommand}</div>
-            <div class="mt-1 flex items-center gap-2 rounded-sm border border-border bg-background px-3 py-2">
-              <code class="min-w-0 flex-1 overflow-x-auto text-xs text-primary">{UPDATE_COMMANDS.project}</code>
-              <Button
-                variant="ghost"
-                size="icon"
-                class="size-8 shrink-0 text-muted-foreground hover:text-foreground"
-                aria-label={`${FIXED_LABELS.common.copy} ${FIXED_LABELS.settings.versions.projectCommand}`}
-                onclick={() => handleCopyCommand(UPDATE_COMMANDS.project, FIXED_LABELS.settings.versions.projectCommand)}
-              >
-                <Copy class="h-4 w-4" />
-              </Button>
-            </div>
+            <p class="mt-1 text-xs text-muted-foreground">{t(m.settings_versions_project_unknown_hint)}</p>
           </div>
 
           <div>
             <div class="text-xs uppercase tracking-wide text-muted-foreground">{FIXED_LABELS.settings.versions.projectsToUpdate}</div>
             {#if projectStore.projects.length > 0}
-              <ul class="mt-2 space-y-1 text-sm text-foreground">
-                {#each projectStore.projects as project}
-                  <li class="truncate" title={project.path}>{project.path}</li>
+              <ul class="mt-2 space-y-0.5">
+                {#each projectStore.projects as project (project.path)}
+                  {@const entry = projectVersionSnapshot?.projects.find((p: { path: string }) => p.path === project.path)}
+                  {@const status = entry?.status ?? 'unknown'}
+                  {@const generationVersion = entry?.generationVersion ?? null}
+                  <li class="flex items-center gap-2 rounded-sm px-1 py-1 text-sm" title={project.path}>
+                    <span class={`h-2 w-2 shrink-0 rounded-full ${getProjectStatusDotClass(status)}`} aria-hidden="true"></span>
+                    <span class="min-w-0 flex-1 truncate text-foreground">{project.path}</span>
+                    <span class="shrink-0 text-xs text-muted-foreground">
+                      {#if generationVersion}
+                        {generationVersion} · {getProjectStatusLabel(status)}
+                      {:else}
+                        {getProjectStatusLabel(status)}
+                      {/if}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      class="size-7 shrink-0 text-muted-foreground hover:text-foreground"
+                      aria-label={`${FIXED_LABELS.common.copy} ${FIXED_LABELS.settings.versions.updateCommand} ${project.path}`}
+                      onclick={() => handleCopyCommand(buildProjectUpdateCommand(project.path), project.path)}
+                    >
+                      <Copy class="h-3.5 w-3.5" />
+                    </Button>
+                  </li>
                 {/each}
               </ul>
             {:else}

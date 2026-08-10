@@ -18,6 +18,7 @@ import {
   type ProjectRegistry,
 } from '../project-registry.js';
 import type { VersionSnapshotService } from '../version-status.js';
+import type { ProjectVersionStatusService } from '../project-version-status.js';
 import type { StoreDiscoveryService } from '../store-discovery.js';
 import { readFile } from 'fs/promises';
 import { parseDocument } from 'yaml';
@@ -52,6 +53,7 @@ interface RegisterApiRoutesOptions {
     | 'setCommandAvailabilityCache'
   >;
   versionSnapshotService: Pick<VersionSnapshotService, 'getSnapshot' | 'refresh'>;
+  projectVersionStatusService: Pick<ProjectVersionStatusService, 'getSnapshot' | 'refresh'>;
   storeDiscoveryService: StoreDiscoveryService;
   onProjectRemoved?: (removedProjectId: string, nextProjectId: string | null) => Promise<void> | void;
 }
@@ -179,7 +181,7 @@ export async function registerApiRoutes(
   fastify: FastifyInstance,
   options: RegisterApiRoutesOptions
 ) {
-  const { registry, versionSnapshotService, storeDiscoveryService, onProjectRemoved } = options;
+  const { registry, versionSnapshotService, projectVersionStatusService, storeDiscoveryService, onProjectRemoved } = options;
 
   function readProjectIdHeader(request: FastifyRequest): string | null {
     const rawValue = request.headers['x-project-id'];
@@ -440,6 +442,12 @@ export async function registerApiRoutes(
 
   fastify.get('/api/version-status', async () => versionSnapshotService.getSnapshot());
   fastify.post('/api/version-status/refresh', async () => versionSnapshotService.refresh());
+
+  // Registry-global per-project version status. Unlike the project-scoped
+  // routes above, these never resolve the active-project header/context: they
+  // reflect every registered project and work without an X-Project-Id header.
+  fastify.get('/api/project-version-status', async () => projectVersionStatusService.getSnapshot());
+  fastify.post('/api/project-version-status/refresh', async () => projectVersionStatusService.refresh());
 
   // Search
   fastify.get<{ Querystring: { q: string } }>('/api/search', async (request, reply) => {

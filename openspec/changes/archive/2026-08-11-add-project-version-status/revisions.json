@@ -1,0 +1,24 @@
+{
+  "changeId": "add-project-version-status",
+  "revisions": [
+    {
+      "id": "rev-6dbc8337",
+      "description": "Versions ページの更新操作は、グローバル版状態（CLI バージョン）を先に再取得してから、プロジェクト単位の状態を再計算する（`handleRefreshVersions` が `versionStatusStore.manualRefresh()` → `projectVersionStatusStore.manualRefresh()` の順で実行）。手動 refresh（`POST /api/project-version-status/refresh`）は、起動後に新規登録されたプロジェクトも含め、その時点の全登録プロジェクトを再走査して最新状態を返す。",
+      "reason": "実機確認で、Versions ページの更新ボタンがグローバル版の状態のみを更新し、プロジェクト単位の状態が更新されない問題を発見。ボタンがグローバル版とプロジェクト単位の両方の状態を再取得するよう修正した。修正後の挙動をアーティファクトに反映する。",
+      "author": "AI",
+      "createdAt": "2026-08-10T18:43:51.967Z",
+      "metadata": {
+        "type": "behavior",
+        "updateTarget": [
+          "design",
+          "specs",
+          "delta-specs"
+        ],
+        "source": {
+          "file": "frontend/src/lib/components/layout/SettingsView.svelte",
+          "function": "handleRefreshVersions"
+        }
+      }
+    }
+  ]
+}

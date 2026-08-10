@@ -200,9 +200,9 @@ test('SettingsView.svelte versions section header includes RefreshCw button and 
   // Refresh button has aria-label using i18n message
   assert.match(source, /settings_versions_refresh_aria/);
 
-  // RefreshCw adds animate-spin class while loading
+  // RefreshCw adds animate-spin class while either version store is loading
   assert.match(source, /animate-spin/);
-  assert.match(source, /versionStatusStore\.loading \? 'animate-spin' : ''/);
+  assert.match(source, /versionStatusStore\.loading \|\| projectVersionStatusStore\.loading \? 'animate-spin' : ''/);
 
   // checkedAtLabel is derived from snapshot
   assert.match(source, /checkedAtLabel/);
@@ -213,10 +213,10 @@ test('SettingsView.svelte versions section header includes RefreshCw button and 
   assert.match(source, /checkedAt.*\?\?.*null/);
 });
 
-test('SettingsView.svelte disables the refresh button while version status loading is in-flight', async () => {
+test('SettingsView.svelte disables the refresh button while either version status store is loading', async () => {
   const source = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
 
-  // The refresh Button has disabled bound to versionStatusStore.loading
+  // The refresh Button has disabled bound to either store's loading state
   const versionsStart = source.indexOf('id="settings-versions"');
   const versionsEnd = source.indexOf('</SurfaceCard>', versionsStart);
   assert.ok(versionsStart > 0, 'versions section should exist');
@@ -224,12 +224,112 @@ test('SettingsView.svelte disables the refresh button while version status loadi
 
   const versionsBlock = source.slice(versionsStart, versionsEnd);
 
-  // Button is disabled while any version-status lookup is in-flight
-  assert.match(versionsBlock, /disabled=\{versionStatusStore\.loading\}/);
+  // Button is disabled while the global or the per-project version-status lookup is in-flight
+  assert.match(versionsBlock, /disabled=\{versionStatusStore\.loading \|\| projectVersionStatusStore\.loading\}/);
 
-  // RefreshCw icon is present with animate-spin while the lookup is in-flight
+  // RefreshCw icon is present with animate-spin while either lookup is in-flight
   assert.match(versionsBlock, /<RefreshCw/);
-  assert.match(versionsBlock, /versionStatusStore\.loading \? 'animate-spin' : ''/);
+  assert.match(versionsBlock, /versionStatusStore\.loading \|\| projectVersionStatusStore\.loading \? 'animate-spin' : ''/);
+});
+
+test('SettingsView.svelte combined refresh handler refreshes global version status before per-project status', async () => {
+  const source = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
+
+  // The handler awaits the global version status refresh first so the per-project
+  // comparison runs against the freshly refreshed global CLI baseline, then
+  // refreshes the per-project statuses.
+  assert.match(
+    source,
+    /async function handleRefreshVersions\(\)\s*\{\s*await versionStatusStore\.manualRefresh\(\);\s*await projectVersionStatusStore\.manualRefresh\(\);\s*\}/,
+  );
+
+  // The refresh button invokes the combined handler (not just the global refresh)
+  assert.match(source, /onclick=\{\(\) => handleRefreshVersions\(\)\}/);
+  assert.equal(source.includes('onclick={() => versionStatusStore.manualRefresh()}'), false,
+    'Refresh button should no longer call only versionStatusStore.manualRefresh()');
+});
+
+test('SettingsView.svelte renders per-project status rows with status dot, generation version, and truncated path', async () => {
+  const source = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
+
+  // Imports projectVersionStatusStore
+  assert.match(source, /import.*projectVersionStatusStore.*from '\$lib\/state\/projectVersionStatus\.svelte\.ts'/);
+
+  // Imports buildProjectUpdateCommand from core
+  assert.match(source, /import.*buildProjectUpdateCommand.*from '\$lib\/state\/projectVersionStatusCore'/);
+
+  // Imports ProjectVersionUpdateStatus type
+  assert.match(source, /import.*ProjectVersionUpdateStatus.*from '\$lib\/types\/api'/);
+
+  // projectVersionSnapshot derived from store
+  assert.match(source, /projectVersionSnapshot.*=.*\$derived\(projectVersionStatusStore\.snapshot\)/);
+
+  // Per-project row iterates projectStore.projects with key
+  assert.match(source, /#each projectStore\.projects as project \(project\.path\)/);
+
+  // Looks up matching entry from projectVersionSnapshot
+  assert.match(source, /projectVersionSnapshot\?\.projects\.find/);
+
+  // Status dot uses getProjectStatusDotClass
+  assert.match(source, /getProjectStatusDotClass\(status\)/);
+
+  // Status dot is a small rounded-full span
+  assert.match(source, /h-2 w-2 shrink-0 rounded-full/);
+
+  // Path is truncated with full path in title attribute
+  assert.match(source, /title=\{project\.path\}/);
+  assert.match(source, /class="min-w-0 flex-1 truncate text-foreground"/);
+
+  // Generation version shown when available (looked up from entry)
+  assert.match(source, /entry\?\.generationVersion/);
+
+  // Status label via getProjectStatusLabel
+  assert.match(source, /getProjectStatusLabel\(status\)/);
+});
+
+test('SettingsView.svelte wires per-project copy with buildProjectUpdateCommand and icon-only button', async () => {
+  const source = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
+
+  // Copy button uses buildProjectUpdateCommand for per-project command
+  assert.match(source, /buildProjectUpdateCommand\(project\.path\)/);
+
+  // Copy button passes project path as the label
+  assert.match(source, /handleCopyCommand\(buildProjectUpdateCommand\(project\.path\), project\.path\)/);
+
+  // Icon-only copy button with smaller size
+  assert.match(source, /class="size-7 shrink-0 text-muted-foreground hover:text-foreground"/);
+
+  // Copy icon uses slightly smaller size than the tool update copy buttons
+  assert.match(source, /<Copy class="h-3\.5 w-3\.5"/);
+
+  // Aria-label includes "Copy" and the project path
+  assert.match(source, /aria-label=.*FIXED_LABELS\.common\.copy.*project\.path/);
+});
+
+test('SettingsView.svelte no longer renders the single project update command copy block', async () => {
+  const source = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
+
+  // The old single project command copy block is removed
+  assert.equal(source.includes('UPDATE_COMMANDS.project'), false,
+    'Single UPDATE_COMMANDS.project copy should be removed');
+  assert.equal(source.includes('FIXED_LABELS.settings.versions.projectCommand'), false,
+    'ProjectCommand label should not appear in the post-upgrade block');
+});
+
+test('SettingsView.svelte preserves the projectsToUpdate heading and empty-state message', async () => {
+  const source = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
+
+  // projectsToUpdate heading still present
+  assert.match(source, /FIXED_LABELS\.settings\.versions\.projectsToUpdate/);
+
+  // Empty state when no projects registered
+  assert.match(source, /settings_versions_no_registered_projects/);
+
+  // afterUpdatingOpenSpec heading still present
+  assert.match(source, /FIXED_LABELS\.settings\.versions\.afterUpdatingOpenSpec/);
+
+  // post_update_description still present
+  assert.match(source, /settings_versions_post_update_description/);
 });
 
 test('SettingsView.svelte removes old format/buildCommand/isExpandedCommandAvailable API references', async () => {

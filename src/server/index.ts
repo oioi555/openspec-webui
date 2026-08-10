@@ -13,6 +13,7 @@ import { WebSocketManager } from './websocket/handler.js';
 import { registerApiRoutes } from './routes/api.js';
 import { createProjectRegistry, ProjectRegistryError } from './project-registry.js';
 import { createVersionSnapshotService, type VersionSnapshotService } from './version-status.js';
+import { createProjectVersionStatusService } from './project-version-status.js';
 import { createStoreDiscoveryService, type StoreDiscoveryService } from './store-discovery.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -120,6 +121,19 @@ export async function createServer(options: ServerOptions): Promise<Server> {
     console.log(`  ${activeData.specs.length} specs, ${activeData.changes.active.length} active changes`);
   }
 
+  // Per-project generation version status. Registry-global and read-only: it
+  // consumes the registry listing (so newly registered projects are picked up)
+  // and the existing version snapshot service for the current CLI baseline.
+  // Its background auto-refresh reads the cached snapshot and only awaits the
+  // already-in-flight-deduped versionSnapshotService.refresh() when the CLI
+  // version is not yet available, so no separate CLI runner is started.
+  const projectVersionStatusService = createProjectVersionStatusService({
+    deps: {
+      listProjects: () => projectRegistry.listProjects(),
+      versionSnapshotService,
+    },
+  });
+
   // Create Fastify instance
   const fastify = Fastify({
     logger: false,
@@ -179,6 +193,7 @@ export async function createServer(options: ServerOptions): Promise<Server> {
   await registerApiRoutes(fastify, {
     registry: projectRegistry,
     versionSnapshotService,
+    projectVersionStatusService,
     storeDiscoveryService,
     onProjectRemoved: async (removedProjectId, nextProjectId) => {
       for (const client of wsManager.getClientsBoundTo(removedProjectId)) {

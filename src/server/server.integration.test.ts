@@ -66,6 +66,42 @@ async function createBrokenProjectFixture(name: string): Promise<string> {
   return projectRoot;
 }
 
+function skillMarkdown(generatedBy: string): string {
+  return [
+    '---',
+    'name: openspec-propose',
+    'description: Propose a new change.',
+    'metadata:',
+    '  author: openspec',
+    '  version: "1.0"',
+    `  generatedBy: "${generatedBy}"`,
+    '---',
+    '',
+    '# openspec-propose',
+    '',
+  ].join('\n');
+}
+
+async function createReadyVersionSnapshotService(version = '1.3.1'): Promise<VersionSnapshotService> {
+  const service = createVersionSnapshotService({
+    autoStart: false,
+    deps: {
+      getWebUiCurrentVersion: () => '0.1.0',
+      fetchLatestPackageVersion: async (packageName: string) =>
+        packageName === 'openspec-webui' ? '0.2.0' : '1.4.0',
+      readOpenSpecVersion: async () => version,
+      now: () => new Date('2026-04-29T00:00:00.000Z'),
+    },
+  });
+  await service.refresh();
+  return service;
+}
+
+async function writeSkillFile(projectRoot: string, skillDir: string, generatedBy: string): Promise<void> {
+  await mkdir(join(projectRoot, skillDir), { recursive: true });
+  await writeFile(join(projectRoot, skillDir, 'SKILL.md'), skillMarkdown(generatedBy), 'utf8');
+}
+
 async function installFakeOpenSpecCommand(config: {
   readyProjectRoots: Set<string>;
   unavailableProjectRoots?: Set<string>;
@@ -2011,6 +2047,150 @@ test('availability route surfaces both skill-slash and skill-dollar for a shared
     // Two distinct forms: the frontend must open an explicit candidate menu
     // rather than performing a single-direct copy for `.agents` evidence.
     assert.deepEqual(result.body.availability.forms, ['skill-slash', 'skill-dollar']);
+  } finally {
+    await runtime.close();
+  }
+});
+
+// ── Per-project version status endpoints ────────────────────────────────────
+
+test('GET /api/project-version-status reports detected generation versions, baseline, and per-project status', async () => {
+  const configHome = await createTempDir('openspec-webui-pvs-cfg-');
+  process.env.XDG_CONFIG_HOME = configHome;
+  const upToDateRoot = await createProjectFixture('pvs-up-to-date-project');
+  const updateAvailableRoot = await createProjectFixture('pvs-update-available-project');
+  await writeSkillFile(upToDateRoot, '.claude/skills/openspec-propose', '1.3.1');
+  await writeSkillFile(updateAvailableRoot, '.opencode/skills/openspec-propose', '1.2.0');
+  await installFakeOpenSpecCommand({
+    readyProjectRoots: new Set([upToDateRoot, updateAvailableRoot]),
+    version: '1.3.1',
+  });
+  const versionSnapshotService = await createReadyVersionSnapshotService('1.3.1');
+  const runtime = await startServer({ versionSnapshotService });
+
+  try {
+    let result = await apiJson(runtime.baseUrl, '/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: upToDateRoot }),
+    });
+    assert.equal(result.response.status, 201);
+    result = await apiJson(runtime.baseUrl, '/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: updateAvailableRoot }),
+    });
+    assert.equal(result.response.status, 201);
+
+    // No X-Project-Id header and no explicit project context: the endpoint is
+    // registry-global and must still resolve.
+    const refreshed = await apiJson(runtime.baseUrl, '/api/project-version-status/refresh', { method: 'POST' });
+    assert.equal(refreshed.response.status, 200);
+    assert.equal(refreshed.body.currentCliVersion, '1.3.1');
+    assert.equal(typeof refreshed.body.checkedAt, 'string');
+    const refreshedEntries = refreshed.body.projects as Array<{
+      path: string;
+      generationVersion: string | null;
+      currentVersion: string | null;
+      status: string;
+    }>;
+    assert.deepEqual(
+      refreshedEntries.map((entry) => [entry.path, entry.generationVersion, entry.currentVersion, entry.status]),
+      [
+        [upToDateRoot, '1.3.1', '1.3.1', 'up-to-date'],
+        [updateAvailableRoot, '1.2.0', '1.3.1', 'update-available'],
+      ]
+    );
+
+    // The GET endpoint returns the cached snapshot with the same entries.
+    const cached = await apiJson(runtime.baseUrl, '/api/project-version-status');
+    assert.equal(cached.response.status, 200);
+    assert.equal(cached.body.currentCliVersion, '1.3.1');
+    assert.equal(cached.body.projects.length, 2);
+    assert.equal(cached.body.projects[0].path, upToDateRoot);
+    assert.equal(cached.body.projects[1].path, updateAvailableRoot);
+  } finally {
+    await runtime.close();
+  }
+});
+
+test('GET /api/project-version-status returns an empty project list plus the current CLI baseline when no projects are registered', async () => {
+  const configHome = await createTempDir('openspec-webui-pvs-empty-cfg-');
+  process.env.XDG_CONFIG_HOME = configHome;
+  const nonProjectRoot = await createTempDir('openspec-webui-pvs-empty-cwd-');
+  const versionSnapshotService = await createReadyVersionSnapshotService('1.3.1');
+  const runtime = await startServer({ cwd: nonProjectRoot, versionSnapshotService });
+
+  try {
+    const refreshed = await apiJson(runtime.baseUrl, '/api/project-version-status/refresh', { method: 'POST' });
+    assert.equal(refreshed.response.status, 200);
+    assert.equal(refreshed.body.currentCliVersion, '1.3.1');
+    assert.equal(typeof refreshed.body.checkedAt, 'string');
+    assert.deepEqual(refreshed.body.projects, []);
+
+    const cached = await apiJson(runtime.baseUrl, '/api/project-version-status');
+    assert.equal(cached.response.status, 200);
+    assert.equal(cached.body.currentCliVersion, '1.3.1');
+    assert.deepEqual(cached.body.projects, []);
+  } finally {
+    await runtime.close();
+  }
+});
+
+test('POST /api/project-version-status/refresh recomputes statuses and isolates partial detection failures as unknown', async () => {
+  const configHome = await createTempDir('openspec-webui-pvs-partial-cfg-');
+  process.env.XDG_CONFIG_HOME = configHome;
+  const healthyRoot = await createProjectFixture('pvs-healthy-project');
+  const unreadableRoot = await createProjectFixture('pvs-unreadable-project');
+  await writeSkillFile(healthyRoot, '.claude/skills/openspec-propose', '1.3.1');
+  // A directory named SKILL.md cannot be read as a file (EISDIR), so detection
+  // for this project deterministically fails and must degrade to unknown
+  // without failing the response.
+  await mkdir(join(unreadableRoot, '.claude', 'skills', 'openspec-propose', 'SKILL.md'), { recursive: true });
+  await installFakeOpenSpecCommand({
+    readyProjectRoots: new Set([healthyRoot, unreadableRoot]),
+    version: '1.3.1',
+  });
+  const versionSnapshotService = await createReadyVersionSnapshotService('1.3.1');
+  const runtime = await startServer({ versionSnapshotService });
+
+  try {
+    // The startup auto-refresh ran before registration, so the cached snapshot
+    // reflects no projects; the manual refresh below must recompute for the
+    // newly registered entries.
+    const before = await apiJson(runtime.baseUrl, '/api/project-version-status');
+    assert.equal(before.response.status, 200);
+    assert.deepEqual(before.body.projects, []);
+
+    let result = await apiJson(runtime.baseUrl, '/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: healthyRoot }),
+    });
+    assert.equal(result.response.status, 201);
+    result = await apiJson(runtime.baseUrl, '/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: unreadableRoot }),
+    });
+    assert.equal(result.response.status, 201);
+
+    const refreshed = await apiJson(runtime.baseUrl, '/api/project-version-status/refresh', { method: 'POST' });
+    assert.equal(refreshed.response.status, 200);
+    assert.equal(refreshed.body.currentCliVersion, '1.3.1');
+    const entries = refreshed.body.projects as Array<{
+      path: string;
+      generationVersion: string | null;
+      currentVersion: string | null;
+      status: string;
+    }>;
+    assert.deepEqual(
+      entries.map((entry) => [entry.path, entry.generationVersion, entry.currentVersion, entry.status]),
+      [
+        [healthyRoot, '1.3.1', '1.3.1', 'up-to-date'],
+        [unreadableRoot, null, '1.3.1', 'unknown'],
+      ]
+    );
   } finally {
     await runtime.close();
   }

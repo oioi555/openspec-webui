@@ -10,6 +10,9 @@ import {
   type Project,
   type ProjectListResponse,
   type ProjectSelectionResponse,
+  type ProjectVersionStatusEntry,
+  type ProjectVersionStatusResponse,
+  type ProjectVersionUpdateStatus,
   type RemoveProjectResponse,
   type SearchResult,
   type Spec,
@@ -41,6 +44,9 @@ export type {
   ProjectEntry,
   ProjectListResponse,
   ProjectSelectionResponse,
+  ProjectVersionStatusEntry,
+  ProjectVersionStatusResponse,
+  ProjectVersionUpdateStatus,
   RemoveProjectResponse,
   SearchResult,
   Spec,
@@ -326,6 +332,14 @@ export async function getVersionStatus(): Promise<VersionStatusResponse> {
 
 export async function refreshVersionStatus(): Promise<VersionStatusResponse> {
   return fetchApi<VersionStatusResponse>('/version-status/refresh', { method: 'POST' });
+}
+
+export async function getProjectVersionStatus(): Promise<ProjectVersionStatusResponse> {
+  return fetchApi<ProjectVersionStatusResponse>('/project-version-status');
+}
+
+export async function refreshProjectVersionStatus(): Promise<ProjectVersionStatusResponse> {
+  return fetchApi<ProjectVersionStatusResponse>('/project-version-status/refresh', { method: 'POST' });
 }
 
 export interface RunValidationOptions {

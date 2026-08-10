@@ -301,6 +301,26 @@ export interface VersionStatusResponse {
   };
 }
 
+export type ProjectVersionUpdateStatus = 'up-to-date' | 'update-available' | 'unknown';
+
+export interface ProjectVersionStatusEntry {
+  /** Registered project root path. */
+  path: string;
+  /** OpenSpec CLI version detected from the project's generated skill files, or null when unknown. */
+  generationVersion: string | null;
+  /** Current global OpenSpec CLI version used as the comparison baseline for this entry. */
+  currentVersion: string | null;
+  /** Derived update status for the project. */
+  status: ProjectVersionUpdateStatus;
+}
+
+export interface ProjectVersionStatusResponse {
+  /** Current global OpenSpec CLI version (comparison baseline for every entry). */
+  currentCliVersion: string | null;
+  checkedAt: string | null;
+  projects: ProjectVersionStatusEntry[];
+}
+
 export interface BrowseDirEntry {
   name: string;
   path: string;
