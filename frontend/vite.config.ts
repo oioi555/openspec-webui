@@ -11,8 +11,8 @@ export default defineConfig({
     tailwindcss(),
     svelte(),
     paraglideVitePlugin({
-      project: path.resolve(__dirname, './project.inlang'),
-      outdir: path.resolve(__dirname, './src/lib/paraglide'),
+      project: path.resolve(import.meta.dirname, './project.inlang'),
+      outdir: path.resolve(import.meta.dirname, './src/lib/paraglide'),
       strategy: ['custom-openspec-locale', 'preferredLanguage', 'baseLocale'],
       emitTsDeclarations: true,
       emitGitIgnore: false,
@@ -21,10 +21,10 @@ export default defineConfig({
       isServer: 'import.meta.env.SSR',
     }),
   ],
-  root: path.resolve(__dirname, '.'),
+  root: path.resolve(import.meta.dirname, '.'),
   resolve: {
     alias: {
-      $lib: path.resolve(__dirname, './src/lib'),
+      $lib: path.resolve(import.meta.dirname, './src/lib'),
     },
   },
   base: '/',
