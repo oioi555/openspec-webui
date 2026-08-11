@@ -32,10 +32,15 @@ function run(command, args, options = {}) {
 
 function parsePackJson(stdout) {
   const parsed = JSON.parse(stdout);
-  if (!Array.isArray(parsed) || parsed.length === 0) {
+  const packInfo = Array.isArray(parsed)
+    ? parsed[0]
+    : Array.isArray(parsed?.files)
+      ? parsed
+      : Object.values(parsed ?? {}).find((value) => value && Array.isArray(value.files));
+  if (!packInfo || typeof packInfo !== 'object') {
     throw new Error('npm pack did not return tarball metadata');
   }
-  return parsed[0];
+  return packInfo;
 }
 
 function assert(condition, message) {
