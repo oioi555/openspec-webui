@@ -1,9 +1,4 @@
-# store-relationships Specification
-
-## Purpose
-Defines the official Store relationship model — Store roots, `store:` pointers with declared root sources, and read-only `references:` — and the conditional Dashboard relationship card that routes pointer projects to their planning Store, preserves the local planning root for references projects, and never fabricates local planning content.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Dashboard routes pointer projects to their planning Store
 When the active project declares a `store:` pointer (externalized planning with a declared root source), the Dashboard SHALL display the relationship as a single compact navigation line that directly shows the pointer's planning Store together with its state, and SHALL provide a direct action on that line that opens the planning Store in one operation by activating the matching Store row/root in the unified Project Selector list (for example `Open planning Store` or a localized equivalent). The compact line SHALL NOT include explanatory description text. Because the pointer project's local OpenSpec may be config-only or empty, the Dashboard SHALL NOT suggest initializing local specs. When the declared Store cannot be resolved from CLI registration, the Dashboard SHALL directly show a non-blocking unavailable relationship with the official Store documentation link and SHALL NOT fabricate a local planning root.
@@ -69,16 +64,3 @@ When the active project is a Store root, the Dashboard SHALL show a compact `Ope
 #### Scenario: No card on unrelated projects
 - **WHEN** the active project is not a Store root and declares no `store:` pointer and no `references:`
 - **THEN** the Dashboard does not render the Store relationship display or the Store root badge
-
-### Requirement: Store relationships use official non-hierarchical concepts
-The system SHALL express Store relationships using only the official concepts: a Store is a standalone planning repo; a `store:` project is a pointer whose resolved root source is `declared` (externalized planning); `references:` are read-only context. The system SHALL NOT use master/slave, parent/child, owner, or any other terminology implying hierarchy or Store ownership.
-
-#### Scenario: Pointer relationship uses official terminology
-- **WHEN** the system describes a `store:` pointer project
-- **THEN** it uses pointer and planning-destination terminology such as `Points to: <id>` or equivalent localized copy
-- **AND** does not use master/slave, parent/child, or owner terminology
-
-#### Scenario: References described as read-only context
-- **WHEN** the system describes a project with `references:`
-- **THEN** it uses read-only context terminology such as `References: N`
-- **AND** does not imply ownership or hierarchy

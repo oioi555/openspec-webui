@@ -1,6 +1,6 @@
 <script lang="ts">
   import { tick } from 'svelte';
-  import { Bookmark, ChevronDown, ChevronRight, LayoutDashboard, Calendar, CircleCheckBig, FileText, FolderPen, History, SquarePen, FlaskConical, Store, ExternalLink, Info } from '@lucide/svelte';
+  import { Bookmark, ChevronDown, ChevronRight, LayoutDashboard, Calendar, CircleCheckBig, FileText, FolderPen, History, SquarePen, FlaskConical, Store, ExternalLink } from '@lucide/svelte';
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
   import { Callout } from '$lib/components/shared/callout';
@@ -72,6 +72,7 @@
 
   const formatDashboardDate = formatDate;
   let legacyProjectDocOpen = $state(false);
+  let referencesOpen = $state(false);
   let activeChangesSortMode = $state<ExplorerSortMode>('date');
   let recentActivitySortMode = $state<ExplorerSortMode>('date');
 
@@ -389,120 +390,114 @@
     </div>
   </div>
 
-  <!-- Store Relationship Card (only for pointer/references, not pure Store root) -->
+  <!-- Store Relationship Bar (compact single-line, only for pointer/references, not pure Store root) -->
   {#if storeRelationship && (storeRelationship.pointerStoreId || storeRelationship.referenceStoreIds.length > 0)}
-    <SurfaceCard shadow="sm">
-      <SectionHeader>
-        <h2 class="flex items-center gap-2 text-lg font-semibold text-foreground">
-          <Store class="h-5 w-5 text-muted-foreground" />
-          {FIXED_LABELS.dashboard.storeRelationship}
-        </h2>
-      </SectionHeader>
-      <div class="space-y-4 px-6 py-4">
-        {#if storeRelationship.pointerStoreId}
-          <div class="space-y-3">
+    <SurfaceCard shadow="sm" class="p-0 overflow-hidden" role="navigation" aria-label={FIXED_LABELS.dashboard.storeRelationship}>
+      <Collapsible.Root open={referencesOpen} onOpenChange={(open) => (referencesOpen = open)}>
+        <div class="flex flex-wrap items-center gap-3 px-4 py-3">
+          <!-- Pointer store segment -->
+          {#if storeRelationship.pointerStoreId}
             {#if pointerStoreRow}
-              <div class="flex items-start gap-3">
-                <Store class="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                <div class="min-w-0 flex-1">
-                  <p class="text-sm text-muted-foreground">
-                    {t(m.dashboard_pointer_store_description, { storeId: storeRelationship.pointerStoreId })}
-                  </p>
-                  <p class="mt-1 truncate text-xs text-muted-foreground" title={pointerStoreRow.path}>
-                    {pointerStoreRow.path}
-                  </p>
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                class="ml-7"
-                onclick={handleOpenPlanningStore}
-              >
-                <Store class="mr-2 h-4 w-4" />
+              <Store class="h-4 w-4 shrink-0 text-primary" />
+              <span class="min-w-0 flex-1 truncate text-sm font-medium text-foreground" title={pointerStoreRow.path}>
+                {pointerStoreRow.label}
+              </span>
+              <Button variant="default" size="sm" class="shrink-0" onclick={handleOpenPlanningStore}>
+                <Store class="mr-1.5 h-4 w-4" />
                 {t(m.dashboard_open_planning_store)}
               </Button>
             {:else}
-              <!-- Store id declared but not found in discovery -->
-              <div class="flex items-start gap-3">
-                <Info class="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                <div class="min-w-0 flex-1">
-                  <p class="text-sm text-muted-foreground">
-                    {#if storeDiscoveryStore.status === 'unavailable'}
-                      {t(m.dashboard_store_discovery_unavailable, { storeId: storeRelationship.pointerStoreId })}
-                    {:else}
-                      {t(m.dashboard_store_not_found, { storeId: storeRelationship.pointerStoreId })}
-                    {/if}
-                  </p>
-                  <a
-                    href={OPENSPEC_STORES_GUIDE_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <ExternalLink class="h-3 w-3" />
-                    {t(m.dashboard_store_unavailable_link)}
-                  </a>
-                </div>
-              </div>
+              <!-- Pointer declared but not resolved from discovery -->
+              <Store class="h-4 w-4 shrink-0 text-muted-foreground" />
+              <span class="min-w-0 truncate text-sm font-medium text-muted-foreground">
+                {storeRelationship.pointerStoreId}
+              </span>
+              <span class="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                {#if storeDiscoveryStore.status === 'unavailable'}
+                  {t(m.dashboard_store_discovery_unavailable, { storeId: storeRelationship.pointerStoreId })}
+                {:else}
+                  {t(m.dashboard_store_not_found, { storeId: storeRelationship.pointerStoreId })}
+                {/if}
+              </span>
+              <a
+                href={OPENSPEC_STORES_GUIDE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ExternalLink class="h-3 w-3" />
+                {t(m.dashboard_store_unavailable_link)}
+              </a>
             {/if}
-          </div>
-        {/if}
+          {/if}
 
-        {#if storeRelationship.referenceStoreIds.length > 0}
-          <div class="space-y-2">
-            <p class="text-sm text-muted-foreground">
-              {t(m.dashboard_references_description, { count: storeRelationship.referenceStoreIds.length })}
-            </p>
-            {#each storeRelationship.referenceStoreIds as refStoreId}
-              {@const refRow = mergedRows.find((r) => r.storeId === refStoreId) ?? null}
-              {#if refRow}
-                <div class="flex items-center justify-between gap-3 rounded-md border border-border/50 p-3">
-                  <div class="min-w-0 flex-1">
-                    <div class="flex items-center gap-2">
-                      <Store class="h-4 w-4 shrink-0 text-muted-foreground" />
-                      <span class="font-medium text-sm truncate">{refRow.label}</span>
-                      <Badge variant="outline" class="text-xs shrink-0">{refStoreId}</Badge>
-                    </div>
-                    <p class="mt-0.5 truncate text-xs text-muted-foreground" title={refRow.path}>{refRow.path}</p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    class="shrink-0"
-                    onclick={() => handleOpenReferencedStore(refStoreId)}
-                  >
-                    {FIXED_LABELS.common.open}
-                  </Button>
-                </div>
+          <!-- References trigger (right-aligned) -->
+          {#if storeRelationship.referenceStoreIds.length > 0}
+            <Collapsible.Trigger
+              class="ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              aria-label={t(m.dashboard_references_count, { count: storeRelationship.referenceStoreIds.length })}
+            >
+              {#if referencesOpen}
+                <ChevronDown class="h-4 w-4" />
               {:else}
-                <div class="flex items-start gap-3 text-sm text-muted-foreground">
-                  <Store class="mt-0.5 h-4 w-4 shrink-0" />
-                  <div>
-                    <p class="font-medium">{refStoreId}</p>
-                    <p class="text-xs mt-0.5">
+                <ChevronRight class="h-4 w-4" />
+              {/if}
+              <Badge variant="secondary" class="text-xs">
+                {t(m.dashboard_references_count, { count: storeRelationship.referenceStoreIds.length })}
+              </Badge>
+            </Collapsible.Trigger>
+          {/if}
+        </div>
+
+        <!-- Expanded reference list -->
+        {#if storeRelationship.referenceStoreIds.length > 0}
+          <Collapsible.Content>
+            <div class="border-t border-border/50 px-4 py-3 space-y-2">
+              {#each storeRelationship.referenceStoreIds as refStoreId}
+                {@const refRow = mergedRows.find((r) => r.storeId === refStoreId) ?? null}
+                {#if refRow}
+                  <div class="flex items-center justify-between gap-3">
+                    <div class="flex min-w-0 items-center gap-2">
+                      <Store class="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <span class="min-w-0 truncate text-sm font-medium text-foreground">{refRow.label}</span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      class="shrink-0"
+                      onclick={() => handleOpenReferencedStore(refStoreId)}
+                    >
+                      {FIXED_LABELS.common.open}
+                    </Button>
+                  </div>
+                {:else}
+                  <!-- Reference declared but not resolved from discovery -->
+                  <div class="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                    <Store class="h-4 w-4 shrink-0" />
+                    <span class="font-medium">{refStoreId}</span>
+                    <span class="text-xs">
                       {#if storeDiscoveryStore.status === 'unavailable'}
                         {t(m.dashboard_store_discovery_unavailable, { storeId: refStoreId })}
                       {:else}
                         {t(m.dashboard_store_not_found, { storeId: refStoreId })}
                       {/if}
-                    </p>
+                    </span>
                     <a
                       href={OPENSPEC_STORES_GUIDE_URL}
                       target="_blank"
                       rel="noopener noreferrer"
-                      class="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      class="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
                     >
                       <ExternalLink class="h-3 w-3" />
                       {t(m.dashboard_store_unavailable_link)}
                     </a>
                   </div>
-                </div>
-              {/if}
-            {/each}
-          </div>
+                {/if}
+              {/each}
+            </div>
+          </Collapsible.Content>
         {/if}
-      </div>
+      </Collapsible.Root>
     </SurfaceCard>
   {/if}
 

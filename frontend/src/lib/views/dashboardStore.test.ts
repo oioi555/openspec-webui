@@ -170,8 +170,8 @@ test('Dashboard shows pointer store with Open planning Store action', async () =
   );
   assert.match(
     source,
-    /dashboard_pointer_store_description/,
-    'Should display pointer store description',
+    /pointerStoreRow\.label/,
+    'Should display the resolved pointer Store label inline',
   );
   assert.match(
     source,
@@ -180,8 +180,13 @@ test('Dashboard shows pointer store with Open planning Store action', async () =
   );
   assert.match(
     source,
-    /handleOpenPlanningStore/,
-    'Should have a handler for opening the planning store',
+    /onclick=\{handleOpenPlanningStore\}/,
+    'Should wire the direct Open action to handleOpenPlanningStore',
+  );
+  assert.doesNotMatch(
+    source,
+    /dashboard_pointer_store_description/,
+    'Should NOT render the removed pointer description text',
   );
 });
 
@@ -214,7 +219,7 @@ test('Dashboard never suggests initializing local specs for pointer projects', a
 // 6. References behavior
 // ---------------------------------------------------------------------------
 
-test('Dashboard shows references as read-only', async () => {
+test('Dashboard shows references as a collapsed count with expandable list', async () => {
   const source = await dashboardSource;
 
   assert.match(
@@ -224,8 +229,18 @@ test('Dashboard shows references as read-only', async () => {
   );
   assert.match(
     source,
+    /dashboard_references_count/,
+    'Should display references count badge',
+  );
+  assert.match(
+    source,
+    /<Collapsible\.Trigger/,
+    'Should render a Collapsible trigger for references',
+  );
+  assert.doesNotMatch(
+    source,
     /dashboard_references_description/,
-    'Should display references description',
+    'Should NOT render the removed references description text',
   );
 });
 
@@ -301,18 +316,21 @@ test('Dashboard Store card is placed directly after header, before summary cards
   );
 });
 
-test('Dashboard Store card uses SurfaceCard with consistent shadow', async () => {
+test('Dashboard Store bar uses SurfaceCard with consistent shadow', async () => {
   const source = await dashboardSource;
 
-  const storeCardSection = source.match(
-    /<SurfaceCard[^>]*>[\s\S]*?FIXED_LABELS\.dashboard\.storeRelationship/,
-  );
-  assert.ok(storeCardSection, 'Should find Store relationship SurfaceCard section');
+  const storeBarTag = source.match(/<SurfaceCard[^>]*role="navigation"[^>]*>/);
+  assert.ok(storeBarTag, 'Should find the Store relationship navigation bar SurfaceCard');
 
   assert.match(
-    storeCardSection[0],
+    storeBarTag[0],
     /shadow="sm"/,
-    'Store relationship card should use shadow="sm" consistent with peer panels',
+    'Store relationship bar should use shadow="sm" consistent with peer panels',
+  );
+  assert.match(
+    storeBarTag[0],
+    /aria-label=\{FIXED_LABELS\.dashboard\.storeRelationship\}/,
+    'Store relationship bar should keep the storeRelationship label as aria-label',
   );
 });
 
@@ -347,5 +365,231 @@ test('Dashboard reference rows use pre-computed mergedRows, not per-IIFE mergeUn
     refEachBlock[1],
     /mergedRows\.find/,
     'Reference rows should use pre-computed mergedRows',
+  );
+});
+
+// ---------------------------------------------------------------------------
+// 10. Compact relationship bar: single-line navigation (pointer + references
+//     coexist in one bar; no card sections, no description copy)
+// ---------------------------------------------------------------------------
+
+test('Dashboard Store relationship renders as one compact navigation bar', async () => {
+  const source = await dashboardSource;
+
+  const barTag = source.match(/<SurfaceCard[^>]*role="navigation"[^>]*>/);
+  assert.ok(barTag, 'Should find the compact relationship navigation bar');
+
+  // The bar must come before Summary Cards (placement preserved)
+  const headerEnd = source.indexOf('<!-- Summary Cards -->');
+  assert.ok(headerEnd > 0, 'Should find Summary Cards comment');
+  assert.ok(
+    (barTag.index ?? 0) < headerEnd,
+    'Compact relationship bar should appear directly after header, before Summary Cards',
+  );
+
+  // Pointer and references segments coexist inside the same bar
+  const barSection = source.slice(
+    barTag.index,
+    source.indexOf('</SurfaceCard>', barTag.index),
+  );
+  assert.match(
+    barSection,
+    /\{#if storeRelationship\.pointerStoreId\}/,
+    'Bar should contain the pointer store segment',
+  );
+  assert.match(
+    barSection,
+    /referenceStoreIds\.length > 0/,
+    'Bar should contain the references segment',
+  );
+
+  // No old SectionHeader heading inside the bar
+  assert.doesNotMatch(
+    barSection,
+    /<SectionHeader/,
+    'Compact bar should NOT use the old SectionHeader card heading',
+  );
+  // No description copy anywhere in the relationship section
+  assert.doesNotMatch(
+    barSection,
+    /dashboard_pointer_store_description|dashboard_references_description/,
+    'Compact bar should NOT render removed description copy',
+  );
+});
+
+test('Dashboard pointer label and direct Open action are inline in the bar', async () => {
+  const source = await dashboardSource;
+
+  assert.match(
+    source,
+    /pointerStoreRow\.label/,
+    'Pointer Store should be identified by its resolved label',
+  );
+  assert.match(
+    source,
+    /<Button variant="default" size="sm"[^>]*onclick=\{handleOpenPlanningStore\}>/,
+    'Pointer Open action should be an inline prominent button in one operation',
+  );
+  assert.match(
+    source,
+    /title=\{pointerStoreRow\.path\}/,
+    'Pointer label should keep the full path in a title for truncation',
+  );
+});
+
+test('Dashboard pure Store root still gets only the header badge, not the bar', async () => {
+  const source = await dashboardSource;
+
+  // Badge stays in the header h1
+  const h1Section = source.match(/<h1[^>]*>[\s\S]*?<\/h1>/);
+  assert.ok(h1Section, 'Should find h1 element');
+  assert.match(h1Section[0], /dashboard_store_root_badge/, 'Header badge should remain in the h1');
+
+  // Bar render condition still requires pointer or references
+  assert.match(
+    source,
+    /\{#if storeRelationship && \(storeRelationship\.pointerStoreId \|\| storeRelationship\.referenceStoreIds\.length > 0\)\}/,
+    'Bar should render only for pointer or references projects, never pure Store roots',
+  );
+});
+
+test('Dashboard references trigger is collapsed by default and expands on activation', async () => {
+  const source = await dashboardSource;
+
+  // Collapsible default state
+  assert.match(
+    source,
+    /let referencesOpen = \$state\(false\)/,
+    'References should start collapsed by default',
+  );
+  assert.match(
+    source,
+    /<Collapsible\.Root open=\{referencesOpen\}/,
+    'Collapsible should be driven by the referencesOpen state',
+  );
+
+  // Closed state shows chevron-right; open state flips to chevron-down
+  assert.match(
+    source,
+    /\{#if referencesOpen\}[\s\S]*?<ChevronDown[\s\S]*?\{:else\}[\s\S]*?<ChevronRight/,
+    'Trigger should show ChevronDown when open and ChevronRight when closed',
+  );
+});
+
+test('Dashboard references trigger shows a count badge and is hidden at zero', async () => {
+  const source = await dashboardSource;
+
+  // The trigger is gated by the length check, so zero references hide it
+  assert.match(
+    source,
+    /\{#if storeRelationship\.referenceStoreIds\.length > 0\}[\s\S]*?<Collapsible\.Trigger/,
+    'References trigger should only render when the count is above zero',
+  );
+
+  // Count badge uses the referenceStoreIds length
+  assert.match(
+    source,
+    /dashboard_references_count, \{ count: storeRelationship\.referenceStoreIds\.length \}/,
+    'Trigger count badge should be driven by referenceStoreIds.length',
+  );
+  assert.match(
+    source,
+    /<Badge variant="secondary"/,
+    'Count should render in a secondary Badge',
+  );
+});
+
+test('Dashboard expanded references render one Open row per entry', async () => {
+  const source = await dashboardSource;
+
+  const refEachBlock = source.match(
+    /\{#each storeRelationship\.referenceStoreIds as refStoreId\}([\s\S]*?)\{\/each\}/,
+  );
+  assert.ok(refEachBlock, 'Should find reference each block');
+
+  // Every entry (0, 3, 10, or more) gets its own navigation row with Open
+  assert.match(
+    refEachBlock[1],
+    /onclick=\{\(\) => handleOpenReferencedStore\(refStoreId\)\}/,
+    'Each expanded reference row should expose an Open action for its store',
+  );
+  assert.match(
+    refEachBlock[1],
+    /FIXED_LABELS\.common\.open/,
+    'Reference Open action should use the shared Open label',
+  );
+  assert.doesNotMatch(
+    refEachBlock[1],
+    /mergeUnifiedProjectList/,
+    'Expanded reference rows should not recompute merged rows',
+  );
+});
+
+test('Dashboard unresolved pointer stays visible inline with a Store docs link', async () => {
+  const source = await dashboardSource;
+
+  // Declared pointer store id remains visible when unresolved
+  assert.match(
+    source,
+    /\{storeRelationship\.pointerStoreId\}/,
+    'Unresolved pointer should keep showing the declared Store id inline',
+  );
+  // Status copy distinguishes unavailable vs not-found inside the bar
+  assert.match(
+    source,
+    /storeDiscoveryStore\.status === 'unavailable'[\s\S]*?dashboard_store_discovery_unavailable[\s\S]*?\{:else\}[\s\S]*?dashboard_store_not_found/,
+    'Unresolved pointer should distinguish discovery unavailable from store not found',
+  );
+  assert.match(
+    source,
+    /OPENSPEC_STORES_GUIDE_URL/,
+    'Unresolved pointer should provide the official Store documentation link',
+  );
+});
+
+test('Dashboard unresolved reference entries stay visible in the expanded list with docs link', async () => {
+  const source = await dashboardSource;
+
+  const refEachBlock = source.match(
+    /\{#each storeRelationship\.referenceStoreIds as refStoreId\}([\s\S]*?)\{\/each\}/,
+  );
+  assert.ok(refEachBlock, 'Should find reference each block');
+
+  assert.match(
+    refEachBlock[1],
+    /dashboard_store_discovery_unavailable[\s\S]*?dashboard_store_not_found/,
+    'Unresolved reference rows should keep both status messages available',
+  );
+  assert.match(
+    refEachBlock[1],
+    /OPENSPEC_STORES_GUIDE_URL/,
+    'Unresolved reference rows should link to the official Store documentation',
+  );
+});
+
+test('Dashboard navigation handlers preserve bind/add-project paths', async () => {
+  const source = await dashboardSource;
+
+  // Pointer open path: bind if registered, addProject if discovery-only
+  assert.match(
+    source,
+    /handleOpenPlanningStore[\s\S]*?existingRow\?\.projectId[\s\S]*?projectStore\.bindProject\(existingRow\.projectId\)[\s\S]*?projectStore\.addProject\(storeRoot\)/,
+    'handleOpenPlanningStore should bind registered rows and addProject discovery-only rows',
+  );
+  // Referenced store open path keeps the same navigation semantics
+  assert.match(
+    source,
+    /handleOpenReferencedStore[\s\S]*?projectStore\.bindProject\(existingRow\.projectId\)[\s\S]*?projectStore\.addProject\(storeRoot\)/,
+    'handleOpenReferencedStore should bind registered rows and addProject discovery-only rows',
+  );
+});
+
+test('Dashboard references handling never uses the remote field', async () => {
+  const source = await dashboardSource;
+
+  assert.doesNotMatch(
+    source,
+    /\bremote\b/,
+    'Reference entries should be handled by id only — remote must not be read, displayed, or validated',
   );
 });
