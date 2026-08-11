@@ -1972,6 +1972,11 @@ test('availability route reports detected tool integrations and distinct forms',
       form: 'opsx-colon',
       example: '/opsx:propose',
       source: '.claude/commands/opsx/propose.md',
+      commands: {
+        form: 'opsx-colon',
+        items: [{ workflowId: 'propose', source: '.claude/commands/opsx/propose.md' }],
+      },
+      skills: null,
     });
     assert.deepEqual(byTool.get('Cursor'), {
       tool: 'Cursor',
@@ -1979,6 +1984,11 @@ test('availability route reports detected tool integrations and distinct forms',
       form: 'opsx-dash',
       example: '/opsx-propose',
       source: '.cursor/commands/opsx-propose.md',
+      commands: {
+        form: 'opsx-dash',
+        items: [{ workflowId: 'propose', source: '.cursor/commands/opsx-propose.md' }],
+      },
+      skills: null,
     });
     assert.deepEqual(byTool.get('Kimi Code'), {
       tool: 'Kimi Code',
@@ -1986,6 +1996,11 @@ test('availability route reports detected tool integrations and distinct forms',
       form: 'skill-colon',
       example: '/skill:openspec-propose',
       source: '.kimi-code/skills/openspec-propose/SKILL.md',
+      commands: null,
+      skills: {
+        form: 'skill-colon',
+        items: [{ skillName: 'openspec-propose', source: '.kimi-code/skills/openspec-propose/SKILL.md' }],
+      },
     });
 
     assert.deepEqual(result.body.availability.forms, ['opsx-colon', 'opsx-dash', 'skill-colon']);
@@ -1998,6 +2013,88 @@ test('availability route reports detected tool integrations and distinct forms',
     assert.ok(toolOptions.some((o) => o.tool === 'Codex' && o.form === 'skill-dollar'));
     // Existing transition field remains present.
     assert.deepEqual(result.body.availability.availableExpandedCommands, ['new', 'verify']);
+  } finally {
+    await runtime.close();
+  }
+});
+
+test('availability route preserves both deliveries and partial workflow sets per tool', async () => {
+  const configHome = await createTempDir('openspec-webui-server-config-');
+  process.env.XDG_CONFIG_HOME = configHome;
+  const projectRoot = await createProjectFixture('both-delivery-project');
+
+  // Claude Code has commands (propose, sync) AND a skill (apply-change):
+  // dual-delivery evidence must survive the API unchanged. OpenCode has only
+  // the apply command: the sync workflow must have no command evidence.
+  await mkdir(join(projectRoot, '.claude', 'commands', 'opsx'), { recursive: true });
+  await writeFile(join(projectRoot, '.claude', 'commands', 'opsx', 'propose.md'), 'propose', 'utf8');
+  await writeFile(join(projectRoot, '.claude', 'commands', 'opsx', 'sync.md'), 'sync', 'utf8');
+  await mkdir(join(projectRoot, '.claude', 'skills', 'openspec-apply-change'), { recursive: true });
+  await writeFile(
+    join(projectRoot, '.claude', 'skills', 'openspec-apply-change', 'SKILL.md'),
+    '# openspec-apply-change',
+    'utf8'
+  );
+  await mkdir(join(projectRoot, '.opencode', 'commands'), { recursive: true });
+  await writeFile(join(projectRoot, '.opencode', 'commands', 'opsx-apply.md'), 'apply', 'utf8');
+
+  await installFakeOpenSpecCommand({ readyProjectRoots: new Set([projectRoot]) });
+
+  const runtime = await startServer();
+
+  try {
+    await apiJson(runtime.baseUrl, '/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: projectRoot }),
+    });
+
+    const result = await apiJson(runtime.baseUrl, '/api/commands/availability');
+    assert.equal(result.response.status, 200);
+    assert.equal(result.body.availability.status, 'ready');
+
+    const byTool = new Map(
+      (result.body.availability.integrations as Array<Record<string, unknown>>).map((i) => [
+        i.tool,
+        i,
+      ])
+    );
+
+    // Both deliveries are preserved for Claude Code with command-first legacy fields.
+    assert.deepEqual(byTool.get('Claude Code'), {
+      tool: 'Claude Code',
+      delivery: 'both',
+      form: 'opsx-colon',
+      example: '/opsx:propose',
+      source: '.claude/commands/opsx/propose.md',
+      commands: {
+        form: 'opsx-colon',
+        items: [
+          { workflowId: 'propose', source: '.claude/commands/opsx/propose.md' },
+          { workflowId: 'sync', source: '.claude/commands/opsx/sync.md' },
+        ],
+      },
+      skills: {
+        form: 'skill-slash',
+        items: [{ skillName: 'openspec-apply-change', source: '.claude/skills/openspec-apply-change/SKILL.md' }],
+      },
+    });
+
+    // Partial workflow set: only the apply command is present for OpenCode.
+    assert.deepEqual(byTool.get('OpenCode'), {
+      tool: 'OpenCode',
+      delivery: 'commands',
+      form: 'opsx-dash',
+      example: '/opsx-propose',
+      source: '.opencode/commands/opsx-apply.md',
+      commands: {
+        form: 'opsx-dash',
+        items: [{ workflowId: 'apply', source: '.opencode/commands/opsx-apply.md' }],
+      },
+      skills: null,
+    });
+    const opencode = byTool.get('OpenCode') as { commands?: { items?: Array<{ workflowId: string }> } };
+    assert.equal(opencode.commands?.items?.some((item) => item.workflowId === 'sync'), false);
   } finally {
     await runtime.close();
   }
@@ -2042,6 +2139,12 @@ test('availability route surfaces both skill-slash and skill-dollar for a shared
       form: 'skill-slash',
       example: '/openspec-propose or $openspec-propose',
       source: '.agents/skills/openspec-propose/SKILL.md',
+      commands: null,
+      skills: {
+        form: 'skill-slash',
+        alternateForms: ['skill-dollar'],
+        items: [{ skillName: 'openspec-propose', source: '.agents/skills/openspec-propose/SKILL.md' }],
+      },
     });
 
     // Two distinct forms: the frontend must open an explicit candidate menu

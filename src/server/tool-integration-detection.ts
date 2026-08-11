@@ -24,12 +24,76 @@ export type InvocationFormId = (typeof INVOCATION_FORM_IDS)[number];
 
 export type ToolDelivery = 'commands' | 'skills' | 'both';
 
+/**
+ * One detected OpenSpec command artifact, normalized to a workflow id and its
+ * repo-relative source path. The workflow id is the canonical command id used
+ * by the invocation forms (`/opsx:<id>`, `/opsx-<id>`, `@opsx-<id>`), derived
+ * from the artifact filename (e.g. `opsx/propose.md` -> `propose`).
+ */
+export interface CommandInventoryItem {
+  workflowId: string;
+  /** Posix-normalized path relative to the project root. */
+  source: string;
+}
+
+/**
+ * The complete Commands inventory for one detected tool: every matching
+ * command artifact enumerated from the signature table. `form` is the
+ * invocation form those command files produce. This is authoritative,
+ * workflow-specific evidence — unlike the legacy singular `form`/`source`.
+ */
+export interface CommandInventory {
+  form: InvocationFormId;
+  items: CommandInventoryItem[];
+}
+
+/** One detected OpenSpec skill artifact: the canonical skill name (the
+ * `openspec-*` directory name, e.g. `openspec-sync-specs`) and its SKILL.md
+ * source path. */
+export interface SkillInventoryItem {
+  skillName: string;
+  /** Posix-normalized path relative to the project root. */
+  source: string;
+}
+
+/**
+ * The complete Skills inventory for one detected tool: every matching
+ * `openspec-*` SKILL.md enumerated from the signature table. `form` is the
+ * primary invocation form for those skill files.
+ *
+ * `alternateForms` carries additional documented invocation forms that consume
+ * the exact same artifact tree. It is only set for the shared `.agents` root,
+ * which both Shared `.agents` (`skill-slash`) and Codex (`skill-dollar`) use;
+ * detection asserts neither target, so candidate resolution SHALL generate one
+ * candidate per form in `[form, ...alternateForms]`.
+ */
+export interface SkillInventory {
+  form: InvocationFormId;
+  alternateForms?: InvocationFormId[];
+  items: SkillInventoryItem[];
+}
+
+/**
+ * A detected repo-local OpenSpec integration. `commands` and `skills` are the
+ * authoritative workflow-specific inventories; the remaining fields
+ * (`delivery`, `form`, `example`, `source`) are legacy aggregate presentation
+ * data kept for compatibility and SHALL NOT be used for candidate eligibility
+ * because they discard dual-delivery and per-workflow evidence.
+ */
 export interface DetectedIntegration {
   tool: string;
+  /** @deprecated Legacy aggregate presentation data. */
   delivery: ToolDelivery;
+  /** @deprecated Legacy representative form (first command form, else first skill form). */
   form: InvocationFormId;
+  /** @deprecated Legacy example invocation for the representative form. */
   example: string;
+  /** @deprecated Legacy representative source path (first command, else first skill). */
   source: string;
+  /** Authoritative Commands evidence, or null when no command artifact matched. */
+  commands: CommandInventory | null;
+  /** Authoritative Skills evidence, or null when no skill artifact matched. */
+  skills: SkillInventory | null;
 }
 
 export interface ToolInvocationOption {
@@ -66,15 +130,22 @@ const AGENTS_SHARED_FORMS: readonly InvocationFormId[] = ['skill-slash', 'skill-
  * `.codex` root is invented (Codex writes to the shared `.agents/skills` root,
  * which is represented by the `agents` entry below as skill-dollar).
  *
- * Entry shape: [tool, [[dir, shape, form], ...commands], [[dir, form], ...skills]]
+ * Entry shape: [tool, [[dir, shape, form], ...commands], [[dir, form, ...], ...skills]]
  *   shape 'folder':   `<dir>/opsx/<id>.*`   (opsx-colon form)
  *   shape 'filename': `<dir>/opsx-<id>.*`   (opsx-dash / opsx-at form)
- *   skills: `<dir>/openspec-*` dirs with SKILL.md; the listed form.
+ *   skills: `<dir>/openspec-*` dirs with SKILL.md; the listed form plus any
+ *   documented alternate forms that consume the same artifact tree.
  */
+type SkillSpec = readonly [
+  dir: string,
+  form: InvocationFormId,
+  alternateForms?: readonly InvocationFormId[],
+];
+
 type ToolSpec = readonly [
   tool: string,
   commands: ReadonlyArray<readonly [dir: string, shape: CommandShape, form: InvocationFormId]>,
-  skills: ReadonlyArray<readonly [dir: string, form: InvocationFormId]>,
+  skills: ReadonlyArray<SkillSpec>,
 ];
 
 const TOOL_SIGNATURES: readonly ToolSpec[] = [
@@ -119,7 +190,7 @@ const TOOL_SIGNATURES: readonly ToolSpec[] = [
   ['Kimi Code', [], [['.kimi-code/skills', 'skill-colon']]],
   // --- shared `.agents` root (Codex target or vendor-neutral Shared `.agents`;
   // indistinguishable from artifacts alone, surfaced as both candidate forms) ---
-  [AGENTS_SHARED_TOOL, [], [['.agents/skills', 'skill-slash']]],
+  [AGENTS_SHARED_TOOL, [], [['.agents/skills', 'skill-slash', ['skill-dollar']]]],
 ];
 
 /** Example invocation for the representative `propose` workflow, per form. */
@@ -168,102 +239,138 @@ function toPosixPath(value: string): string {
   return value.split('\\').join('/');
 }
 
-/**
- * Find the first real OpenSpec command file for a signature, or null when the
- * directory is empty, missing, or holds no matching files. A directory name
- * alone never counts as detection.
- */
-async function findCommandFile(
-  root: string,
-  dir: string,
-  shape: CommandShape
-): Promise<string | null> {
-  const dirPath = join(root, dir);
-
-  if (shape === 'folder') {
-    const files = await listFiles(join(dirPath, 'opsx'));
-    if (!files || files.length === 0) {
-      return null;
-    }
-    return toPosixPath(join(dir, 'opsx', files[0]!));
-  }
-
-  const files = await listFiles(dirPath);
-  if (!files) {
-    return null;
-  }
-  const match = files.find((name) => name.startsWith('opsx-'));
-  return match ? toPosixPath(join(dir, match)) : null;
+/** Strip the last extension from a filename (`opsx-propose.md` -> `opsx-propose`). */
+function stripExtension(name: string): string {
+  const dot = name.lastIndexOf('.');
+  return dot > 0 ? name.slice(0, dot) : name;
 }
 
 /**
- * Find the first real OpenSpec skill file (an `openspec-*` directory that
- * contains SKILL.md) for a signature, or null when no skill directory holds a
- * real SKILL.md. Empty `openspec-*` directories are never detection.
+ * Enumerate every real OpenSpec command file for a signature, deriving a
+ * normalized workflow id from each filename. Returns null when the directory
+ * cannot be read (missing or unreadable -> no evidence), or an empty array
+ * when it holds no matching files. A directory name alone never counts as
+ * detection, dotfiles are ignored, and duplicate workflow ids collapse to the
+ * first source in stable sorted order.
  */
-async function findSkillFile(root: string, dir: string): Promise<string | null> {
+async function findCommandFiles(
+  root: string,
+  dir: string,
+  shape: CommandShape
+): Promise<CommandInventoryItem[] | null> {
+  const dirPath = join(root, dir);
+
+  const names =
+    shape === 'folder' ? await listFiles(join(dirPath, 'opsx')) : await listFiles(dirPath);
+  if (!names) {
+    return null;
+  }
+
+  const items: CommandInventoryItem[] = [];
+  const seen = new Set<string>();
+
+  for (const name of names) {
+    if (name.startsWith('.')) {
+      continue;
+    }
+    const base = stripExtension(name);
+    const workflowId =
+      shape === 'folder' ? base : base.startsWith('opsx-') ? base.slice('opsx-'.length) : null;
+    if (workflowId === null || workflowId.length === 0 || seen.has(workflowId)) {
+      continue;
+    }
+    seen.add(workflowId);
+    const relative = shape === 'folder' ? join(dir, 'opsx', name) : join(dir, name);
+    items.push({ workflowId, source: toPosixPath(relative) });
+  }
+
+  return items;
+}
+
+/**
+ * Enumerate every real OpenSpec skill file for a signature: each `openspec-*`
+ * directory that contains a SKILL.md. Returns null when the directory cannot
+ * be read (missing or unreadable -> no evidence), or an empty array when no
+ * skill directory holds a real SKILL.md. Empty `openspec-*` directories are
+ * never detection.
+ */
+async function findSkillFiles(
+  root: string,
+  dir: string
+): Promise<SkillInventoryItem[] | null> {
   const skillsDir = join(root, dir);
   const subdirs = await listSubdirs(skillsDir);
   if (!subdirs) {
     return null;
   }
 
-  const openspecDirs = subdirs.filter((name) => name.startsWith('openspec-'));
-  for (const skillDir of openspecDirs) {
+  const items: SkillInventoryItem[] = [];
+  for (const skillDir of subdirs) {
+    if (!skillDir.startsWith('openspec-')) {
+      continue;
+    }
     const files = await listFiles(join(skillsDir, skillDir));
     if (files && files.includes('SKILL.md')) {
-      return toPosixPath(join(dir, skillDir, 'SKILL.md'));
+      items.push({
+        skillName: skillDir,
+        source: toPosixPath(join(dir, skillDir, 'SKILL.md')),
+      });
     }
   }
-  return null;
+  return items;
 }
 
 /**
  * Detect repo-local OpenSpec tool integrations by scanning the project root for
  * real OpenSpec-generated artifacts (command files and `openspec-*` skill
- * directories containing SKILL.md). Results are advisory hints: empty directories are never
- * detected, unknown roots are ignored, and scan failures degrade to an empty
- * list rather than an application error.
+ * directories containing SKILL.md). Every matching artifact is retained in the
+ * workflow-specific `commands` / `skills` inventories; the legacy singular
+ * fields are derived presentation data kept for compatibility. Results are
+ * advisory hints: empty directories are never detected, unknown roots are
+ * ignored, and scan failures degrade to an empty list rather than an
+ * application error.
  */
 export async function detectToolIntegrations(projectRoot: string): Promise<DetectedIntegration[]> {
   const integrations: DetectedIntegration[] = [];
 
   for (const [tool, commandSpecs, skillSpecs] of TOOL_SIGNATURES) {
-    let commandSource: string | null = null;
-    let commandForm: InvocationFormId | null = null;
+    let commandInventory: CommandInventory | null = null;
+    let skillInventory: SkillInventory | null = null;
 
     for (const [dir, shape, form] of commandSpecs) {
-      const source = await findCommandFile(projectRoot, dir, shape);
-      if (source) {
-        commandSource = source;
-        commandForm = form;
+      const items = await findCommandFiles(projectRoot, dir, shape);
+      if (items && items.length > 0) {
+        commandInventory = { form, items };
         break;
       }
     }
 
-    let skillSource: string | null = null;
-    let skillForm: InvocationFormId | null = null;
-
-    for (const [dir, form] of skillSpecs) {
-      const source = await findSkillFile(projectRoot, dir);
-      if (source) {
-        skillSource = source;
-        skillForm = form;
+    for (const [dir, form, alternateForms] of skillSpecs) {
+      const items = await findSkillFiles(projectRoot, dir);
+      if (items && items.length > 0) {
+        skillInventory = {
+          form,
+          ...(alternateForms && alternateForms.length > 0 ? { alternateForms: [...alternateForms] } : {}),
+          items,
+        };
         break;
       }
     }
 
-    if (!commandSource && !skillSource) {
+    if (!commandInventory && !skillInventory) {
       continue;
     }
 
-    // Merge command + skill evidence per tool: prefer the command form/example
-    // for the singular `form` contract, and report `both` delivery.
-    const hasCommands = commandSource !== null;
-    const hasSkills = skillSource !== null;
+    // Merge command + skill evidence per tool for the legacy aggregate fields:
+    // prefer the command form/example and report `both` delivery. These fields
+    // are compatibility-only presentation data — the inventories above are the
+    // authoritative evidence for per-workflow candidate eligibility.
+    const hasCommands = commandInventory !== null;
+    const hasSkills = skillInventory !== null;
     const delivery: ToolDelivery = hasCommands && hasSkills ? 'both' : hasCommands ? 'commands' : 'skills';
-    const form = commandForm ?? skillForm!;
-    const source = commandSource ?? skillSource!;
+    const form = commandInventory?.form ?? skillInventory!.form;
+    const source =
+      commandInventory?.items[0]!.source ?? skillInventory!.items[0]!.source;
     // The shared `.agents` root is ambiguous between the Codex target and the
     // vendor-neutral target, so its example names both candidate invocations
     // rather than asserting one.
@@ -276,6 +383,8 @@ export async function detectToolIntegrations(projectRoot: string): Promise<Detec
       form,
       example,
       source,
+      commands: commandInventory,
+      skills: skillInventory,
     });
   }
 

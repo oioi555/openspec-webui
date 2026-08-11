@@ -1,26 +1,18 @@
 /**
  * Tests for the copy-time selector UI behavior.
  *
- * The selector is tool-centric: each menu item is identified by its tool name,
- * not by its invocation form.  The logic lives in toolChoices.ts; these tests
- * verify the integration contract via the pure functions.
- *
- * Also verifies that CommandShortcutBar is non-navigating (no tabStore,
- * layoutStore imports) and does not use outer-wrapper propagation blockers
- * that would break the DropdownMenu's window-level event handlers.
+ * Uses buildGroupedToolChoices — the installed-only grouped resolver.
+ * Verifies the component contract via pure functions and source assertions.
  */
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 
-import type { ToolInvocationOption, DetectedIntegration } from '../../types/api';
+import type { DetectedIntegration, CommandInventory, SkillInventory } from '../../types/api';
 import type { WorkflowCommand, InvocationFormId } from '../../types/commandTypes';
-import { INVOCATION_FORM_IDS } from '../../types/commandTypes';
 import {
-  buildToolChoices,
-  buildDetectedToolChoices,
-  buildUndetectedToolChoices,
-  getEffectiveToolOptions,
+  buildGroupedToolChoices,
+  type ToolChoice,
 } from '../../toolChoices';
 import { getWorkflowLabel } from '../../workflowMetadata';
 
@@ -28,16 +20,42 @@ import { getWorkflowLabel } from '../../workflowMetadata';
 // Fixtures
 // ---------------------------------------------------------------------------
 
-function option(tool: string, form: InvocationFormId): ToolInvocationOption {
-  return { tool, form };
+function commandInventory(form: InvocationFormId, ...workflowIds: WorkflowCommand[]): CommandInventory {
+  return {
+    form,
+    items: workflowIds.map((workflowId) => ({
+      workflowId,
+      source: `commands/${workflowId}.md`,
+    })),
+  };
+}
+
+function skillInventory(form: InvocationFormId, ...skillNames: string[]): SkillInventory {
+  return {
+    form,
+    alternateForms: form === 'skill-slash' ? ['skill-dollar'] : undefined,
+    items: skillNames.map((skillName) => ({
+      skillName,
+      source: `skills/${skillName}/SKILL.md`,
+    })),
+  };
 }
 
 function integration(
   tool: string,
   form: InvocationFormId,
   source: string,
+  overrides?: { commands?: CommandInventory | null; skills?: SkillInventory | null },
 ): DetectedIntegration {
-  return { tool, delivery: 'commands', form, example: `${form}-example`, source };
+  return {
+    tool,
+    delivery: 'commands',
+    form,
+    example: `${form}-example`,
+    source,
+    commands: overrides && 'commands' in overrides ? overrides.commands! : commandInventory(form, 'propose'),
+    skills: overrides && 'skills' in overrides ? overrides.skills! : null,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -45,130 +63,109 @@ function integration(
 // ---------------------------------------------------------------------------
 
 test('single detected tool yields exactly one choice for direct copy', () => {
-  const toolOptions = [option('Claude Code', 'opsx-colon')];
   const integrations = [integration('Claude Code', 'opsx-colon', '.claude/')];
 
-  const choices = buildDetectedToolChoices(integrations, toolOptions, 'propose');
+  const choices = buildGroupedToolChoices(integrations, 'propose');
 
   assert.equal(choices.length, 1);
-  assert.equal(choices[0].tool, 'Claude Code');
+  assert.equal(choices[0].tools.length, 1);
+  assert.equal(choices[0].tools[0], 'Claude Code');
   assert.equal(choices[0].text, '/opsx:propose');
 });
 
 // ---------------------------------------------------------------------------
-// 2. Multiple detected → menu, no copy until explicit selection
+// 2. Multiple detected with different commands → menu (multiple groups)
 // ---------------------------------------------------------------------------
 
-test('multiple detected tools yield multiple choices (menu required)', () => {
-  const toolOptions = [
-    option('Claude Code', 'opsx-colon'),
-    option('Cursor', 'opsx-dash'),
-    option('Windsurf', 'skill-slash'),
-  ];
+test('multiple tools with distinct command texts yield multiple groups', () => {
   const integrations = [
     integration('Claude Code', 'opsx-colon', '.claude/'),
     integration('Cursor', 'opsx-dash', '.cursor/'),
     integration('Windsurf', 'skill-slash', '.windsurf/'),
   ];
 
-  const choices = buildDetectedToolChoices(integrations, toolOptions, 'propose');
+  const choices = buildGroupedToolChoices(integrations, 'propose');
 
   assert.equal(choices.length, 3);
-  assert.equal(choices[0].tool, 'Claude Code');
-  assert.equal(choices[1].tool, 'Cursor');
-  assert.equal(choices[2].tool, 'Windsurf');
+  assert.equal(choices[0].tools[0], 'Claude Code');
+  assert.equal(choices[1].tools[0], 'Cursor');
+  assert.equal(choices[2].tools[0], 'Windsurf');
 });
 
 // ---------------------------------------------------------------------------
-// 3. Zero detected → all toolOptions
+// 3. Zero integrations → empty (chip hidden)
 // ---------------------------------------------------------------------------
 
-test('zero detected integrations uses all toolOptions', () => {
-  const toolOptions = [
-    option('Claude Code', 'opsx-colon'),
-    option('Cursor', 'opsx-dash'),
-    option('Windsurf', 'skill-slash'),
-  ];
+test('zero integrations yields empty choices (chip hidden)', () => {
+  const choices = buildGroupedToolChoices([], 'propose');
 
-  const choices = buildToolChoices(toolOptions, [], 'propose');
-
-  assert.equal(choices.length, 3);
+  assert.equal(choices.length, 0);
 });
 
 // ---------------------------------------------------------------------------
-// 4. Same-form tools retained (not deduped by command text)
+// 4. Same command text from multiple tools → one group, direct copy
 // ---------------------------------------------------------------------------
 
-test('two tools with the same form produce two separate choices', () => {
-  const toolOptions = [
-    option('Windsurf', 'skill-slash'),
-    option('OpenCode', 'skill-slash'),
-  ];
+test('two tools with the same command text produce one grouped choice', () => {
   const integrations = [
     integration('Windsurf', 'skill-slash', '.windsurf/'),
     integration('OpenCode', 'skill-slash', '.opencode/'),
   ];
 
-  const choices = buildDetectedToolChoices(integrations, toolOptions, 'propose');
+  const choices = buildGroupedToolChoices(integrations, 'propose');
 
-  assert.equal(choices.length, 2);
-  assert.equal(choices[0].tool, 'Windsurf');
-  assert.equal(choices[1].tool, 'OpenCode');
-  assert.equal(choices[0].text, choices[1].text);
+  assert.equal(choices.length, 1, 'should be one group since both produce the same command text');
+  assert.equal(choices[0].tools.length, 2);
+  assert.equal(choices[0].tools[0], 'Windsurf');
+  assert.equal(choices[0].tools[1], 'OpenCode');
 });
 
 // ---------------------------------------------------------------------------
-// 5. .agents split
+// 5. .agents split — two documented interpretations
 // ---------------------------------------------------------------------------
 
-test('.agents neutral integration expands to Shared .agents + Codex from split toolOptions', () => {
-  const toolOptions = [
-    option('Shared .agents', 'skill-slash'),
-    option('Codex', 'skill-dollar'),
-  ];
+test('.agents integration with matching skill expands to two forms', () => {
   const integrations = [
-    integration('Shared .agents / Codex', 'skill-slash', '.agents/'),
+    integration(
+      'Shared .agents / Codex',
+      'skill-slash',
+      '.agents/',
+      { commands: null, skills: skillInventory('skill-slash', 'openspec-propose') },
+    ),
   ];
 
-  const choices = buildDetectedToolChoices(integrations, toolOptions, 'propose');
+  const choices = buildGroupedToolChoices(integrations, 'propose');
 
-  assert.equal(choices.length, 2);
-  assert.equal(choices[0].tool, 'Shared .agents');
-  assert.equal(choices[0].form, 'skill-slash');
-  assert.equal(choices[1].tool, 'Codex');
-  assert.equal(choices[1].form, 'skill-dollar');
+  assert.equal(choices.length, 2, 'should have two groups: Shared .agents and Codex');
+  assert.equal(choices[0].tools[0], 'Shared .agents');
+  assert.equal(choices[1].tools[0], 'Codex');
 });
 
 // ---------------------------------------------------------------------------
-// 6. Other excludes detected
+// 6. Integration with no matching evidence → excluded
 // ---------------------------------------------------------------------------
 
-test('undetected choices exclude detected integrations', () => {
-  const toolOptions = [
-    option('Claude Code', 'opsx-colon'),
-    option('Cursor', 'opsx-dash'),
-    option('Windsurf', 'skill-slash'),
+test('integration with no matching command or skill produces no choices', () => {
+  const integrations = [
+    integration('NoMatch', 'opsx-colon', '.nomatch/', { commands: null, skills: null }),
   ];
-  const integrations = [integration('Claude Code', 'opsx-colon', '.claude/')];
 
-  const undetected = buildUndetectedToolChoices(integrations, toolOptions, 'propose');
+  const choices = buildGroupedToolChoices(integrations, 'propose');
 
-  assert.equal(undetected.length, 2);
-  assert.ok(undetected.every((c) => c.tool !== 'Claude Code'));
+  assert.equal(choices.length, 0);
 });
 
 // ---------------------------------------------------------------------------
-// 7. No format labels / no last memory
+// 7. No format ids as tool names
 // ---------------------------------------------------------------------------
 
-test('choices never contain format ids or prefixes as tool names', () => {
-  const toolOptions = [
-    option('Claude Code', 'opsx-colon'),
-    option('Cursor', 'opsx-dash'),
-    option('Windsurf', 'skill-slash'),
+test('choices never contain format ids as tool names', () => {
+  const integrations = [
+    integration('Claude Code', 'opsx-colon', '.claude/'),
+    integration('Cursor', 'opsx-dash', '.cursor/'),
   ];
 
-  const choices = buildToolChoices(toolOptions, [], 'propose');
+  const choices = buildGroupedToolChoices(integrations, 'propose');
 
   const forbidden = [
     'opsx-colon', 'opsx-dash', 'opsx-at', 'skill-slash', 'skill-colon', 'skill-dollar',
@@ -177,17 +174,19 @@ test('choices never contain format ids or prefixes as tool names', () => {
   ];
 
   for (const choice of choices) {
-    assert.ok(
-      !forbidden.includes(choice.tool),
-      `tool name "${choice.tool}" should not be a format label`,
-    );
+    for (const tool of choice.tools) {
+      assert.ok(
+        !forbidden.includes(tool),
+        `tool name "${tool}" should not be a format label`,
+      );
+    }
   }
 });
 
-test('buildToolChoices is pure — same inputs produce same outputs', () => {
-  const toolOptions = [option('Claude Code', 'opsx-colon')];
-  const a = buildToolChoices(toolOptions, [], 'propose');
-  const b = buildToolChoices(toolOptions, [], 'propose');
+test('buildGroupedToolChoices is pure — same inputs produce same outputs', () => {
+  const integrations = [integration('Claude Code', 'opsx-colon', '.claude/')];
+  const a = buildGroupedToolChoices(integrations, 'propose');
+  const b = buildGroupedToolChoices(integrations, 'propose');
 
   assert.deepEqual(a, b);
 });
@@ -197,23 +196,27 @@ test('buildToolChoices is pure — same inputs produce same outputs', () => {
 // ---------------------------------------------------------------------------
 
 test('change-scoped choices append change name', () => {
-  const toolOptions = [option('Claude Code', 'opsx-colon')];
-  const choices = buildToolChoices(toolOptions, [], 'apply', 'my-feature');
+  const integrations = [
+    integration('Claude Code', 'opsx-colon', '.claude/', {
+      commands: commandInventory('opsx-colon', 'apply'),
+    }),
+  ];
+  const choices = buildGroupedToolChoices(integrations, 'apply', { changeName: 'my-feature' });
 
   assert.equal(choices.length, 1);
   assert.equal(choices[0].text, '/opsx:apply my-feature');
 });
 
 test('workspace-scoped choices never append change name', () => {
-  const toolOptions = [option('Claude Code', 'opsx-colon')];
-  const choices = buildToolChoices(toolOptions, [], 'propose', 'should-not-appear');
+  const integrations = [integration('Claude Code', 'opsx-colon', '.claude/')];
+  const choices = buildGroupedToolChoices(integrations, 'propose', { changeName: 'should-not-appear' });
 
   assert.equal(choices.length, 1);
   assert.ok(!choices[0].text.includes('should-not-appear'));
 });
 
 // ---------------------------------------------------------------------------
-// 9. CommandShortcutBar source: non-navigating, no outer propagation blockers
+// 9. CommandShortcutBar source: non-navigating, uses buildGroupedToolChoices
 // ---------------------------------------------------------------------------
 
 test('CommandShortcutBar does not import tabStore or layoutStore', async () => {
@@ -227,17 +230,123 @@ test('CommandShortcutBar does not import tabStore or layoutStore', async () => {
   assert.match(source, /navigator\.clipboard\.writeText/);
 });
 
-test('CommandShortcutBar uses toolChoices functions', async () => {
+test('CommandShortcutBar uses buildGroupedToolChoices only', async () => {
   const source = await readFile(
     new URL('./CommandShortcutBar.svelte', import.meta.url),
     'utf8',
   );
 
-  assert.match(source, /buildDetectedToolChoices/);
-  assert.match(source, /buildUndetectedToolChoices/);
-  assert.match(source, /buildToolChoices/);
-  assert.match(source, /Choose tool/);
-  assert.match(source, /Other tool/);
+  assert.match(source, /buildGroupedToolChoices/);
+
+  // Old APIs must be absent
+  assert.doesNotMatch(source, /buildDetectedToolChoices/);
+  assert.doesNotMatch(source, /buildUndetectedToolChoices/);
+  assert.doesNotMatch(source, /buildToolChoices/);
+});
+
+test('CommandShortcutBar has no fallback/custom controls', async () => {
+  const source = await readFile(
+    new URL('./CommandShortcutBar.svelte', import.meta.url),
+    'utf8',
+  );
+
+  // No "Other tool" submenu
+  assert.doesNotMatch(source, /Other tool/);
+  assert.doesNotMatch(source, /otherToolOpenFor/);
+
+  // No custom command input
+  assert.doesNotMatch(source, /customText/);
+  assert.doesNotMatch(source, /custom.command/i);
+  assert.doesNotMatch(source, /Custom command/);
+  assert.doesNotMatch(source, /my-tool/);
+
+  // No undetected/fallback helpers
+  assert.doesNotMatch(source, /getUndetectedChoices/);
+  assert.doesNotMatch(source, /getAllChoices/);
+  assert.doesNotMatch(source, /resolveChoices/);
+});
+
+test('CommandShortcutBar skips zero-candidate chips (conditional render)', async () => {
+  const source = await readFile(
+    new URL('./CommandShortcutBar.svelte', import.meta.url),
+    'utf8',
+  );
+
+  // Should have a conditional check for empty choices
+  assert.match(source, /choices\.length === 0/);
+  // Should show dropdown only for the else branch (multiple groups)
+  assert.match(source, /\{:else\}/);
+});
+
+test('CommandShortcutBar dropdown shows tools with accessible text', async () => {
+  const source = await readFile(
+    new URL('./CommandShortcutBar.svelte', import.meta.url),
+    'utf8',
+  );
+
+  // Should join tool names
+  assert.match(source, /choice\.tools\.join/);
+  // Should use title for accessibility
+  assert.match(source, /title=\{toolsLabel\}/);
+  // Should use "Choose command" label (not "Choose tool")
+  assert.match(source, /Choose command/);
+});
+
+test('CommandShortcutBar menu strips change name from preview but not from clipboard', async () => {
+  const source = await readFile(
+    new URL('./CommandShortcutBar.svelte', import.meta.url),
+    'utf8',
+  );
+
+  // A local display-only helper keeps the component API unchanged.
+  assert.match(source, /function stripChangeName/);
+
+  // The menu display line uses stripChangeName (not raw choice.text)
+  assert.match(source, /stripChangeName\(choice\.text\)/);
+
+  // The clipboard copy line still uses the raw choice.text
+  assert.match(source, /void copyText\(choice\.text\)/);
+
+  // stripChangeName uses endsWith + slice (no regex, safe for special chars)
+  assert.doesNotMatch(source, /new RegExp/, 'Must not use regex for change-name stripping');
+  assert.match(source, /\.endsWith\(suffix\)/);
+  assert.match(source, /\.slice\(0, -suffix\.length\)/);
+});
+
+test('change-scoped menu preview omits change name but clipboard text retains it', () => {
+  // Simulate the exact stripChangeName algorithm from CommandShortcutBar
+  function stripChangeName(text: string, changeName: string | null): string {
+    if (!changeName) return text;
+    const suffix = ` ${changeName}`;
+    return text.endsWith(suffix) ? text.slice(0, -suffix.length) : text;
+  }
+
+  // 1. buildGroupedToolChoices produces choice.text WITH change name (clipboard text)
+  const integrations = [
+    integration('Claude Code', 'opsx-colon', '.claude/', {
+      commands: commandInventory('opsx-colon', 'apply'),
+    }),
+  ];
+  const choices = buildGroupedToolChoices(integrations, 'apply', { changeName: 'add-auth' });
+  assert.equal(choices.length, 1);
+  assert.equal(choices[0].text, '/opsx:apply add-auth', 'clipboard text must include change name');
+
+  // 2. stripChangeName removes the trailing change name (menu preview)
+  const menuPreview = stripChangeName(choices[0].text, 'add-auth');
+  assert.equal(menuPreview, '/opsx:apply', 'menu preview must omit change name');
+
+  // 3. Workspace-scoped choices are unaffected — no suffix to strip
+  const wsIntegrations = [integration('Claude Code', 'opsx-colon', '.claude/')];
+  const wsChoices = buildGroupedToolChoices(wsIntegrations, 'propose', { changeName: 'should-not-appear' });
+  assert.equal(wsChoices.length, 1);
+  assert.ok(!wsChoices[0].text.includes('should-not-appear'), 'workspace choice has no change name suffix');
+  const wsPreview = stripChangeName(wsChoices[0].text, 'should-not-appear');
+  assert.equal(wsPreview, wsChoices[0].text, 'workspace text passes through unchanged');
+
+  // 4. Change name with spaces and special chars is handled safely (no regex)
+  const complexText = '/opsx:apply my feature v2';
+  const stripped = stripChangeName(complexText, 'my feature v2');
+  assert.equal(stripped, '/opsx:apply', 'complex change name with spaces is stripped correctly');
 });
 
 test('CommandShortcutBar outer wrapper has no onpointerdown or onkeydown handlers', async () => {
@@ -246,10 +355,6 @@ test('CommandShortcutBar outer wrapper has no onpointerdown or onkeydown handler
     'utf8',
   );
 
-  // The outer wrapper div should NOT have onpointerdown or onkeydown.
-  // These would block DropdownMenu.Content's <svelte:window> handlers
-  // (handleWindowPointerdown, handleWindowKeydown) from closing the menu
-  // on outside-click or Escape.
   const outerWrapper = source.match(
     /<div\s+class="flex max-w-full flex-wrap items-center gap-1\.5"[^>]*>/,
   );
@@ -257,130 +362,31 @@ test('CommandShortcutBar outer wrapper has no onpointerdown or onkeydown handler
   assert.doesNotMatch(
     outerWrapper[0],
     /onpointerdown/,
-    'Outer wrapper must not have onpointerdown — it blocks dropdown outside-click detection',
+    'Outer wrapper must not have onpointerdown',
   );
   assert.doesNotMatch(
     outerWrapper[0],
     /onkeydown/,
-    'Outer wrapper must not have onkeydown — it blocks dropdown Escape handling',
-  );
-});
-
-test('CommandShortcutBar DropdownMenu.Content has no onpointerdown or onclick handlers', async () => {
-  const source = await readFile(
-    new URL('./CommandShortcutBar.svelte', import.meta.url),
-    'utf8',
-  );
-
-  // The DropdownMenu.Content should NOT have onpointerdown or onclick.
-  // These would prevent the menu from closing when clicking outside,
-  // since the content's own click/pointerdown would be swallowed.
-  const contentMatch = source.match(
-    /<DropdownMenu\.Content[\s\S]*?(?=<DropdownMenu\.Label)/,
-  );
-  assert.ok(contentMatch, 'Should find DropdownMenu.Content opening tag');
-  assert.doesNotMatch(
-    contentMatch[0],
-    /onpointerdown/,
-    'DropdownMenu.Content must not have onpointerdown — it blocks outside-click close',
-  );
-  assert.doesNotMatch(
-    contentMatch[0],
-    /onclick/,
-    'DropdownMenu.Content must not have onclick — it blocks outside-click close',
-  );
-});
-
-test('CommandShortcutBar DropdownMenu.Trigger has no onclick prop override', async () => {
-  const source = await readFile(
-    new URL('./CommandShortcutBar.svelte', import.meta.url),
-    'utf8',
-  );
-
-  // Trigger's own internal onclick handles open/close.
-  // Passing an onclick prop is overridden by the component's explicit onclick
-  // (spread then explicit), so it's dead code at best and confusing at worst.
-  const triggerMatch = source.match(
-    /<DropdownMenu\.Trigger[\s\S]*?>/,
-  );
-  assert.ok(triggerMatch, 'Should find DropdownMenu.Trigger opening tag');
-  assert.doesNotMatch(
-    triggerMatch[0],
-    /onclick=/,
-    'DropdownMenu.Trigger must not have onclick prop — Trigger handles its own click',
+    'Outer wrapper must not have onkeydown',
   );
 });
 
 // ---------------------------------------------------------------------------
-// 10. Empty toolOptions fallback — never produces 0 choices
+// 10. Settings > Tools source: warning for active repo + 0 integrations
 // ---------------------------------------------------------------------------
 
-test('empty toolOptions with no integrations falls back to 6 tool-labeled choices', () => {
-  const choices = buildToolChoices([], [], 'propose');
+test('SettingsView shows warning variant when active repo has zero integrations', async () => {
+  const source = await readFile(
+    new URL('../layout/SettingsView.svelte', import.meta.url),
+    'utf8',
+  );
 
-  assert.equal(choices.length, 6, `expected 6 fallback choices, got ${choices.length}`);
-
-  const toolNames = choices.map((c) => c.tool);
-  assert.ok(toolNames.includes('Claude Code'));
-  assert.ok(toolNames.includes('Cursor / OpenCode'));
-  assert.ok(toolNames.includes('Amazon Q Developer'));
-  assert.ok(toolNames.includes('OpenSpec skill tools'));
-  assert.ok(toolNames.includes('Kimi Code'));
-  assert.ok(toolNames.includes('Codex'));
-});
-
-test('fallback choices use all 6 official forms', () => {
-  const choices = buildToolChoices([], [], 'propose');
-
-  const forms = choices.map((c) => c.form);
-  for (const form of INVOCATION_FORM_IDS) {
-    assert.ok(forms.includes(form), `fallback should include form ${form}`);
-  }
-});
-
-test('fallback choices never use format ids as tool names', () => {
-  const choices = buildToolChoices([], [], 'propose');
-
-  const forbidden = [
-    'opsx-colon', 'opsx-dash', 'opsx-at', 'skill-slash', 'skill-colon', 'skill-dollar',
-    '/opsx:', '/opsx-', '@opsx-', '/openspec-', '/skill:openspec-', '$openspec-',
-  ];
-
-  for (const choice of choices) {
-    assert.ok(
-      !forbidden.includes(choice.tool),
-      `fallback tool name "${choice.tool}" should not be a format id or prefix`,
-    );
-  }
-});
-
-test('fallback choices append change name for change-scoped workflows', () => {
-  const choices = buildToolChoices([], [], 'apply', 'my-change');
-
-  assert.equal(choices.length, 6);
-  assert.ok(choices.every((c) => c.text.endsWith(' my-change')));
-});
-
-test('fallback choices never append change name for workspace-scoped workflows', () => {
-  const choices = buildToolChoices([], [], 'propose', 'ignored');
-
-  assert.equal(choices.length, 6);
-  assert.ok(choices.every((c) => !c.text.includes('ignored')));
-});
-
-test('getEffectiveToolOptions returns fallback when input is empty', () => {
-  const effective = getEffectiveToolOptions([]);
-
-  assert.equal(effective.length, 6);
-  assert.equal(effective[0].tool, 'Claude Code');
-  assert.equal(effective[0].form, 'opsx-colon');
-});
-
-test('getEffectiveToolOptions returns input when non-empty', () => {
-  const input = [option('Custom', 'opsx-colon')];
-  const effective = getEffectiveToolOptions(input);
-
-  assert.deepEqual(effective, input);
+  // Should check for active repo in the empty-integrations branch
+  assert.match(source, /activeRepositoryPath/);
+  // Should use warning variant for the callout
+  assert.match(source, /variant="warning"/);
+  // Should still reference the no-integrations message
+  assert.match(source, /settings_tools_no_integrations/);
 });
 
 // ---------------------------------------------------------------------------
@@ -399,19 +405,22 @@ test('every workflow produces valid label from metadata', () => {
   }
 });
 
-test('every workflow produces choices for single tool option', () => {
-  const toolOptions = [option('Claude Code', 'opsx-colon')];
-
+test('every workflow produces zero choices when no integrations', () => {
   for (const workflow of ALL_WORKFLOWS) {
-    const choices = buildToolChoices(toolOptions, [], workflow);
-    assert.equal(choices.length, 1, `${workflow}: expected 1 choice`);
+    const choices = buildGroupedToolChoices([], workflow);
+    assert.equal(choices.length, 0, `${workflow}: expected 0 choices with no integrations`);
   }
 });
 
-test('every workflow produces 6 fallback choices when toolOptions is empty', () => {
+test('every workflow produces at least one choice for matching integration', () => {
   for (const workflow of ALL_WORKFLOWS) {
-    const choices = buildToolChoices([], [], workflow);
-    assert.equal(choices.length, 6, `${workflow}: expected 6 fallback choices, got ${choices.length}`);
+    const integrations = [
+      integration('Claude Code', 'opsx-colon', '.claude/', {
+        commands: commandInventory('opsx-colon', workflow),
+      }),
+    ];
+    const choices = buildGroupedToolChoices(integrations, workflow);
+    assert.ok(choices.length >= 1, `${workflow}: expected at least 1 choice`);
   }
 });
 

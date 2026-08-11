@@ -27,15 +27,25 @@ export interface CommandAvailability {
   workflows: string[];
   /** Delivery mode from `openspec config get delivery` (defensively parsed). */
   delivery: CommandDelivery;
-  /** Detected OpenSpec tool integrations for the active repository (hints only). */
+  /**
+   * Detected OpenSpec tool integrations for the active repository. Each entry
+   * carries authoritative workflow-specific `commands` and `skills`
+   * inventories (matching command workflow ids and skill names with source
+   * paths) plus legacy aggregate presentation fields that SHALL NOT be used
+   * for candidate eligibility.
+   */
   integrations: DetectedIntegration[];
-  /** Deduplicated distinct invocation-form candidates from detection. */
+  /**
+   * @deprecated Deduplicated distinct invocation-form candidates derived from
+   * the legacy aggregate fields. Compatibility-only presentation data; use the
+   * per-integration inventories for candidate eligibility.
+   */
   forms: InvocationFormId[];
   /**
-   * Static catalog of supported tool-to-form options for the copy-time
-   * selector, derived from the server signature table. Always present — even
-   * when CLI config or detection fails — so the UI can offer tool choices with
-   * zero detections.
+   * @deprecated Static catalog of supported tool-to-form options derived from
+   * the server signature table. Compatibility-only; never synthesizes
+   * installed-tool candidates. Candidate generation SHALL consult the detected
+   * inventories instead.
    */
   toolOptions: ToolInvocationOption[];
   /**

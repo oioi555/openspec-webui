@@ -248,12 +248,63 @@ export interface SearchResult {
 
 export type CommandDelivery = 'commands' | 'skills' | 'both' | null;
 
+/** One detected OpenSpec command artifact: the workflow id and its repo-relative source path. */
+export interface CommandInventoryItem {
+  workflowId: string;
+  /** Posix-normalized path relative to the project root. */
+  source: string;
+}
+
+/**
+ * The complete Commands inventory for one detected tool. `form` is the
+ * invocation form those command files produce. Authoritative, workflow-specific
+ * evidence — unlike the legacy singular `form`/`source` fields.
+ */
+export interface CommandInventory {
+  form: InvocationFormId;
+  items: CommandInventoryItem[];
+}
+
+/** One detected OpenSpec skill artifact: the canonical skill name and its SKILL.md source path. */
+export interface SkillInventoryItem {
+  skillName: string;
+  /** Posix-normalized path relative to the project root. */
+  source: string;
+}
+
+/**
+ * The complete Skills inventory for one detected tool. `form` is the primary
+ * invocation form; `alternateForms` carries additional documented invocation
+ * forms that consume the same artifact tree (only the shared `.agents` root,
+ * which is used by both Shared `.agents` and Codex).
+ */
+export interface SkillInventory {
+  form: InvocationFormId;
+  alternateForms?: InvocationFormId[];
+  items: SkillInventoryItem[];
+}
+
+/**
+ * A detected repo-local OpenSpec integration. `commands` and `skills` are the
+ * authoritative per-workflow inventories. The remaining fields (`delivery`,
+ * `form`, `example`, `source`) are legacy aggregate presentation data that MUST
+ * NOT be used for candidate eligibility because they discard dual-delivery and
+ * per-workflow evidence.
+ */
 export interface DetectedIntegration {
   tool: string;
+  /** @deprecated Legacy aggregate presentation data. */
   delivery: 'commands' | 'skills' | 'both';
+  /** @deprecated Legacy representative form. */
   form: InvocationFormId;
+  /** @deprecated Legacy example invocation for the representative form. */
   example: string;
+  /** @deprecated Legacy representative source path. */
   source: string;
+  /** Authoritative Commands evidence, or null when no command artifact matched. */
+  commands: CommandInventory | null;
+  /** Authoritative Skills evidence, or null when no skill artifact matched. */
+  skills: SkillInventory | null;
 }
 
 export interface ToolInvocationOption {

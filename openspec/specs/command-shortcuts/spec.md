@@ -132,43 +132,74 @@ The system SHALL NOT render, generate, or report the `onboard` command in any co
 - **WHEN** the server resolves the command availability for the active project
 - **THEN** the availability response does not include the `onboard` command
 
-### Requirement: Generate tool-identified invocation candidates
-The system SHALL internally generate copyable command text from the official OpenSpec invocation forms: `/opsx:<id>`, `/opsx-<id>`, `@opsx-<id>`, `/openspec-<skill>`, `/skill:openspec-<skill>`, and `$openspec-<skill>`. Forms based on a workflow id SHALL interpolate the workflow id; forms based on a skill name SHALL interpolate the workflow's resolved skill name (for example `sync` → `openspec-sync-specs`). The system SHALL append no positional arguments for workspace-scoped commands and SHALL append `<change-name>` for change-scoped commands. User-facing copy choices SHALL be identified by tool name rather than by invocation-form id, prefix, or format name. When exactly one tool invocation is detected for the active repository, activating a copy control SHALL copy that tool's command directly. When multiple tool invocations are detected, activating a copy control SHALL open a `Choose tool` menu and SHALL copy only after the operator explicitly selects a tool. When no integration is detected, the menu SHALL offer the supported tool catalog by tool name. Undetected tools or a custom command SHALL be available through an `Other tool…` entry. Different tools SHALL remain separate choices even when they produce the same command string; only duplicate evidence for the same tool and form SHALL be collapsed. The system SHALL NOT auto-copy a previously used tool without confirmation and SHALL NOT fix a tool or form globally, per repository, or per command.
+### Requirement: Generate installed-only grouped invocation candidates
+The system SHALL internally generate copyable command text from the official OpenSpec invocation forms: `/opsx:<id>`, `/opsx-<id>`, `@opsx-<id>`, `/openspec-<skill>`, `/skill:openspec-<skill>`, and `$openspec-<skill>`. Forms based on a workflow id SHALL interpolate the workflow id; forms based on a skill name SHALL interpolate the workflow's resolved skill name (for example `sync` → `openspec-sync-specs`). The system SHALL append no positional arguments for workspace-scoped commands and SHALL append `<change-name>` for change-scoped commands.
 
-#### Scenario: Single detected tool copies directly
-- **WHEN** exactly one tool invocation is detected for the active repository and the operator activates a workspace command button
-- **THEN** the system copies the command text for that tool immediately
+For each workflow, the system SHALL build candidates exclusively from matching OpenSpec artifacts detected in the active repository. For a tool that has matching Commands and Skills artifacts for the same workflow, the system SHALL use the Commands form; when only one matching delivery exists, it SHALL use that delivery. The system SHALL group effective tool candidates by their final generated command text, SHALL show every corresponding tool name on the grouped choice, and SHALL collapse duplicate evidence for the same tool and command text.
 
-#### Scenario: Multiple detected tools require explicit selection
-- **WHEN** multiple tool invocations are detected for the active repository and the operator activates a command button
-- **THEN** the system opens a menu listing the detected tool names
-- **AND** the system copies the command text only after the operator explicitly selects a tool
+As the sole ambiguity exception, a matching skill under the shared `.agents/skills` root SHALL produce both documented candidate interpretations—Shared `.agents` using `/openspec-<skill>` and Codex using `$openspec-<skill>`—because those targets use the same repository artifact tree and cannot be distinguished by filesystem evidence alone. These candidates SHALL otherwise follow the same command-text grouping and selection rules.
 
-#### Scenario: No detected integration offers supported tools
-- **WHEN** no integration is detected for the active repository and the operator activates a command button
-- **THEN** the candidate menu offers supported tools by tool name
+When exactly one distinct command string remains, activating the copy control SHALL copy it directly even when multiple detected tools share it. When two or more distinct command strings remain, activating the control SHALL open a menu with one entry per command string and SHALL copy only after the operator selects an entry. When no matching installed artifact is detected for a workflow, the system SHALL hide that workflow's command shortcut on that surface. The selector SHALL NOT offer supported-but-undetected tools, an `Other tool…` entry, or custom command input. The system SHALL NOT auto-copy a previously selected candidate and SHALL NOT persist a tool or form selection globally, per repository, or per command.
 
-#### Scenario: Other tool is available for undetected tools
-- **WHEN** the candidate menu is open and the desired tool was not detected
-- **THEN** the menu includes an `Other tool…` entry through which the operator can select an undetected tool or enter a custom command
+#### Scenario: One tool with one matching delivery copies directly
+- **WHEN** one tool has a matching Commands or Skills artifact for a workflow
+- **THEN** activating the workflow command shortcut copies the generated command immediately
 
-#### Scenario: Tools remain distinct when command strings match
-- **WHEN** two or more detected tools produce the identical command string for a workflow (for example two tools using the `/opsx-<id>` form)
-- **THEN** the candidate menu shows a separate tool-named entry for each tool
-- **AND** duplicate evidence for the same tool and form is collapsed
+#### Scenario: Commands win when both deliveries match
+- **WHEN** one tool has both a matching Commands artifact and a matching Skills artifact for the same workflow
+- **THEN** the candidate uses the tool's Commands invocation form
+- **AND** no separate Skills choice is shown for that tool and workflow
+
+#### Scenario: Available skill is used when the command artifact is missing
+- **WHEN** a tool has a matching Skills artifact for a workflow but has no matching Commands artifact for that workflow
+- **THEN** the candidate uses the tool's Skills invocation form even if other command artifacts exist for that tool
+
+#### Scenario: Tools sharing command text form one choice
+- **WHEN** two or more detected tools generate the identical final command text for a workflow
+- **THEN** the system presents one candidate containing all corresponding tool names
+- **AND** activating the shortcut copies directly if no other distinct command text exists
+
+#### Scenario: Distinct command strings require selection
+- **WHEN** detected integrations produce two or more distinct command strings for a workflow
+- **THEN** the system opens a menu containing one entry for each distinct command string
+- **AND** each entry shows all detected tool names that use that command string
+- **AND** the command is copied only after the operator selects an entry
+
+#### Scenario: Change-scoped menu previews omit the change name
+- **WHEN** a change-scoped workflow has multiple distinct command strings and the candidate menu is open
+- **THEN** each menu preview omits the appended change name to preserve space for tool names
+- **AND** selecting an entry copies the complete command including the change name
+
+#### Scenario: Shared agents evidence preserves both documented forms
+- **WHEN** `.agents/skills` contains the matching OpenSpec skill artifact for a workflow
+- **THEN** the candidates include the Shared `.agents` slash form and the Codex dollar form
+- **AND** no other supported-but-undetected tool is added
+
+#### Scenario: Missing workflow artifact hides only that shortcut
+- **WHEN** integrations are detected for the active repository but none contains a matching artifact for a particular workflow
+- **THEN** that workflow's command shortcut is not rendered
+- **AND** shortcuts for workflows with matching artifacts remain available
+
+#### Scenario: No detected integrations hides all shortcuts
+- **WHEN** no OpenSpec integration artifacts are detected in the active repository
+- **THEN** no command shortcuts are rendered
+
+#### Scenario: Undetected and custom choices are absent
+- **WHEN** the candidate menu is open
+- **THEN** it contains only grouped commands backed by matching detected artifacts
+- **AND** it does not contain supported-but-undetected tools, an `Other tool…` entry, or custom command input
 
 #### Scenario: Skill-based forms interpolate the skill name
-- **WHEN** the operator opens candidates for the `sync` workflow
-- **THEN** the skill-based forms render `/openspec-sync-specs`, `/skill:openspec-sync-specs`, and `$openspec-sync-specs`
-- **AND** the id-based forms render `/opsx:sync`, `/opsx-sync`, and `@opsx-sync`
+- **WHEN** a matching skill artifact is selected for the `sync` workflow
+- **THEN** the generated command uses the resolved `openspec-sync-specs` skill name with that tool's detected skill invocation form
 
 #### Scenario: Change-scoped candidates append the change name
-- **WHEN** the operator selects a candidate for a change-scoped command
+- **WHEN** the operator selects or directly copies a candidate for a change-scoped command
 - **THEN** the copied text appends the current change name
 
-#### Scenario: No last-tool auto-copy
-- **WHEN** the operator previously selected a tool from the candidate menu and later activates a command button with multiple detected tools
-- **THEN** the system opens the candidate menu again and does not copy the previously used tool without confirmation
+#### Scenario: No last-candidate auto-copy
+- **WHEN** the operator previously selected a grouped candidate and later activates a shortcut that still has multiple distinct command strings
+- **THEN** the system opens the candidate menu again and does not copy the previously selected candidate without confirmation
 
 ### Requirement: Centralize workflow metadata
 The system SHALL maintain a single source of workflow metadata covering every workflow surfaced in command generation and Tools documentation, providing at minimum for each workflow its id, a user-facing label, a scope of `workspace` or `change`, and the OpenSpec skill name used by skill-based invocation forms (for example `apply` → `openspec-apply-change`, `sync` → `openspec-sync-specs`). The metadata SHALL include `update` with scope `change` and skill name `openspec-update-change`, SHALL NOT include `onboard`, SHALL NOT introduce a per-tool catalog, a generic adapter registry, an arguments schema, or a `multi-change` scope, and SHALL be the single source used to render workflow labels and skill-based invocation text.

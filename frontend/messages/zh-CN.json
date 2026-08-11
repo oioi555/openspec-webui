@@ -57,6 +57,7 @@
   "settings_tools_init_command_caption": "在活动仓库中重新运行 openspec init 以添加或移除集成。",
   "settings_tools_init_command_aria": "复制 {path} 的 openspec init 命令",
   "settings_tools_no_active_project": "没有活动项目。选择一个项目即可查看其仓库的 openspec init 命令。",
+  "settings_tools_no_integrations": "此仓库未检测到集成。运行 openspec init 以设置工具集成。",
   "settings_profile_unknown": "未知",
   "settings_commands_description": "切换哪些工作流快捷方式应显示在工作区和变更命令区域中。",
   "settings_validation_description": "配置从 Validation 面板运行验证的方式。",

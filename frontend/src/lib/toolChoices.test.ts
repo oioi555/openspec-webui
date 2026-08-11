@@ -1,428 +1,449 @@
 /**
- * Unit tests for toolChoices.ts — the pure functions that build the
- * copy-time tool-choice list for the command selector.
+ * Unit tests for toolChoices.ts — the pure installed-only grouped candidate
+ * resolver for the copy-time command selector.
  *
- * Uses the real API shape:
- *   toolOptions: already split
- *     {tool:'Shared .agents', form:'skill-slash'} and
- *     {tool:'Codex', form:'skill-dollar'}
- *   integrations: neutral
- *     {tool:'Shared .agents / Codex', form:'skill-slash', source:'.agents/...'}
+ * Candidates are derived exclusively from the detected integrations'
+ * authoritative `commands` / `skills` inventories (the server contract). The
+ * legacy aggregate fields (`delivery`, `form`, `example`, `source`) MUST NOT
+ * influence candidate eligibility.
  */
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import type { ToolInvocationOption, DetectedIntegration } from './types/api';
+import type { DetectedIntegration } from './types/api';
 import type { WorkflowCommand, InvocationFormId } from './types/commandTypes';
-import { INVOCATION_FORM_IDS } from './types/commandTypes';
+import { getWorkflowMetadata } from './workflowMetadata';
 import {
-  buildToolChoices,
-  buildDetectedToolChoices,
-  buildUndetectedToolChoices,
-  getEffectiveToolOptions,
+  buildGroupedToolChoices,
+  AGENTS_TOOL_NAME,
   type ToolChoice,
 } from './toolChoices';
 
 // ---------------------------------------------------------------------------
-// Fixtures (real API shape)
+// Fixtures (real server inventory shape)
 // ---------------------------------------------------------------------------
 
-function option(tool: string, form: InvocationFormId): ToolInvocationOption {
-  return { tool, form };
-}
-
-function integration(
+function commandsIntegration(
   tool: string,
   form: InvocationFormId,
-  source: string,
+  workflowIds: string[],
+  dir = '.tool/',
 ): DetectedIntegration {
-  return { tool, delivery: 'commands', form, example: `${form}-example`, source };
+  return {
+    tool,
+    delivery: 'commands',
+    form,
+    example: '/legacy-example',
+    source: `${dir}commands/`,
+    commands: {
+      form,
+      items: workflowIds.map((workflowId) => ({
+        workflowId,
+        source: `${dir}commands/opsx-${workflowId}.md`,
+      })),
+    },
+    skills: null,
+  };
 }
 
-/** toolOptions as the API returns them — already split, no neutral entry. */
-const ALL_TOOL_OPTIONS: ToolInvocationOption[] = [
-  option('Claude Code', 'opsx-colon'),
-  option('Cursor', 'opsx-dash'),
-  option('Amazon Q', 'opsx-at'),
-  option('Windsurf', 'skill-slash'),
-  option('Kimi Code', 'skill-colon'),
-  option('Shared .agents', 'skill-slash'),
-  option('Codex', 'skill-dollar'),
-];
-
-// ---------------------------------------------------------------------------
-// 1. Detected 1 → single choice, direct copy
-// ---------------------------------------------------------------------------
-
-test('single detected integration yields one choice', () => {
-  const integrations = [integration('Claude Code', 'opsx-colon', '.claude/')];
-  const choices = buildDetectedToolChoices(integrations, ALL_TOOL_OPTIONS, 'propose');
-
-  assert.equal(choices.length, 1);
-  assert.equal(choices[0].tool, 'Claude Code');
-  assert.equal(choices[0].form, 'opsx-colon');
-  assert.equal(choices[0].text, '/opsx:propose');
-});
-
-test('single detected integration for change workflow appends change name', () => {
-  const integrations = [integration('Cursor', 'opsx-dash', '.cursor/')];
-  const choices = buildDetectedToolChoices(integrations, ALL_TOOL_OPTIONS, 'apply', 'my-change');
-
-  assert.equal(choices.length, 1);
-  assert.equal(choices[0].tool, 'Cursor');
-  assert.equal(choices[0].form, 'opsx-dash');
-  assert.equal(choices[0].text, '/opsx-apply my-change');
-});
-
-// ---------------------------------------------------------------------------
-// 2. Same-form 2 tools retained (not deduped by command text)
-// ---------------------------------------------------------------------------
-
-test('two tools with the same form produce two separate choices', () => {
-  const toolOptions = [
-    option('Windsurf', 'skill-slash'),
-    option('OpenCode', 'skill-slash'),
-  ];
-  const integrations = [
-    integration('Windsurf', 'skill-slash', '.windsurf/'),
-    integration('OpenCode', 'skill-slash', '.opencode/'),
-  ];
-
-  const choices = buildDetectedToolChoices(integrations, toolOptions, 'propose');
-
-  assert.equal(choices.length, 2, 'two tools with same form should produce two choices');
-  assert.equal(choices[0].tool, 'Windsurf');
-  assert.equal(choices[1].tool, 'OpenCode');
-  assert.equal(choices[0].text, choices[1].text);
-});
-
-test('same tool+form is deduplicated', () => {
-  const toolOptions = [option('Cursor', 'opsx-dash')];
-  const integrations = [
-    integration('Cursor', 'opsx-dash', '.cursor/commands/'),
-    integration('Cursor', 'opsx-dash', '.cursor/skills/'),
-  ];
-
-  const choices = buildDetectedToolChoices(integrations, toolOptions, 'propose');
-
-  assert.equal(choices.length, 1, 'same tool+form should be deduplicated');
-});
-
-// ---------------------------------------------------------------------------
-// 3. .agents neutral integration → exactly 2 detected choices (split)
-// ---------------------------------------------------------------------------
-
-test('neutral .agents integration produces exactly 2 detected choices: Shared .agents + Codex', () => {
-  // integrations carries the neutral form; toolOptions already split
-  const integrations = [
-    integration('Shared .agents / Codex', 'skill-slash', '.agents/commands/opsx/'),
-  ];
-
-  const choices = buildDetectedToolChoices(integrations, ALL_TOOL_OPTIONS, 'propose');
-
-  assert.equal(choices.length, 2, 'neutral .agents should produce exactly 2 choices');
-  assert.equal(choices[0].tool, 'Shared .agents');
-  assert.equal(choices[0].form, 'skill-slash');
-  assert.equal(choices[0].text, '/openspec-propose');
-  assert.equal(choices[1].tool, 'Codex');
-  assert.equal(choices[1].form, 'skill-dollar');
-  assert.equal(choices[1].text, '$openspec-propose');
-});
-
-test('.agents neutral integration does NOT fall back to all toolOptions', () => {
-  const integrations = [
-    integration('Shared .agents / Codex', 'skill-slash', '.agents/commands/opsx/'),
-  ];
-
-  const choices = buildDetectedToolChoices(integrations, ALL_TOOL_OPTIONS, 'propose');
-
-  // Must be exactly 2, not 7 (all toolOptions)
-  assert.equal(choices.length, 2);
-});
-
-test('.agents expansion with change name appends it to both choices', () => {
-  const integrations = [
-    integration('Shared .agents / Codex', 'skill-slash', '.agents/commands/opsx/'),
-  ];
-
-  const choices = buildDetectedToolChoices(integrations, ALL_TOOL_OPTIONS, 'apply', 'feat-x');
-
-  assert.equal(choices.length, 2);
-  assert.ok(choices[0].text.endsWith(' feat-x'), 'Shared .agents should append change name');
-  assert.ok(choices[1].text.endsWith(' feat-x'), 'Codex should append change name');
-});
-
-// ---------------------------------------------------------------------------
-// 4. Zero detected → all toolOptions (already split)
-// ---------------------------------------------------------------------------
-
-test('zero detected integrations returns all toolOptions', () => {
-  const choices = buildToolChoices(ALL_TOOL_OPTIONS, [], 'propose');
-
-  // ALL_TOOL_OPTIONS has 7 entries (already split, no neutral)
-  assert.equal(choices.length, 7);
-
-  const toolNames = choices.map((c) => c.tool);
-  assert.ok(toolNames.includes('Claude Code'));
-  assert.ok(toolNames.includes('Shared .agents'));
-  assert.ok(toolNames.includes('Codex'));
-});
-
-test('zero detected for workspace workflow shows no change name', () => {
-  const toolOptions = [option('Claude Code', 'opsx-colon'), option('Cursor', 'opsx-dash')];
-  const choices = buildToolChoices(toolOptions, [], 'explore');
-
-  assert.ok(choices.every((c) => !c.text.includes(' ')));
-});
-
-test('zero detected for change workflow appends change name', () => {
-  const toolOptions = [option('Claude Code', 'opsx-colon')];
-  const choices = buildToolChoices(toolOptions, [], 'apply', 'my-change');
-
-  assert.equal(choices.length, 1);
-  assert.ok(choices[0].text.endsWith(' my-change'));
-});
-
-// ---------------------------------------------------------------------------
-// 5. Undetected excludes detected
-// ---------------------------------------------------------------------------
-
-test('undetected excludes normal detected integrations', () => {
-  const integrations = [integration('Claude Code', 'opsx-colon', '.claude/')];
-  const toolOptions = [
-    option('Claude Code', 'opsx-colon'),
-    option('Cursor', 'opsx-dash'),
-    option('Windsurf', 'skill-slash'),
-  ];
-
-  const undetected = buildUndetectedToolChoices(integrations, toolOptions, 'propose');
-
-  assert.equal(undetected.length, 2);
-  assert.ok(undetected.every((c) => c.tool !== 'Claude Code'));
-});
-
-test('undetected empty when all tools detected', () => {
-  const toolOptions = [option('Claude Code', 'opsx-colon')];
-  const integrations = [integration('Claude Code', 'opsx-colon', '.claude/')];
-
-  const undetected = buildUndetectedToolChoices(integrations, toolOptions, 'propose');
-
-  assert.equal(undetected.length, 0);
-});
-
-test('undetected excludes both split .agents tools when neutral integration present', () => {
-  const integrations = [
-    integration('Shared .agents / Codex', 'skill-slash', '.agents/commands/opsx/'),
-  ];
-
-  const undetected = buildUndetectedToolChoices(integrations, ALL_TOOL_OPTIONS, 'propose');
-
-  const tools = undetected.map((c) => c.tool);
-  assert.ok(!tools.includes('Shared .agents'), 'Shared .agents should be excluded from undetected');
-  assert.ok(!tools.includes('Codex'), 'Codex should be excluded from undetected');
-  assert.ok(tools.includes('Claude Code'), 'non-agents tools should remain');
-  assert.ok(tools.includes('Cursor'));
-});
-
-test('undetected does NOT fall back to all toolOptions when neutral .agents present', () => {
-  const integrations = [
-    integration('Shared .agents / Codex', 'skill-slash', '.agents/commands/opsx/'),
-  ];
-
-  const undetected = buildUndetectedToolChoices(integrations, ALL_TOOL_OPTIONS, 'propose');
-
-  // ALL_TOOL_OPTIONS has 7 entries; 2 are .agents → undetected should be 5
-  assert.equal(undetected.length, 5, `expected 5 undetected, got ${undetected.length}`);
-});
-
-// ---------------------------------------------------------------------------
-// 6. No format labels / no last memory
-// ---------------------------------------------------------------------------
-
-test('choices never contain format ids or prefixes as tool names', () => {
-  const choices = buildToolChoices(ALL_TOOL_OPTIONS, [], 'propose');
-
-  const forbidden = [
-    'opsx-colon', 'opsx-dash', 'opsx-at', 'skill-slash', 'skill-colon', 'skill-dollar',
-    '/opsx:', '/opsx-', '@opsx-', '/openspec-', '/skill:openspec-', '$openspec-',
-    'format', 'Format',
-    'Shared .agents / Codex', // neutral name should never appear as a tool label
-  ];
-
-  for (const choice of choices) {
-    assert.ok(
-      !forbidden.includes(choice.tool),
-      `tool name "${choice.tool}" should not be a format label or neutral name`,
-    );
-  }
-});
-
-test('buildToolChoices is pure — same inputs produce same outputs', () => {
-  const a = buildToolChoices(ALL_TOOL_OPTIONS, [], 'propose');
-  const b = buildToolChoices(ALL_TOOL_OPTIONS, [], 'propose');
-
-  assert.deepEqual(a, b);
-});
-
-// ---------------------------------------------------------------------------
-// 7. Key stability
-// ---------------------------------------------------------------------------
-
-test('choice key is tool + form composite', () => {
-  const toolOptions = [option('Claude Code', 'opsx-colon')];
-  const choices = buildToolChoices(toolOptions, [], 'propose');
-
-  assert.equal(choices.length, 1);
-  assert.equal(choices[0].key, 'Claude Code\u0000opsx-colon');
-});
-
-// ---------------------------------------------------------------------------
-// 8. Mixed detected + undetected
-// ---------------------------------------------------------------------------
-
-test('buildToolChoices preserves order from toolOptions', () => {
-  const toolOptions = [
-    option('Cursor', 'opsx-dash'),
-    option('Claude Code', 'opsx-colon'),
-    option('Windsurf', 'skill-slash'),
-  ];
-  const integrations = [integration('Claude Code', 'opsx-colon', '.claude/')];
-
-  const choices = buildToolChoices(toolOptions, integrations, 'propose');
-
-  assert.equal(choices[0].tool, 'Cursor');
-  assert.equal(choices[1].tool, 'Claude Code');
-  assert.equal(choices[2].tool, 'Windsurf');
-});
-
-// ---------------------------------------------------------------------------
-// 9. All workflows produce valid choices
-// ---------------------------------------------------------------------------
+function skillsIntegration(
+  tool: string,
+  form: InvocationFormId,
+  skillNames: string[],
+  dir = '.tool/',
+  alternateForms?: InvocationFormId[],
+): DetectedIntegration {
+  return {
+    tool,
+    delivery: 'skills',
+    form,
+    example: '/legacy-example',
+    source: `${dir}skills/`,
+    commands: null,
+    skills: {
+      form,
+      ...(alternateForms ? { alternateForms } : {}),
+      items: skillNames.map((skillName) => ({
+        skillName,
+        source: `${dir}skills/${skillName}/SKILL.md`,
+      })),
+    },
+  };
+}
 
 const ALL_WORKFLOWS: WorkflowCommand[] = [
   'propose', 'explore', 'apply', 'archive', 'update',
   'new', 'continue', 'ff', 'verify', 'sync', 'bulk-archive',
 ];
 
-test('every workflow produces choices for a single tool option', () => {
-  const toolOptions = [option('Claude Code', 'opsx-colon')];
+// ---------------------------------------------------------------------------
+// 1. Commands evidence matching by workflow id
+// ---------------------------------------------------------------------------
 
+test('single command integration yields one group with the command form', () => {
+  const integrations = [commandsIntegration('Claude Code', 'opsx-colon', ['propose'], '.claude/')];
+  const choices = buildGroupedToolChoices(integrations, 'propose');
+
+  assert.deepEqual(choices, [
+    { key: '/opsx:propose', text: '/opsx:propose', tools: ['Claude Code'] },
+  ]);
+});
+
+test('opsx-dash and opsx-at command forms interpolate the workflow id', () => {
+  const integrations = [
+    commandsIntegration('Cursor', 'opsx-dash', ['propose'], '.cursor/'),
+    commandsIntegration('Amazon Q Developer', 'opsx-at', ['propose'], '.amazonq/'),
+  ];
+  const choices = buildGroupedToolChoices(integrations, 'propose');
+
+  assert.deepEqual(choices, [
+    { key: '/opsx-propose', text: '/opsx-propose', tools: ['Cursor'] },
+    { key: '@opsx-propose', text: '@opsx-propose', tools: ['Amazon Q Developer'] },
+  ]);
+});
+
+test('change-scoped command candidates append the change name', () => {
+  const integrations = [commandsIntegration('Cursor', 'opsx-dash', ['apply'], '.cursor/')];
+  const choices = buildGroupedToolChoices(integrations, 'apply', { changeName: 'my-change' });
+
+  assert.deepEqual(choices, [
+    { key: '/opsx-apply my-change', text: '/opsx-apply my-change', tools: ['Cursor'] },
+  ]);
+});
+
+test('workspace-scoped command candidates never append a change name', () => {
+  const integrations = [commandsIntegration('Cursor', 'opsx-dash', ['propose'], '.cursor/')];
+  const choices = buildGroupedToolChoices(integrations, 'propose', { changeName: 'ignored' });
+
+  assert.deepEqual(choices, [
+    { key: '/opsx-propose', text: '/opsx-propose', tools: ['Cursor'] },
+  ]);
+});
+
+// ---------------------------------------------------------------------------
+// 2. Partial workflow sets
+// ---------------------------------------------------------------------------
+
+test('partial command sets report only the workflows with matching artifacts', () => {
+  const integrations = [commandsIntegration('OpenCode', 'opsx-dash', ['apply'], '.opencode/')];
+
+  assert.equal(buildGroupedToolChoices(integrations, 'apply').length, 1);
+  // `sync` has no command artifact for this tool → no candidate from commands.
+  assert.deepEqual(buildGroupedToolChoices(integrations, 'sync'), []);
+});
+
+// ---------------------------------------------------------------------------
+// 3. Skill evidence and Commands-first priority
+// ---------------------------------------------------------------------------
+
+test('skill evidence matches the canonical OpenSpec skill name', () => {
+  const integrations = [skillsIntegration('ForgeCode', 'skill-slash', ['openspec-propose'], '.forge/')];
+
+  assert.deepEqual(buildGroupedToolChoices(integrations, 'propose'), [
+    { key: '/openspec-propose', text: '/openspec-propose', tools: ['ForgeCode'] },
+  ]);
+});
+
+test('skill forms interpolate the resolved skill name (sync -> openspec-sync-specs)', () => {
+  const integrations = [skillsIntegration('ForgeCode', 'skill-slash', ['openspec-sync-specs'], '.forge/')];
+
+  assert.deepEqual(buildGroupedToolChoices(integrations, 'sync'), [
+    { key: '/openspec-sync-specs', text: '/openspec-sync-specs', tools: ['ForgeCode'] },
+  ]);
+});
+
+test('Kimi Code uses the skill-colon invocation form', () => {
+  const integrations = [skillsIntegration('Kimi Code', 'skill-colon', ['openspec-apply-change'], '.kimi-code/')];
+
+  assert.deepEqual(buildGroupedToolChoices(integrations, 'apply'), [
+    { key: '/skill:openspec-apply-change', text: '/skill:openspec-apply-change', tools: ['Kimi Code'] },
+  ]);
+});
+
+test('commands win when both deliveries match the same workflow', () => {
+  const claude: DetectedIntegration = {
+    tool: 'Claude Code',
+    delivery: 'both',
+    form: 'opsx-colon',
+    example: '/opsx:apply',
+    source: '.claude/commands/opsx/apply.md',
+    commands: {
+      form: 'opsx-colon',
+      items: [{ workflowId: 'apply', source: '.claude/commands/opsx/apply.md' }],
+    },
+    skills: {
+      form: 'skill-slash',
+      items: [{ skillName: 'openspec-apply-change', source: '.claude/skills/openspec-apply-change/SKILL.md' }],
+    },
+  };
+
+  const choices = buildGroupedToolChoices([claude], 'apply');
+
+  // Command form only — no separate Skills choice for this tool/workflow.
+  assert.deepEqual(choices, [
+    { key: '/opsx:apply', text: '/opsx:apply', tools: ['Claude Code'] },
+  ]);
+});
+
+test('available skill is used when the command artifact for that workflow is missing', () => {
+  // The tool has a `propose` command file but no `apply` command file; the
+  // `apply` workflow still works through the matching skill.
+  const claude: DetectedIntegration = {
+    tool: 'Claude Code',
+    delivery: 'both',
+    form: 'opsx-colon',
+    example: '/opsx:propose',
+    source: '.claude/commands/opsx/propose.md',
+    commands: {
+      form: 'opsx-colon',
+      items: [{ workflowId: 'propose', source: '.claude/commands/opsx/propose.md' }],
+    },
+    skills: {
+      form: 'skill-slash',
+      items: [{ skillName: 'openspec-apply-change', source: '.claude/skills/openspec-apply-change/SKILL.md' }],
+    },
+  };
+
+  const applyChoices = buildGroupedToolChoices([claude], 'apply');
+  assert.deepEqual(applyChoices, [
+    { key: '/openspec-apply-change', text: '/openspec-apply-change', tools: ['Claude Code'] },
+  ]);
+
+  // `propose` still resolves through its command file.
+  const proposeChoices = buildGroupedToolChoices([claude], 'propose');
+  assert.deepEqual(proposeChoices, [
+    { key: '/opsx:propose', text: '/opsx:propose', tools: ['Claude Code'] },
+  ]);
+});
+
+// ---------------------------------------------------------------------------
+// 4. Grouping by final command text
+// ---------------------------------------------------------------------------
+
+test('two tools with identical command text form one group with both tool names', () => {
+  const integrations = [
+    commandsIntegration('Cursor', 'opsx-dash', ['propose'], '.cursor/'),
+    commandsIntegration('Trae', 'opsx-dash', ['propose'], '.trae/'),
+  ];
+
+  const choices = buildGroupedToolChoices(integrations, 'propose');
+
+  assert.deepEqual(choices, [
+    { key: '/opsx-propose', text: '/opsx-propose', tools: ['Cursor', 'Trae'] },
+  ]);
+});
+
+test('distinct command strings produce one group each in stable detector order', () => {
+  const integrations = [
+    commandsIntegration('Cursor', 'opsx-dash', ['propose'], '.cursor/'),
+    commandsIntegration('Claude Code', 'opsx-colon', ['propose'], '.claude/'),
+  ];
+
+  const choices = buildGroupedToolChoices(integrations, 'propose');
+
+  assert.deepEqual(choices, [
+    { key: '/opsx-propose', text: '/opsx-propose', tools: ['Cursor'] },
+    { key: '/opsx:propose', text: '/opsx:propose', tools: ['Claude Code'] },
+  ]);
+});
+
+test('duplicate evidence for the same tool and text collapses into one tool name', () => {
+  // The same tool appears twice (two roots) and both produce the same text.
+  const cursorA = commandsIntegration('Cursor', 'opsx-dash', ['propose'], '.cursor/');
+  const cursorB = commandsIntegration('Cursor', 'opsx-dash', ['propose'], '.cursor-copy/');
+
+  const choices = buildGroupedToolChoices([cursorA, cursorB], 'propose');
+
+  assert.deepEqual(choices, [
+    { key: '/opsx-propose', text: '/opsx-propose', tools: ['Cursor'] },
+  ]);
+});
+
+test('legacy aggregate fields never influence candidate eligibility', () => {
+  // The legacy `form` claims opsx-at, but the authoritative commands inventory
+  // says opsx-dash — the inventory must win.
+  const integration: DetectedIntegration = {
+    tool: 'Cursor',
+    delivery: 'commands',
+    form: 'opsx-at',
+    example: '@opsx-propose',
+    source: '.cursor/commands/opsx-propose.md',
+    commands: {
+      form: 'opsx-dash',
+      items: [{ workflowId: 'propose', source: '.cursor/commands/opsx-propose.md' }],
+    },
+    skills: null,
+  };
+
+  const choices = buildGroupedToolChoices([integration], 'propose');
+  assert.deepEqual(choices, [
+    { key: '/opsx-propose', text: '/opsx-propose', tools: ['Cursor'] },
+  ]);
+});
+
+// ---------------------------------------------------------------------------
+// 5. Shared .agents ambiguity
+// ---------------------------------------------------------------------------
+
+test('shared .agents evidence yields both documented candidate forms', () => {
+  const integrations = [
+    skillsIntegration(
+      AGENTS_TOOL_NAME,
+      'skill-slash',
+      ['openspec-propose'],
+      '.agents/',
+      ['skill-dollar'],
+    ),
+  ];
+
+  const choices = buildGroupedToolChoices(integrations, 'propose');
+
+  assert.deepEqual(choices, [
+    { key: '/openspec-propose', text: '/openspec-propose', tools: ['Shared .agents'] },
+    { key: '$openspec-propose', text: '$openspec-propose', tools: ['Codex'] },
+  ]);
+});
+
+test('shared .agents candidates append the change name to both forms', () => {
+  const integrations = [
+    skillsIntegration(
+      AGENTS_TOOL_NAME,
+      'skill-slash',
+      ['openspec-apply-change'],
+      '.agents/',
+      ['skill-dollar'],
+    ),
+  ];
+
+  const choices = buildGroupedToolChoices(integrations, 'apply', { changeName: 'feat-x' });
+
+  assert.equal(choices.length, 2);
+  assert.ok(choices[0].text.endsWith(' feat-x'));
+  assert.ok(choices[1].text.endsWith(' feat-x'));
+});
+
+test('shared .agents with a non-matching skill produces no candidate', () => {
+  const integrations = [
+    skillsIntegration(
+      AGENTS_TOOL_NAME,
+      'skill-slash',
+      ['openspec-other'],
+      '.agents/',
+      ['skill-dollar'],
+    ),
+  ];
+
+  assert.deepEqual(buildGroupedToolChoices(integrations, 'propose'), []);
+});
+
+test('shared .agents groups with identical text from other detected tools', () => {
+  const agents = skillsIntegration(
+    AGENTS_TOOL_NAME,
+    'skill-slash',
+    ['openspec-propose'],
+    '.agents/',
+    ['skill-dollar'],
+  );
+  const forge = skillsIntegration('ForgeCode', 'skill-slash', ['openspec-propose'], '.forge/');
+
+  const choices = buildGroupedToolChoices([forge, agents], 'propose');
+
+  // ForgeCode and Shared .agents share `/openspec-propose`; Codex stays alone.
+  assert.deepEqual(choices, [
+    { key: '/openspec-propose', text: '/openspec-propose', tools: ['ForgeCode', 'Shared .agents'] },
+    { key: '$openspec-propose', text: '$openspec-propose', tools: ['Codex'] },
+  ]);
+});
+
+// ---------------------------------------------------------------------------
+// 6. Zero detection / no matching evidence
+// ---------------------------------------------------------------------------
+
+test('no matching artifact for a workflow yields zero choices', () => {
+  const integrations = [commandsIntegration('Cursor', 'opsx-dash', ['apply'], '.cursor/')];
+
+  assert.deepEqual(buildGroupedToolChoices(integrations, 'sync'), []);
+});
+
+test('empty integrations yield zero choices — no static fallback catalog', () => {
   for (const workflow of ALL_WORKFLOWS) {
-    const choices = buildToolChoices(toolOptions, [], workflow);
-    assert.equal(choices.length, 1, `${workflow}: expected 1 choice`);
-    assert.ok(choices[0].text.length > 0, `${workflow}: text should not be empty`);
-  }
-});
-
-// ---------------------------------------------------------------------------
-// 10. Combined: neutral .agents + normal integrations
-// ---------------------------------------------------------------------------
-
-test('combined: neutral .agents + Claude Code detected → 3 choices', () => {
-  const integrations = [
-    integration('Claude Code', 'opsx-colon', '.claude/'),
-    integration('Shared .agents / Codex', 'skill-slash', '.agents/commands/opsx/'),
-  ];
-
-  const choices = buildDetectedToolChoices(integrations, ALL_TOOL_OPTIONS, 'propose');
-
-  assert.equal(choices.length, 3);
-  assert.equal(choices[0].tool, 'Claude Code');
-  assert.equal(choices[1].tool, 'Shared .agents');
-  assert.equal(choices[2].tool, 'Codex');
-});
-
-test('combined: neutral .agents + Claude Code → undetected excludes all 3', () => {
-  const integrations = [
-    integration('Claude Code', 'opsx-colon', '.claude/'),
-    integration('Shared .agents / Codex', 'skill-slash', '.agents/commands/opsx/'),
-  ];
-
-  const undetected = buildUndetectedToolChoices(integrations, ALL_TOOL_OPTIONS, 'propose');
-
-  const tools = undetected.map((c) => c.tool);
-  assert.ok(!tools.includes('Claude Code'));
-  assert.ok(!tools.includes('Shared .agents'));
-  assert.ok(!tools.includes('Codex'));
-  assert.equal(undetected.length, ALL_TOOL_OPTIONS.length - 3);
-});
-
-// ---------------------------------------------------------------------------
-// 11. Empty toolOptions fallback
-// ---------------------------------------------------------------------------
-
-test('empty toolOptions falls back to 6 tool-labeled choices', () => {
-  const choices = buildToolChoices([], [], 'propose');
-
-  assert.equal(choices.length, 6);
-
-  const toolNames = choices.map((c) => c.tool);
-  assert.ok(toolNames.includes('Claude Code'));
-  assert.ok(toolNames.includes('Cursor / OpenCode'));
-  assert.ok(toolNames.includes('Amazon Q Developer'));
-  assert.ok(toolNames.includes('OpenSpec skill tools'));
-  assert.ok(toolNames.includes('Kimi Code'));
-  assert.ok(toolNames.includes('Codex'));
-});
-
-test('fallback choices use all 6 official forms', () => {
-  const choices = buildToolChoices([], [], 'propose');
-
-  const forms = choices.map((c) => c.form);
-  for (const form of INVOCATION_FORM_IDS) {
-    assert.ok(forms.includes(form), `fallback should include form ${form}`);
-  }
-});
-
-test('fallback choices never use format ids as tool names', () => {
-  const choices = buildToolChoices([], [], 'propose');
-
-  const forbidden = [
-    'opsx-colon', 'opsx-dash', 'opsx-at', 'skill-slash', 'skill-colon', 'skill-dollar',
-    '/opsx:', '/opsx-', '@opsx-', '/openspec-', '/skill:openspec-', '$openspec-',
-    'Shared .agents / Codex',
-  ];
-
-  for (const choice of choices) {
-    assert.ok(
-      !forbidden.includes(choice.tool),
-      `fallback tool "${choice.tool}" should not be a format id or neutral name`,
+    assert.deepEqual(
+      buildGroupedToolChoices([], workflow),
+      [],
+      `${workflow}: zero detected integrations must never fall back to a catalog`,
     );
   }
 });
 
-test('fallback with change-scoped workflow appends change name', () => {
-  const choices = buildToolChoices([], [], 'apply', 'feat-x');
+test('a tool with a skill inventory only contributes for its matching workflow', () => {
+  const integrations = [skillsIntegration('ForgeCode', 'skill-slash', ['openspec-propose'], '.forge/')];
 
-  assert.equal(choices.length, 6);
-  assert.ok(choices.every((c) => c.text.endsWith(' feat-x')));
+  assert.equal(buildGroupedToolChoices(integrations, 'propose').length, 1);
+  assert.deepEqual(buildGroupedToolChoices(integrations, 'sync'), []);
 });
 
-test('fallback with workspace-scoped workflow never appends change name', () => {
-  const choices = buildToolChoices([], [], 'propose', 'ignored');
+// ---------------------------------------------------------------------------
+// 7. Stability and purity
+// ---------------------------------------------------------------------------
 
-  assert.equal(choices.length, 6);
-  assert.ok(choices.every((c) => !c.text.includes('ignored')));
+test('resolver is pure — same inputs produce identical outputs', () => {
+  const integrations = [
+    commandsIntegration('Cursor', 'opsx-dash', ['propose'], '.cursor/'),
+    commandsIntegration('Claude Code', 'opsx-colon', ['propose'], '.claude/'),
+  ];
+
+  assert.deepEqual(
+    buildGroupedToolChoices(integrations, 'propose'),
+    buildGroupedToolChoices(integrations, 'propose'),
+  );
 });
 
-test('getEffectiveToolOptions returns fallback when input is empty', () => {
-  const effective = getEffectiveToolOptions([]);
+test('keys are unique across groups (distinct texts)', () => {
+  const integrations = [
+    commandsIntegration('Cursor', 'opsx-dash', ['propose'], '.cursor/'),
+    commandsIntegration('Claude Code', 'opsx-colon', ['propose'], '.claude/'),
+  ];
 
-  assert.equal(effective.length, 6);
-  assert.equal(effective[0].tool, 'Claude Code');
-  assert.equal(effective[0].form, 'opsx-colon');
+  const choices = buildGroupedToolChoices(integrations, 'propose');
+  const keys = new Set(choices.map((choice) => choice.key));
+  assert.equal(keys.size, choices.length);
 });
 
-test('getEffectiveToolOptions returns input when non-empty', () => {
-  const input = [option('Custom', 'opsx-colon')];
-  const effective = getEffectiveToolOptions(input);
-
-  assert.deepEqual(effective, input);
-});
-
-test('every workflow produces 6 fallback choices when toolOptions is empty', () => {
+test('every workflow resolves against a matching command artifact', () => {
   for (const workflow of ALL_WORKFLOWS) {
-    const choices = buildToolChoices([], [], workflow);
-    assert.equal(choices.length, 6, `${workflow}: expected 6 fallback choices, got ${choices.length}`);
+    const choices = buildGroupedToolChoices(
+      [commandsIntegration('Cursor', 'opsx-dash', [workflow], '.cursor/')],
+      workflow,
+    );
+    assert.equal(choices.length, 1, `${workflow}: expected one command group`);
+    assert.equal(choices[0].tools[0], 'Cursor');
+    assert.ok(choices[0].text.length > 0);
   }
+});
+
+test('every workflow resolves against a matching skill artifact', () => {
+  for (const workflow of ALL_WORKFLOWS) {
+    const skillName = getWorkflowMetadata(workflow).skillName;
+    const choices = buildGroupedToolChoices(
+      [skillsIntegration('ForgeCode', 'skill-slash', [skillName], '.forge/')],
+      workflow,
+    );
+    assert.equal(choices.length, 1, `${workflow}: expected one skill group`);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// 8. ToolChoice shape contract
+// ---------------------------------------------------------------------------
+
+test('ToolChoice carries text, stable key, and tools[]', () => {
+  const choices = buildGroupedToolChoices(
+    [commandsIntegration('Cursor', 'opsx-dash', ['propose'], '.cursor/')],
+    'propose',
+  );
+
+  const choice: ToolChoice = choices[0]!;
+  assert.equal(choice.key, choice.text);
+  assert.deepEqual(choice.tools, ['Cursor']);
+  assert.equal(choice.text, '/opsx-propose');
 });

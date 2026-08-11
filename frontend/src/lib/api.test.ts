@@ -39,6 +39,8 @@ test('normalizeCommandAvailability passes through a full additive payload', () =
         form: 'opsx-colon',
         example: '/opsx:propose',
         source: '.claude/commands/opsx/propose.md',
+        commands: null,
+        skills: null,
       },
     ],
     forms: ['opsx-colon', 'skill-slash'],
@@ -95,7 +97,7 @@ test('normalizeCommandAvailability filters malformed integrations and form ids',
   });
 
   assert.deepEqual(normalized.integrations, [
-    { tool: 'claude', delivery: 'commands', form: 'opsx-colon', example: '/opsx:propose', source: 'a' },
+    { tool: 'claude', delivery: 'commands', form: 'opsx-colon', example: '/opsx:propose', source: 'a', commands: null, skills: null },
   ]);
   assert.deepEqual(normalized.forms, ['opsx-colon', 'skill-dollar']);
 });

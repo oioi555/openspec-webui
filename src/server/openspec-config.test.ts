@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -204,6 +204,63 @@ test('inspectCommandAvailability filters onboard from reported workflows', async
   assert.ok(!availability.workflows.includes('onboard'));
   // Deprecated transition field derives only from non-blocked workflows.
   assert.deepEqual(availability.availableExpandedCommands, ['verify', 'new']);
+});
+
+test('inspectCommandAvailability exposes workflow-specific inventories alongside legacy fields', async () => {
+  const cwd = await makeCwd();
+  // Folder command + skill artifacts for the same tool plus a partial filename
+  // command set on another tool.
+  await mkdir(join(cwd, '.claude', 'commands', 'opsx'), { recursive: true });
+  await writeFile(join(cwd, '.claude', 'commands', 'opsx', 'propose.md'), 'propose', 'utf8');
+  await writeFile(join(cwd, '.claude', 'commands', 'opsx', 'sync.md'), 'sync', 'utf8');
+  await mkdir(join(cwd, '.claude', 'skills', 'openspec-apply-change'), { recursive: true });
+  await writeFile(
+    join(cwd, '.claude', 'skills', 'openspec-apply-change', 'SKILL.md'),
+    '# openspec-apply-change',
+    'utf8'
+  );
+  await mkdir(join(cwd, '.opencode', 'commands'), { recursive: true });
+  await writeFile(join(cwd, '.opencode', 'commands', 'opsx-apply.md'), 'apply', 'utf8');
+
+  const availability = await inspectCommandAvailability(cwd, createReader({}));
+
+  assert.equal(availability.status, 'ready');
+  const claude = availability.integrations.find((i) => i.tool === 'Claude Code');
+  const opencode = availability.integrations.find((i) => i.tool === 'OpenCode');
+
+  // Legacy aggregate presentation fields remain for compatibility.
+  assert.equal(claude?.delivery, 'both');
+  assert.equal(claude?.form, 'opsx-colon');
+  assert.equal(claude?.source, '.claude/commands/opsx/propose.md');
+
+  // Authoritative inventories preserve every artifact and both deliveries.
+  assert.deepEqual(claude?.commands, {
+    form: 'opsx-colon',
+    items: [
+      { workflowId: 'propose', source: '.claude/commands/opsx/propose.md' },
+      { workflowId: 'sync', source: '.claude/commands/opsx/sync.md' },
+    ],
+  });
+  assert.deepEqual(claude?.skills, {
+    form: 'skill-slash',
+    items: [{ skillName: 'openspec-apply-change', source: '.claude/skills/openspec-apply-change/SKILL.md' }],
+  });
+
+  // Partial workflow sets appear exactly as scanned.
+  assert.deepEqual(opencode?.commands, {
+    form: 'opsx-dash',
+    items: [{ workflowId: 'apply', source: '.opencode/commands/opsx-apply.md' }],
+  });
+  assert.equal(opencode?.skills, null);
+});
+
+test('inspectCommandAvailability keeps legacy fields present with zero detection', async () => {
+  const cwd = await makeCwd();
+  const availability = await inspectCommandAvailability(cwd, createReader({}));
+
+  assert.deepEqual(availability.integrations, []);
+  assert.deepEqual(availability.forms, []);
+  assert.ok(Array.isArray(availability.toolOptions) && availability.toolOptions.length > 0);
 });
 
 // Cleanup temp dirs after all tests.

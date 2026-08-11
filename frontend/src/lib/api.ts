@@ -5,7 +5,11 @@ import {
   type Change,
   type ChangeSummary,
   type CommandAvailability,
+  type CommandInventory,
+  type CommandInventoryItem,
   type DetectedIntegration,
+  type SkillInventory,
+  type SkillInventoryItem,
   type ToolInvocationOption,
   type Project,
   type ProjectListResponse,
@@ -37,7 +41,11 @@ export type {
   ChangeSummary,
   CommandAvailability,
   CommandDelivery,
+  CommandInventory,
+  CommandInventoryItem,
   DetectedIntegration,
+  SkillInventory,
+  SkillInventoryItem,
   ToolInvocationOption,
   FileGroup,
   Project,
@@ -251,17 +259,102 @@ function isInvocationFormId(value: unknown): value is InvocationFormId {
   return INVOCATION_FORM_IDS.includes(value as InvocationFormId);
 }
 
-function isDetectedIntegration(value: unknown): value is DetectedIntegration {
+function isCommandInventoryItem(value: unknown): value is CommandInventoryItem {
   if (!value || typeof value !== 'object') {
     return false;
   }
 
+  const candidate = value as Partial<CommandInventoryItem>;
+  return typeof candidate.workflowId === 'string' && typeof candidate.source === 'string';
+}
+
+function isSkillInventoryItem(value: unknown): value is SkillInventoryItem {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as Partial<SkillInventoryItem>;
+  return typeof candidate.skillName === 'string' && typeof candidate.source === 'string';
+}
+
+/**
+ * Defensively parse a Commands inventory. Absent or malformed inventories
+ * degrade to null (no evidence) rather than failing the payload.
+ */
+function normalizeCommandInventory(value: unknown): CommandInventory | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const candidate = value as Partial<CommandInventory>;
+  if (!isInvocationFormId(candidate.form) || !Array.isArray(candidate.items)) {
+    return null;
+  }
+
+  const items = candidate.items.filter(isCommandInventoryItem);
+  return items.length > 0 ? { form: candidate.form, items } : null;
+}
+
+/**
+ * Defensively parse a Skills inventory, retaining the shared `.agents`
+ * ambiguity via `alternateForms` when present. Absent or malformed inventories
+ * degrade to null (no evidence).
+ */
+function normalizeSkillInventory(value: unknown): SkillInventory | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const candidate = value as Partial<SkillInventory>;
+  if (!isInvocationFormId(candidate.form) || !Array.isArray(candidate.items)) {
+    return null;
+  }
+
+  const items = candidate.items.filter(isSkillInventoryItem);
+  if (items.length === 0) {
+    return null;
+  }
+
+  const alternateForms = Array.isArray(candidate.alternateForms)
+    ? candidate.alternateForms.filter(isInvocationFormId)
+    : [];
+  return alternateForms.length > 0
+    ? { form: candidate.form, alternateForms, items }
+    : { form: candidate.form, items };
+}
+
+/**
+ * Defensively parse one detected integration. The legacy aggregate fields are
+ * validated for compatibility (a response predating the inventories still
+ * passes through); the authoritative `commands`/`skills` inventories are
+ * defaulted to null when absent or malformed. Malformed integrations are
+ * dropped.
+ */
+function normalizeDetectedIntegration(value: unknown): DetectedIntegration | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
   const candidate = value as Partial<DetectedIntegration>;
-  return typeof candidate.tool === 'string'
-    && isCommandDelivery(candidate.delivery)
-    && isInvocationFormId(candidate.form)
-    && typeof candidate.example === 'string'
-    && typeof candidate.source === 'string';
+  if (
+    typeof candidate.tool !== 'string'
+    || !isCommandDelivery(candidate.delivery)
+    || !isInvocationFormId(candidate.form)
+    || typeof candidate.example !== 'string'
+    || typeof candidate.source !== 'string'
+  ) {
+    return null;
+  }
+
+  return {
+    tool: candidate.tool,
+    delivery: candidate.delivery,
+    form: candidate.form,
+    example: candidate.example,
+    source: candidate.source,
+    commands: normalizeCommandInventory(candidate.commands),
+    skills: normalizeSkillInventory(candidate.skills),
+  };
 }
 
 function isToolInvocationOption(value: unknown): value is ToolInvocationOption {
@@ -288,11 +381,11 @@ function createUnavailableCommandAvailability(error: string | null): CommandAvai
 
 /**
  * Defensive parse of the `/commands/availability` payload. The server contract
- * is additive (`delivery`, `integrations`, `forms`); during the staged
- * migration a response may predate them, so each new field is defaulted rather
- * than trusted. Unknown extra fields (e.g. the retired
- * `availableExpandedCommands`) are intentionally ignored. Malformed payloads
- * degrade to `unavailable`, never an app error.
+ * is additive (`delivery`, `integrations`, `forms`, per-integration `commands`
+ * / `skills` inventories); during the staged migration a response may predate
+ * them, so each new field is defaulted rather than trusted. Unknown extra
+ * fields (e.g. the retired `availableExpandedCommands`) are intentionally
+ * ignored. Malformed payloads degrade to `unavailable`, never an app error.
  */
 export function normalizeCommandAvailability(value: unknown): CommandAvailability {
   if (!value || typeof value !== 'object') {
@@ -309,7 +402,9 @@ export function normalizeCommandAvailability(value: unknown): CommandAvailabilit
       : [],
     delivery: isCommandDelivery(candidate.delivery) ? candidate.delivery : null,
     integrations: Array.isArray(candidate.integrations)
-      ? candidate.integrations.filter(isDetectedIntegration)
+      ? candidate.integrations
+          .map(normalizeDetectedIntegration)
+          .filter((integration): integration is DetectedIntegration => integration !== null)
       : [],
     forms: Array.isArray(candidate.forms)
       ? candidate.forms.filter(isInvocationFormId)

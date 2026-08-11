@@ -1,0 +1,24 @@
+{
+  "changeId": "group-installed-tool-command-choices",
+  "revisions": [
+    {
+      "id": "rev-4fca3574",
+      "description": "複数候補メニューのプレビューではchange名を省略し、コピーされる実際のコマンドにはchange名を保持する",
+      "reason": "長いchange名でメニューが横に広がり、ツール名が圧縮されるため",
+      "author": "AI",
+      "createdAt": "2026-08-11T07:46:53.851Z",
+      "metadata": {
+        "type": "behavior",
+        "affectedField": "command shortcut menu preview text",
+        "updateTarget": [
+          "design",
+          "delta-specs"
+        ],
+        "source": {
+          "file": "frontend/src/lib/components/shared/CommandShortcutBar.svelte",
+          "function": "CommandShortcutBar"
+        }
+      }
+    }
+  ]
+}

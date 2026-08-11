@@ -57,6 +57,7 @@
   "settings_tools_init_command_caption": "Vuelve a ejecutar openspec init en el repositorio activo para añadir o quitar integraciones.",
   "settings_tools_init_command_aria": "Copiar comando openspec init para {path}",
   "settings_tools_no_active_project": "No hay un proyecto activo. Selecciona un proyecto para ver el comando openspec init de su repositorio.",
+  "settings_tools_no_integrations": "No se detectaron integraciones para este repositorio. Ejecuta openspec init para configurar las integraciones de herramientas.",
   "settings_profile_unknown": "desconocido",
   "settings_commands_description": "Activa o desactiva qué accesos directos del flujo de trabajo deben aparecer en las filas de comandos del espacio de trabajo y de cambios.",
   "settings_validation_description": "Configura cómo se ejecuta la validación desde el panel Validation.",

@@ -487,8 +487,8 @@
               </div>
             {/each}
           </div>
-        {:else}
-          <Callout variant="info">
+        {:else if activeRepositoryPath}
+          <Callout variant="warning">
             {t(m.settings_tools_no_integrations)}
           </Callout>
         {/if}
