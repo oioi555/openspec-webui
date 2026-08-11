@@ -117,9 +117,9 @@ test('commandShortcuts no longer builds commands from a format preference', asyn
 // 5. Labels live in the centralized workflow metadata
 // ---------------------------------------------------------------------------
 
-test('workflowMetadata centralizes labels including Revise Plan for update', async () => {
+test('workflowMetadata centralizes labels including Update for update', async () => {
   const source = await workflowMetadataSource;
-  assert.match(source, /update: \{ id: 'update', label: 'Revise Plan'/);
+  assert.match(source, /update: \{ id: 'update', label: 'Update'/);
   assert.match(source, /sync: \{ id: 'sync', label: 'Sync'/);
   assert.doesNotMatch(source, /multi-change/);
 });

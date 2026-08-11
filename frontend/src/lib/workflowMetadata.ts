@@ -25,7 +25,7 @@ export type WorkflowScope = 'workspace' | 'change';
 
 export interface WorkflowMetadata {
   id: WorkflowCommand;
-  /** User-facing label; `update` is "Revise Plan", distinct from the CLI `openspec update`. */
+  /** User-facing label; `update` matches the upstream `/opsx:update` command name. */
   label: string;
   scope: WorkflowScope;
   /** Official OpenSpec generated skill name (e.g. `openspec-sync-specs`). */
@@ -51,7 +51,7 @@ const WORKFLOW_METADATA_BY_ID: Record<WorkflowCommand, WorkflowMetadata> = {
   apply: { id: 'apply', label: 'Apply', scope: 'change', skillName: 'openspec-apply-change', descriptionMessageId: 'settings_command_desc_apply' },
   archive: { id: 'archive', label: 'Archive', scope: 'change', skillName: 'openspec-archive-change', descriptionMessageId: 'settings_command_desc_archive' },
   sync: { id: 'sync', label: 'Sync', scope: 'change', skillName: 'openspec-sync-specs', descriptionMessageId: 'settings_command_desc_sync' },
-  update: { id: 'update', label: 'Revise Plan', scope: 'change', skillName: 'openspec-update-change', descriptionMessageId: 'settings_command_desc_update' },
+  update: { id: 'update', label: 'Update', scope: 'change', skillName: 'openspec-update-change', descriptionMessageId: 'settings_command_desc_update' },
   new: { id: 'new', label: 'New', scope: 'workspace', skillName: 'openspec-new-change', descriptionMessageId: 'settings_command_desc_new' },
   continue: { id: 'continue', label: 'Continue', scope: 'change', skillName: 'openspec-continue-change', descriptionMessageId: 'settings_command_desc_continue' },
   ff: { id: 'ff', label: 'Fast Forward', scope: 'change', skillName: 'openspec-ff-change', descriptionMessageId: 'settings_command_desc_ff' },

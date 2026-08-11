@@ -83,7 +83,7 @@
   "settings_command_desc_apply": "Arbeite die Aufgabenliste der Änderung ab, schreibe Code und führe Tests aus.",
   "settings_command_desc_sync": "Führe die Delta-Spezifikationen der Änderung in den Hauptspezifikationen zusammen, ohne zu archivieren.",
   "settings_command_desc_archive": "Schließe eine abgeschlossene Änderung ab und verschiebe sie in das Archivverzeichnis.",
-  "settings_command_desc_update": "Überarbeite die Planungsartefakte der Änderung, um sie kohärent zu halten.",
+  "settings_command_desc_update": "Überarbeite die Planungsartefakte einer Änderung und halte sie kohärent.",
   "settings_command_desc_new": "Erstelle ein leeres Grundgerüst für eine Änderung; erzeuge Artefakte später mit continue oder ff.",
   "settings_command_desc_continue": "Erzeuge das nächste Planungsartefakt in der Abhängigkeitskette.",
   "settings_command_desc_ff": "Erzeuge alle verbleibenden Planungsartefakte in einem Durchgang.",

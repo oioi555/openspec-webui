@@ -76,13 +76,13 @@ test('change scope set is exactly apply, continue, ff, update, verify, sync, arc
   assert.deepEqual([...CHANGE_WORKFLOWS], ['apply', 'continue', 'ff', 'update', 'verify', 'sync', 'archive']);
 });
 
-test('update is change-scoped with the official skill name and Revise Plan label', () => {
+test('update is change-scoped with the official skill name and Update label', () => {
   const metadata = getWorkflowMetadata('update');
 
   assert.equal(metadata.scope, 'change');
   assert.equal(metadata.skillName, 'openspec-update-change');
-  assert.equal(metadata.label, 'Revise Plan');
-  assert.equal(getWorkflowLabel('update'), 'Revise Plan');
+  assert.equal(metadata.label, 'Update');
+  assert.equal(getWorkflowLabel('update'), 'Update');
   assert.equal(getWorkflowSkillName('update'), 'openspec-update-change');
 });
 

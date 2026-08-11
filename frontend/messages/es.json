@@ -83,7 +83,7 @@
   "settings_command_desc_apply": "Trabaja la lista de tareas del cambio, escribiendo código y ejecutando pruebas.",
   "settings_command_desc_sync": "Fusiona las especificaciones delta del cambio en las especificaciones principales sin archivarlas.",
   "settings_command_desc_archive": "Finaliza un cambio completado y muévelo al directorio de archivo.",
-  "settings_command_desc_update": "Revisa los artefactos de planificación del cambio para mantenerlos coherentes.",
+  "settings_command_desc_update": "Revisa los artefactos de planificación de un cambio y manténlos coherentes.",
   "settings_command_desc_new": "Crea un andamiaje de cambio vacío; genera los artefactos más tarde con continue o ff.",
   "settings_command_desc_continue": "Genera el siguiente artefacto de planificación en la cadena de dependencias.",
   "settings_command_desc_ff": "Genera todos los artefactos de planificación restantes de una sola vez.",

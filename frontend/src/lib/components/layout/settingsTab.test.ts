@@ -92,7 +92,7 @@ test('commandTypes.ts keeps sync and update in core commands and out of expanded
   // Workflow labels are centralized in the metadata module (was
   // CORE_COMMAND_LABELS / EXPANDED_COMMAND_LABELS in commandTypes.ts).
   assert.match(workflowMetadataSource, /sync: \{ id: 'sync', label: 'Sync'/);
-  assert.match(workflowMetadataSource, /update: \{ id: 'update', label: 'Revise Plan'/);
+  assert.match(workflowMetadataSource, /update: \{ id: 'update', label: 'Update'/);
 });
 
 test('SettingsView and shared settings surfaces use restrained solid radii', async () => {
@@ -641,8 +641,8 @@ test('uiText.ts delegates getWorkflowCommandLabel to workflowMetadata and has to
   assert.match(source, /delivery: 'Delivery'/);
   assert.match(source, /noIntegrations:/);
 
-  // update label is Revise Plan
-  assert.match(source, /update: 'Revise Plan'/);
+  // update label is Update
+  assert.match(source, /update: 'Update'/);
 
   // No old workflowFormats
   assert.equal(source.includes('workflowFormats'), false, 'workflowFormats should be removed');

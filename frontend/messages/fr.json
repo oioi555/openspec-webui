@@ -83,7 +83,7 @@
   "settings_command_desc_apply": "Parcourez la liste de tâches du changement, en écrivant le code et en exécutant les tests.",
   "settings_command_desc_sync": "Fusionnez les spécifications delta du changement dans les spécifications principales sans archiver.",
   "settings_command_desc_archive": "Finalisez un changement terminé et déplacez-le dans le répertoire d'archive.",
-  "settings_command_desc_update": "Révisez les artefacts de planification du changement pour les garder cohérents.",
+  "settings_command_desc_update": "Révisez les artefacts de planification d'un changement et gardez-les cohérents.",
   "settings_command_desc_new": "Créez un échafaudage de changement vide ; générez les artefacts plus tard avec continue ou ff.",
   "settings_command_desc_continue": "Générez le prochain artefact de planification dans la chaîne de dépendances.",
   "settings_command_desc_ff": "Générez tous les artefacts de planification restants en une seule passe.",

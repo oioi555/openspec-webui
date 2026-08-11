@@ -187,7 +187,7 @@ export function getWorkspaceCommands(
 /**
  * Change-scoped command row. Incomplete changes order
  * `apply`, `update`, `continue`, `ff`, `sync`; completed changes order
- * `verify`, `update`, `sync`, `archive`. `update` (labeled `Revise Plan`) shows
+ * `verify`, `update`, `sync`, `archive`. `update` (labeled `Update`) shows
  * in both task states; `sync` stays gated on spec-delta presence in both.
  */
 export function getChangeCommands(

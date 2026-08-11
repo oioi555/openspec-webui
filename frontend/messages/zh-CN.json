@@ -83,7 +83,7 @@
   "settings_command_desc_apply": "按变更的任务列表推进，编写代码并运行测试。",
   "settings_command_desc_sync": "将变更的增量规范合并到主规范中，不进行归档。",
   "settings_command_desc_archive": "定稿已完成的变更并将其移动到归档目录。",
-  "settings_command_desc_update": "修订变更的规划工件，使其保持一致。",
+  "settings_command_desc_update": "修订变更的规划工件并使其保持一致。",
   "settings_command_desc_new": "创建一个空的变更脚手架；之后可用 continue 或 ff 生成工件。",
   "settings_command_desc_continue": "生成依赖链中的下一个规划工件。",
   "settings_command_desc_ff": "一次性生成所有剩余的规划工件。",

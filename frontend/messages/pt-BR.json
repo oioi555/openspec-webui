@@ -83,7 +83,7 @@
   "settings_command_desc_apply": "Trabalhe na lista de tarefas da change, escrevendo código e executando testes.",
   "settings_command_desc_sync": "Mescle as especificações delta da change nas especificações principais sem arquivar.",
   "settings_command_desc_archive": "Finalize uma change concluída e mova-a para o diretório de arquivamento.",
-  "settings_command_desc_update": "Revise os artefatos de planejamento da change para mantê-los coerentes.",
+  "settings_command_desc_update": "Revise os artefatos de planejamento de uma change e mantenha-os coerentes.",
   "settings_command_desc_new": "Crie um scaffold de change vazio; gere os artefatos depois com continue ou ff.",
   "settings_command_desc_continue": "Gere o próximo artefato de planejamento na cadeia de dependências.",
   "settings_command_desc_ff": "Gere todos os artefatos de planejamento restantes de uma só vez.",

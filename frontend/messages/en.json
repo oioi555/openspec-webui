@@ -93,7 +93,7 @@
   "settings_command_desc_apply": "Work through the change's task list, writing code and running tests.",
   "settings_command_desc_sync": "Merge the change's delta specs into the main specs without archiving.",
   "settings_command_desc_archive": "Finalize a completed change and move it to the archive directory.",
-  "settings_command_desc_update": "Revise the change's planning artifacts to keep them coherent.",
+  "settings_command_desc_update": "Revise a change's planning artifacts and keep them coherent",
   "settings_command_desc_new": "Create an empty change scaffold; generate artifacts later with continue or ff.",
   "settings_command_desc_continue": "Generate the next planning artifact in the dependency chain.",
   "settings_command_desc_ff": "Generate all remaining planning artifacts in one pass.",

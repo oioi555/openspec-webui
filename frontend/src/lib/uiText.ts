@@ -153,7 +153,7 @@ export const FIXED_LABELS = {
     verify: 'Verify',
     sync: 'Sync',
     bulkArchive: 'Bulk Archive',
-    update: 'Revise Plan',
+    update: 'Update',
   },
   dashboard: {
     openProjectSelector: 'Open project selector',

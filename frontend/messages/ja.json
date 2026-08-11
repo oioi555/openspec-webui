@@ -93,7 +93,7 @@
   "settings_command_desc_apply": "Change のタスクリストを順に処理し、コードを記述してテストを実行します。",
   "settings_command_desc_sync": "アーカイブせずに Change の delta specs をメインの specs にマージします。",
   "settings_command_desc_archive": "完了した Change を確定し、archive ディレクトリに移動します。",
-  "settings_command_desc_update": "Change の planning アーティファクトを改訂して整合性を維持します。",
+  "settings_command_desc_update": "Change の planning アーティファクトを改訂し、整合性を保ちます。",
   "settings_command_desc_new": "空の Change の雛形を作成します。planning アーティファクトは後で continue または ff で生成できます。",
   "settings_command_desc_continue": "依存チェーンの次の planning アーティファクトを生成します。",
   "settings_command_desc_ff": "残りのすべての planning アーティファクトを一度に生成します。",
