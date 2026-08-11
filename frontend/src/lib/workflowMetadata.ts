@@ -25,8 +25,11 @@ export type WorkflowScope = 'workspace' | 'change';
 
 export interface WorkflowMetadata {
   id: WorkflowCommand;
-  /** User-facing label; `update` matches the upstream `/opsx:update` command name. */
-  label: string;
+  /**
+   * Paraglide message id for the user-facing workflow label
+   * (e.g. `workflow_label_propose`).
+   */
+  labelMessageId: keyof typeof m;
   scope: WorkflowScope;
   /** Official OpenSpec generated skill name (e.g. `openspec-sync-specs`). */
   skillName: string;
@@ -46,17 +49,17 @@ export const WORKSPACE_WORKFLOWS = ['propose', 'explore', 'new', 'bulk-archive']
 export const CHANGE_WORKFLOWS = ['apply', 'continue', 'ff', 'update', 'verify', 'sync', 'archive'] as const satisfies readonly WorkflowCommand[];
 
 const WORKFLOW_METADATA_BY_ID: Record<WorkflowCommand, WorkflowMetadata> = {
-  propose: { id: 'propose', label: 'Propose', scope: 'workspace', skillName: 'openspec-propose', descriptionMessageId: 'settings_command_desc_propose' },
-  explore: { id: 'explore', label: 'Explore', scope: 'workspace', skillName: 'openspec-explore', descriptionMessageId: 'settings_command_desc_explore' },
-  apply: { id: 'apply', label: 'Apply', scope: 'change', skillName: 'openspec-apply-change', descriptionMessageId: 'settings_command_desc_apply' },
-  archive: { id: 'archive', label: 'Archive', scope: 'change', skillName: 'openspec-archive-change', descriptionMessageId: 'settings_command_desc_archive' },
-  sync: { id: 'sync', label: 'Sync', scope: 'change', skillName: 'openspec-sync-specs', descriptionMessageId: 'settings_command_desc_sync' },
-  update: { id: 'update', label: 'Update', scope: 'change', skillName: 'openspec-update-change', descriptionMessageId: 'settings_command_desc_update' },
-  new: { id: 'new', label: 'New', scope: 'workspace', skillName: 'openspec-new-change', descriptionMessageId: 'settings_command_desc_new' },
-  continue: { id: 'continue', label: 'Continue', scope: 'change', skillName: 'openspec-continue-change', descriptionMessageId: 'settings_command_desc_continue' },
-  ff: { id: 'ff', label: 'Fast Forward', scope: 'change', skillName: 'openspec-ff-change', descriptionMessageId: 'settings_command_desc_ff' },
-  verify: { id: 'verify', label: 'Verify', scope: 'change', skillName: 'openspec-verify-change', descriptionMessageId: 'settings_command_desc_verify' },
-  'bulk-archive': { id: 'bulk-archive', label: 'Bulk Archive', scope: 'workspace', skillName: 'openspec-bulk-archive-change', descriptionMessageId: 'settings_command_desc_bulk_archive' },
+  propose: { id: 'propose', labelMessageId: 'workflow_label_propose', scope: 'workspace', skillName: 'openspec-propose', descriptionMessageId: 'settings_command_desc_propose' },
+  explore: { id: 'explore', labelMessageId: 'workflow_label_explore', scope: 'workspace', skillName: 'openspec-explore', descriptionMessageId: 'settings_command_desc_explore' },
+  apply: { id: 'apply', labelMessageId: 'workflow_label_apply', scope: 'change', skillName: 'openspec-apply-change', descriptionMessageId: 'settings_command_desc_apply' },
+  archive: { id: 'archive', labelMessageId: 'workflow_label_archive', scope: 'change', skillName: 'openspec-archive-change', descriptionMessageId: 'settings_command_desc_archive' },
+  sync: { id: 'sync', labelMessageId: 'workflow_label_sync', scope: 'change', skillName: 'openspec-sync-specs', descriptionMessageId: 'settings_command_desc_sync' },
+  update: { id: 'update', labelMessageId: 'workflow_label_update', scope: 'change', skillName: 'openspec-update-change', descriptionMessageId: 'settings_command_desc_update' },
+  new: { id: 'new', labelMessageId: 'workflow_label_new', scope: 'workspace', skillName: 'openspec-new-change', descriptionMessageId: 'settings_command_desc_new' },
+  continue: { id: 'continue', labelMessageId: 'workflow_label_continue', scope: 'change', skillName: 'openspec-continue-change', descriptionMessageId: 'settings_command_desc_continue' },
+  ff: { id: 'ff', labelMessageId: 'workflow_label_ff', scope: 'change', skillName: 'openspec-ff-change', descriptionMessageId: 'settings_command_desc_ff' },
+  verify: { id: 'verify', labelMessageId: 'workflow_label_verify', scope: 'change', skillName: 'openspec-verify-change', descriptionMessageId: 'settings_command_desc_verify' },
+  'bulk-archive': { id: 'bulk-archive', labelMessageId: 'workflow_label_bulk_archive', scope: 'workspace', skillName: 'openspec-bulk-archive-change', descriptionMessageId: 'settings_command_desc_bulk_archive' },
 };
 
 /** Every surfaced workflow, keyed by workflow id. There is intentionally no entry for the blocked setup workflow. */
@@ -71,8 +74,13 @@ export function getWorkflowMetadata(workflow: WorkflowCommand): WorkflowMetadata
   return WORKFLOW_METADATA_BY_ID[workflow];
 }
 
+/**
+ * Resolved label for the workflow in the current locale.
+ * Uses the paraglide message function for the label message id.
+ */
 export function getWorkflowLabel(workflow: WorkflowCommand): string {
-  return WORKFLOW_METADATA_BY_ID[workflow].label;
+  const messageFn = (m as unknown as Record<string, () => string>)[WORKFLOW_METADATA_BY_ID[workflow].labelMessageId];
+  return messageFn ? messageFn() : workflow;
 }
 
 export function getWorkflowScope(workflow: WorkflowCommand): WorkflowScope {
@@ -83,6 +91,10 @@ export function getWorkflowSkillName(workflow: WorkflowCommand): string {
   return WORKFLOW_METADATA_BY_ID[workflow].skillName;
 }
 
-export function getWorkflowCommandDescription(workflow: WorkflowCommand): string | undefined {
+/**
+ * Paraglide message id for the workflow's one-line description, or undefined
+ * when the metadata carries no description.
+ */
+export function getWorkflowDescriptionMessageId(workflow: WorkflowCommand): keyof typeof m | undefined {
   return WORKFLOW_METADATA_BY_ID[workflow].descriptionMessageId;
 }

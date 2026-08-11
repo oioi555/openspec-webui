@@ -3,7 +3,8 @@
   import { Badge } from '$lib/components/ui/badge';
   import { tabStore } from '$lib/state/tabs.svelte.ts';
   import { versionStatusStore } from '$lib/state/versionStatus.svelte.ts';
-  import { FIXED_LABELS } from '$lib/uiText';
+  import { t } from '$lib/i18n';
+  import * as m from '$lib/paraglide/messages.js';
 
   type ToolBadge = {
     label: string;
@@ -18,13 +19,13 @@
 
     return [
       {
-        label: FIXED_LABELS.settings.versions.webui,
+        label: t(m.settings_versions_webui_label),
         current: snapshot.tools.webui.currentVersion,
         latest: snapshot.tools.webui.latestVersion,
         updateAvailable: snapshot.tools.webui.updateAvailable,
       },
       {
-        label: FIXED_LABELS.settings.versions.openspecCli,
+        label: t(m.settings_versions_openspec_label),
         current: snapshot.tools.openspec.currentVersion,
         latest: snapshot.tools.openspec.latestVersion,
         updateAvailable: snapshot.tools.openspec.updateAvailable,

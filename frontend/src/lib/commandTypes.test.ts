@@ -119,8 +119,8 @@ test('commandShortcuts no longer builds commands from a format preference', asyn
 
 test('workflowMetadata centralizes labels including Update for update', async () => {
   const source = await workflowMetadataSource;
-  assert.match(source, /update: \{ id: 'update', label: 'Update'/);
-  assert.match(source, /sync: \{ id: 'sync', label: 'Sync'/);
+  assert.match(source, /update: \{ id: 'update', labelMessageId: 'workflow_label_update'/);
+  assert.match(source, /sync: \{ id: 'sync', labelMessageId: 'workflow_label_sync'/);
   assert.doesNotMatch(source, /multi-change/);
 });
 

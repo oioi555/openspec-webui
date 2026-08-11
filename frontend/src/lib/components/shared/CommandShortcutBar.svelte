@@ -3,9 +3,10 @@
   import { CommandChip } from '$lib/components/shared/command-chip';
   import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
   import type { WorkflowCommand } from '$lib/types/commandTypes';
-  import { getWorkflowLabel } from '$lib/workflowMetadata';
+  import { getWorkflowMetadata } from '$lib/workflowMetadata';
   import { toast } from 'svelte-sonner';
   import * as m from '$lib/paraglide/messages.js';
+  import { t } from '$lib/i18n';
   import { commandPreferencesStore } from '$lib/state/commandPreferences.svelte.ts';
   import { getCommandShortcutCopyTitle } from '$lib/uiText';
   import {
@@ -46,7 +47,8 @@
   <div class="flex max-w-full flex-wrap items-center gap-1.5">
     {#each commands as command (command)}
       {@const choices = getChoices(command)}
-      {@const label = getWorkflowLabel(command)}
+      {@const meta = getWorkflowMetadata(command)}
+      {@const label = t((m as unknown as Record<string, () => string>)[meta.labelMessageId])}
 
       {#if choices.length === 0}
         <!-- Zero candidates: skip this chip entirely -->

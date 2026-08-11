@@ -18,7 +18,7 @@
   import { projectStore } from '$lib/state/projects.svelte.ts';
   import { LOCALE_LABELS, localeStore, type AppLocale } from '$lib/state/locale.svelte.ts';
   import * as m from '$lib/paraglide/messages.js';
-  import { FIXED_LABELS, getWorkflowCommandDescription, getWorkflowCommandLabel } from '$lib/uiText';
+  import { getWorkflowMetadata } from '$lib/workflowMetadata';
   import { copyToClipboard } from '$lib/utils';
   import { versionStatusStore } from '$lib/state/versionStatus.svelte.ts';
   import { RELEASE_PAGE_URLS, UPDATE_COMMANDS, type VersionedToolId } from '$lib/state/versionStatusCore';
@@ -54,27 +54,27 @@
   let sections = $derived([
     {
       id: 'general' as const,
-      label: FIXED_LABELS.settings.sections.general,
+      label: t(m.settings_section_general),
       icon: Settings
     },
     {
       id: 'tools' as const,
-      label: FIXED_LABELS.settings.sections.tools,
+      label: t(m.settings_section_tools),
       icon: Wrench
     },
     {
       id: 'commands' as const,
-      label: FIXED_LABELS.settings.sections.commands,
+      label: t(m.settings_section_commands),
       icon: ListChecks
     },
     {
       id: 'validation' as const,
-      label: FIXED_LABELS.settings.sections.validation,
+      label: t(m.settings_section_validation),
       icon: FlaskConical
     },
     {
       id: 'versions' as const,
-      label: FIXED_LABELS.settings.sections.versions,
+      label: t(m.settings_section_versions),
       icon: Info
     }
   ]);
@@ -158,36 +158,32 @@
     return t(m.settings_versions_last_checked, { time: new Date(iso).toLocaleString() });
   });
 
-  function getLocaleHeadingLabel() {
-    return FIXED_LABELS.settings.headings.language;
-  }
-
   function getDeliveryLabel(integration: DetectedIntegration): string {
     switch (integration.delivery) {
       case 'commands':
-        return FIXED_LABELS.settings.tools.commands;
+        return t(m.settings_tools_delivery_commands);
       case 'skills':
-        return FIXED_LABELS.settings.tools.skills;
+        return t(m.settings_tools_delivery_skills);
       case 'both':
-        return FIXED_LABELS.settings.tools.both;
+        return t(m.settings_tools_delivery_both);
     }
   }
 
   function getVersionStatusLabel(status: ToolVersionStatus) {
     if (status.notInstalled) {
-      return FIXED_LABELS.settings.versions.notInstalled;
+      return t(m.settings_versions_status_not_installed);
     }
 
     switch (status.status) {
       case 'up-to-date':
-        return FIXED_LABELS.settings.versions.upToDate;
+        return t(m.settings_versions_status_up_to_date);
       case 'update-available':
-        return FIXED_LABELS.settings.versions.updateAvailable;
+        return t(m.settings_versions_status_update_available);
       case 'unavailable':
-        return FIXED_LABELS.settings.versions.unavailable;
+        return t(m.settings_versions_status_unavailable);
       case 'unknown':
       default:
-        return FIXED_LABELS.settings.versions.unknown;
+        return t(m.settings_versions_status_unknown);
     }
   }
 
@@ -320,19 +316,19 @@
     <!-- general section -->
     <SurfaceCard id="settings-general" data-settings-section="general">
       <SectionHeader>
-        <h2 class="text-lg font-semibold text-foreground">{FIXED_LABELS.settings.sections.general}</h2>
+        <h2 class="text-lg font-semibold text-foreground">{t(m.settings_section_general)}</h2>
       </SectionHeader>
 
       <div class="space-y-6 p-4">
         <div>
-          <h2 class="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{FIXED_LABELS.settings.headings.theme}</h2>
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{t(m.settings_heading_theme)}</h2>
           <p class="mt-1 text-sm text-muted-foreground">{t(m.settings_theme_description)}</p>
         </div>
 
         <div class="grid gap-3 md:grid-cols-3">
           <OptionCard
             icon={Sun}
-            label={FIXED_LABELS.settings.themeOptions.light}
+            label={t(m.settings_theme_light)}
             selected={themeStore.value === 'light'}
             name="theme"
             value="light"
@@ -345,7 +341,7 @@
 
           <OptionCard
             icon={Moon}
-            label={FIXED_LABELS.settings.themeOptions.dark}
+            label={t(m.settings_theme_dark)}
             selected={themeStore.value === 'dark'}
             name="theme"
             value="dark"
@@ -358,7 +354,7 @@
 
           <OptionCard
             icon={Monitor}
-            label={FIXED_LABELS.settings.themeOptions.system}
+            label={t(m.settings_theme_system)}
             selected={themeStore.value === 'system'}
             name="theme"
             value="system"
@@ -372,14 +368,14 @@
 
         <div class="space-y-3">
           <div>
-            <h2 class="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{getLocaleHeadingLabel()}</h2>
+            <h2 class="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{t(m.settings_heading_language)}</h2>
           </div>
           <div class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_12rem] sm:items-start">
             <p class="text-sm text-muted-foreground pt-1.5">{t(m.settings_language_description)}</p>
             <Select.Root value={localeStore.value} onValueChange={(v) => setLocale(v as AppLocale)}>
               <Select.Trigger
                 class="sm:justify-self-end w-full"
-                aria-label={getLocaleHeadingLabel()}
+                aria-label={t(m.settings_heading_language)}
               >
                 {LOCALE_LABELS[localeStore.value]}
               </Select.Trigger>
@@ -395,20 +391,20 @@
         </div>
 
         <div>
-          <h2 class="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{FIXED_LABELS.settings.headings.explorer}</h2>
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{t(m.settings_heading_explorer)}</h2>
           <p class="mt-1 text-sm text-muted-foreground">{t(m.settings_explorer_description)}</p>
         </div>
 
         <label class="flex items-start justify-between gap-4 rounded-md border border-border bg-secondary/50 p-4 text-sm text-card-foreground">
           <div>
-            <div class="font-medium text-foreground">{FIXED_LABELS.settings.enablePreviewTabs}</div>
+            <div class="font-medium text-foreground">{t(m.settings_enable_preview_tabs)}</div>
             <div class="mt-1 text-muted-foreground">{t(m.settings_enable_preview_tabs_description)}</div>
           </div>
 
           <input
             type="checkbox"
             checked={uiPreferencesStore.previewTabsEnabled}
-            aria-label={FIXED_LABELS.settings.enablePreviewTabs}
+            aria-label={t(m.settings_enable_preview_tabs)}
             onchange={togglePreviewTabs}
           />
         </label>
@@ -420,7 +416,7 @@
       <SectionHeader>
         <div class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
           <div>
-            <h2 class="text-lg font-semibold text-foreground">{FIXED_LABELS.settings.headings.tools}</h2>
+            <h2 class="text-lg font-semibold text-foreground">{t(m.settings_heading_tools)}</h2>
             <p class="mt-1 text-sm text-muted-foreground">{t(m.settings_tools_description)}</p>
             <p class="flex flex-wrap items-center gap-2 mt-1 text-sm text-muted-foreground">
               <Info class="h-5 w-5 shrink-0 text-info" />
@@ -431,7 +427,7 @@
                 rel="noopener noreferrer"
                 class="inline-flex items-center gap-1 underline hover:text-foreground"
               >
-                {FIXED_LABELS.settings.docs.supportedTools}
+                {t(m.settings_docs_supported_tools)}
                 <ExternalLink class="h-3.5 w-3.5" />
               </a>
               ·
@@ -441,7 +437,7 @@
                 rel="noopener noreferrer"
                 class="inline-flex items-center gap-1 underline hover:text-foreground"
               >
-                {FIXED_LABELS.settings.docs.initCommand}
+                {t(m.settings_docs_init_command)}
                 <ExternalLink class="h-3.5 w-3.5" />
               </a>
             </p>
@@ -477,11 +473,11 @@
                     <Badge variant="secondary">{getDeliveryLabel(integration)}</Badge>
                   </div>
                   <div class="mt-1 text-xs text-muted-foreground">
-                    {FIXED_LABELS.settings.tools.source}: <code class="rounded bg-background px-1 py-0.5">{integration.source}</code>
+                    {t(m.settings_tools_detected)}: <code class="rounded bg-background px-1 py-0.5">{integration.source}</code>
                   </div>
                 </div>
                 <div class="min-w-0 shrink-0 sm:text-right">
-                  <div class="text-xs uppercase tracking-wide text-muted-foreground">{FIXED_LABELS.settings.tools.example}</div>
+                  <div class="text-xs uppercase tracking-wide text-muted-foreground">{t(m.settings_tools_example)}</div>
                   <code class="mt-0.5 block max-w-full overflow-x-auto rounded bg-background px-1.5 py-0.5 text-xs text-primary">{integration.example}</code>
                 </div>
               </div>
@@ -520,13 +516,13 @@
       <SectionHeader>
         <div class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
         <div>
-          <h2 class="text-lg font-semibold text-foreground">{FIXED_LABELS.settings.sections.commands}</h2>
+          <h2 class="text-lg font-semibold text-foreground">{t(m.settings_section_commands)}</h2>
           <p class="mt-1 text-sm text-muted-foreground">{t(m.settings_commands_description)}</p>
           <p class="flex flex-wrap items-center gap-2 mt-1 text-sm text-muted-foreground">
             <Info class="h-5 w-5 shrink-0 text-info" />
             {t(m.docs_intro)}
-            <a href={OPENSPEC_COMMANDS_DOCS_URL} target="_blank" class="inline-flex items-center gap-1 underline hover:text-foreground">{FIXED_LABELS.settings.docs.commands}<ExternalLink class="h-3.5 w-3.5" /></a> ·
-            <a href={OPENSPEC_WORKFLOWS_DOCS_URL} target="_blank" class="inline-flex items-center gap-1 underline hover:text-foreground">{FIXED_LABELS.settings.docs.workflows}<ExternalLink class="h-3.5 w-3.5" /></a>
+            <a href={OPENSPEC_COMMANDS_DOCS_URL} target="_blank" class="inline-flex items-center gap-1 underline hover:text-foreground">{t(m.settings_docs_commands)}<ExternalLink class="h-3.5 w-3.5" /></a> ·
+            <a href={OPENSPEC_WORKFLOWS_DOCS_URL} target="_blank" class="inline-flex items-center gap-1 underline hover:text-foreground">{t(m.settings_docs_workflows)}<ExternalLink class="h-3.5 w-3.5" /></a>
           </p>
         </div>
 
@@ -558,10 +554,13 @@
       <div class="space-y-4 p-4">
         {#snippet commandRow(command: WorkflowCommand)}
           {@const isAvailable = availabilityReady && commandPreferencesStore.availability.workflows.includes(command)}
+          {@const meta = getWorkflowMetadata(command)}
           <div class="flex items-center justify-between gap-4 px-4 py-3 text-sm">
             <div>
-              <div class="font-medium text-foreground">{getWorkflowCommandLabel(command)}</div>
-              <div class="mt-1 text-xs text-muted-foreground">{getWorkflowCommandDescription(command)}</div>
+              <div class="font-medium text-foreground">{t((m as unknown as Record<string, () => string>)[meta.labelMessageId])}</div>
+              {#if meta.descriptionMessageId}
+                <div class="mt-1 text-xs text-muted-foreground">{t((m as unknown as Record<string, () => string>)[meta.descriptionMessageId])}</div>
+              {/if}
             </div>
 
             {#if !isAvailable}
@@ -579,7 +578,7 @@
 
         <div class="space-y-2">
           <div>
-            <h4 class="text-sm font-semibold text-foreground">{FIXED_LABELS.settings.headings.coreCommands}</h4>
+            <h4 class="text-sm font-semibold text-foreground">{t(m.settings_heading_core_commands)}</h4>
           </div>
 
           <div class="divide-y divide-border overflow-hidden rounded-md border border-border bg-secondary/50">
@@ -600,7 +599,7 @@
 
         <div class="space-y-2">
           <div>
-            <h4 class="text-sm font-semibold text-foreground">{FIXED_LABELS.settings.headings.expandedCommands}</h4>
+            <h4 class="text-sm font-semibold text-foreground">{t(m.settings_heading_expanded_commands)}</h4>
           </div>
 
           <div class="divide-y divide-border overflow-hidden rounded-md border border-border bg-secondary/50">
@@ -631,7 +630,7 @@
     <!-- validation section -->
     <SurfaceCard id="settings-validation" data-settings-section="validation">
       <SectionHeader>
-        <h2 class="text-lg font-semibold text-foreground">{FIXED_LABELS.settings.sections.validation}</h2>
+        <h2 class="text-lg font-semibold text-foreground">{t(m.settings_section_validation)}</h2>
         <p class="mt-1 text-sm text-muted-foreground">{t(m.settings_validation_description)}</p>
       </SectionHeader>
 
@@ -711,7 +710,7 @@
       <SectionHeader>
         <div class="flex items-start justify-between gap-4">
           <div>
-            <h2 class="text-lg font-semibold text-foreground">{FIXED_LABELS.settings.sections.versions}</h2>
+            <h2 class="text-lg font-semibold text-foreground">{t(m.settings_section_versions)}</h2>
             <p class="mt-1 text-sm text-muted-foreground">{t(m.settings_versions_description)}</p>
           </div>
           <div class="flex shrink-0 items-center gap-2 pt-0.5">
@@ -744,13 +743,13 @@
             {#each [
               {
                 id: 'webui' as const,
-                title: FIXED_LABELS.settings.versions.webui,
+                title: t(m.settings_versions_webui_label),
                 description: t(m.settings_versions_webui_description),
                 status: versionSnapshot.tools.webui,
               },
               {
                 id: 'openspec' as const,
-                title: FIXED_LABELS.settings.versions.openspecCli,
+                title: t(m.settings_versions_openspec_label),
                 description: t(m.settings_versions_openspec_description),
                 status: versionSnapshot.tools.openspec,
               },
@@ -779,35 +778,35 @@
                   rel="noreferrer"
                   class="inline-flex items-center gap-1 text-sm text-muted-foreground underline hover:text-foreground"
                 >
-                  {FIXED_LABELS.settings.versions.releases}
+                  {t(m.settings_versions_releases)}
                   <ExternalLink class="h-3.5 w-3.5" />
                 </a>
               </div>
 
               <dl class="grid gap-3 sm:grid-cols-3">
                 <div>
-                  <dt class="text-xs uppercase tracking-wide text-muted-foreground">{FIXED_LABELS.settings.versions.current}</dt>
+                  <dt class="text-xs uppercase tracking-wide text-muted-foreground">{t(m.settings_versions_current)}</dt>
                   <dd class="mt-1 text-sm text-foreground">{tool.status.currentVersion ?? '—'}</dd>
                 </div>
                 <div>
-                  <dt class="text-xs uppercase tracking-wide text-muted-foreground">{FIXED_LABELS.settings.versions.latest}</dt>
+                  <dt class="text-xs uppercase tracking-wide text-muted-foreground">{t(m.settings_versions_latest)}</dt>
                   <dd class="mt-1 text-sm text-foreground">{tool.status.latestVersion ?? '—'}</dd>
                 </div>
                 <div>
-                  <dt class="text-xs uppercase tracking-wide text-muted-foreground">{FIXED_LABELS.settings.versions.status}</dt>
+                  <dt class="text-xs uppercase tracking-wide text-muted-foreground">{t(m.settings_versions_status_label)}</dt>
                   <dd class="mt-1 text-sm text-foreground">{getVersionStatusLabel(tool.status)}</dd>
                 </div>
               </dl>
 
               <div>
-                <div class="text-xs uppercase tracking-wide text-muted-foreground">{FIXED_LABELS.settings.versions.updateCommand}</div>
+                <div class="text-xs uppercase tracking-wide text-muted-foreground">{t(m.settings_versions_update_command)}</div>
                 <div class="mt-1 flex items-center gap-2 rounded-sm border border-border bg-background px-3 py-2">
                   <code class="min-w-0 flex-1 overflow-x-auto text-xs text-primary">{getUpdateCommand(tool.id)}</code>
                   <Button
                     variant="ghost"
                     size="icon"
                     class="size-8 shrink-0 text-muted-foreground hover:text-foreground"
-                    aria-label={`${FIXED_LABELS.common.copy} ${tool.title}`}
+                    aria-label={`${t(m.common_copy)} ${tool.title}`}
                     onclick={() => handleCopyCommand(getUpdateCommand(tool.id), tool.title)}
                   >
                     <Copy class="h-4 w-4" />
@@ -820,13 +819,13 @@
 
           <InsetPanel class="space-y-3">
           <div>
-            <h4 class="font-medium text-foreground">{FIXED_LABELS.settings.versions.afterUpdatingOpenSpec}</h4>
+            <h4 class="font-medium text-foreground">{t(m.settings_versions_after_updating)}</h4>
             <p class="mt-1 text-sm text-muted-foreground">{t(m.settings_versions_post_update_description)}</p>
             <p class="mt-1 text-xs text-muted-foreground">{t(m.settings_versions_project_unknown_hint)}</p>
           </div>
 
           <div>
-            <div class="text-xs uppercase tracking-wide text-muted-foreground">{FIXED_LABELS.settings.versions.projectsToUpdate}</div>
+            <div class="text-xs uppercase tracking-wide text-muted-foreground">{t(m.settings_versions_projects_to_update)}</div>
             {#if projectStore.projects.length > 0}
               <ul class="mt-2 divide-y divide-border overflow-hidden rounded-md border border-border bg-secondary/50">
                 {#each projectStore.projects as project (project.path)}
@@ -847,7 +846,7 @@
                       variant="ghost"
                       size="icon"
                       class="size-7 shrink-0 text-muted-foreground hover:text-foreground"
-                      aria-label={`${FIXED_LABELS.common.copy} ${FIXED_LABELS.settings.versions.updateCommand} ${project.path}`}
+                      aria-label={`${t(m.common_copy)} ${t(m.settings_versions_update_command)} ${project.path}`}
                       onclick={() => handleCopyCommand(buildProjectUpdateCommand(project.path), project.path)}
                     >
                       <Copy class="h-3.5 w-3.5" />

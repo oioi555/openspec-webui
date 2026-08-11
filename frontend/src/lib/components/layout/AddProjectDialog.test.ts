@@ -83,7 +83,7 @@ test('project onboarding components share docs links and keep onboarding actions
   assert.match(addProjectDialogSource, /projectStore\.clearError\(\)/);
   assert.match(emptyProjectStateSource, /t\(m\.empty_project_init_hint\)/);
   assert.match(emptyProjectStateSource, /layoutStore\.openOverlay\('add-project'\)/);
-  assert.match(settingsViewSource, /FIXED_LABELS\.settings\.docs\.supportedTools/);
-  assert.match(settingsViewSource, /FIXED_LABELS\.settings\.docs\.commands/);
-  assert.match(settingsViewSource, /FIXED_LABELS\.settings\.docs\.workflows/);
+  assert.match(settingsViewSource, /t\(m\.settings_docs_supported_tools\)/);
+  assert.match(settingsViewSource, /t\(m\.settings_docs_commands\)/);
+  assert.match(settingsViewSource, /t\(m\.settings_docs_workflows\)/);
 });

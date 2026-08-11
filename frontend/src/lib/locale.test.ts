@@ -208,3 +208,107 @@ test('translated commands section keeps CLI command tokens in English', async ()
     );
   }
 });
+
+// ---------------------------------------------------------------------------
+// Raw source-catalog parity (before Paraglide compilation can supply fallbacks)
+// ---------------------------------------------------------------------------
+
+async function readSourceCatalogs(): Promise<Array<{ locale: string; messages: Record<string, string> }>> {
+  const settings = await readJson<{ locales: string[] }>('../../project.inlang/settings.json');
+  return Promise.all(
+    settings.locales.map(async (locale) => ({
+      locale,
+      messages: await readJson<Record<string, string>>(`../../messages/${locale}.json`),
+    })),
+  );
+}
+
+test('every source catalog has exact key parity with the en base catalog', async () => {
+  const catalogs = await readSourceCatalogs();
+  const en = catalogs.find((catalog) => catalog.locale === 'en')!;
+  const enKeys = Object.keys(en.messages).sort();
+
+  for (const { locale, messages } of catalogs) {
+    const keys = Object.keys(messages).sort();
+    const missing = enKeys.filter((key) => !keys.includes(key));
+    const extra = keys.filter((key) => !enKeys.includes(key));
+
+    assert.deepEqual(
+      keys,
+      enKeys,
+      `${locale}: source catalog key set must exactly match en` +
+        (missing.length > 0 ? ` — missing ${missing.join(', ')}` : '') +
+        (extra.length > 0 ? ` — unexpected ${extra.join(', ')}` : ''),
+    );
+  }
+});
+
+test('every source catalog value is a non-empty string', async () => {
+  const catalogs = await readSourceCatalogs();
+
+  for (const { locale, messages } of catalogs) {
+    for (const [key, value] of Object.entries(messages)) {
+      assert.equal(typeof value, 'string', `${locale}.${key} must be a string`);
+      assert.notEqual(value.trim(), '', `${locale}.${key} must not be empty`);
+    }
+  }
+});
+
+test('non-Japanese catalogs contain no hiragana or katakana', async () => {
+  const catalogs = await readSourceCatalogs();
+  // Hiragana and katakana only; Han characters (shared with Chinese) are allowed.
+  const kana = /[\u3040-\u309F\u30A0-\u30FF]/;
+
+  for (const { locale, messages } of catalogs) {
+    if (locale === 'ja') {
+      continue;
+    }
+    for (const [key, value] of Object.entries(messages)) {
+      assert.doesNotMatch(value, kana, `${locale}.${key} contains Japanese kana`);
+    }
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Required CLI command tokens stay English in every Settings message that
+// embeds them. The target keys and their expected tokens are derived from the
+// en base catalog, so a newly added message cannot be missed by the whitelist.
+// ---------------------------------------------------------------------------
+
+const SETTINGS_COMMAND_TOKENS = [
+  'openspec init',
+  'openspec update',
+  'openspec config profile',
+] as const;
+
+test('every Settings message keeps its required CLI command tokens in English across all locales', async () => {
+  const catalogs = await readSourceCatalogs();
+  const en = catalogs.find((catalog) => catalog.locale === 'en')!;
+
+  // Derive the expected token map from the en catalog: for each key whose en
+  // value embeds a supported CLI command token, that token must survive every
+  // translation. `openspec update` in en may be wrapped in backticks; the
+  // token comparison ignores surrounding punctuation.
+  const expectedTokensByKey = new Map<string, string[]>();
+  for (const [key, value] of Object.entries(en.messages)) {
+    const tokens = SETTINGS_COMMAND_TOKENS.filter((token) => value.includes(token));
+    if (tokens.length > 0) {
+      expectedTokensByKey.set(key, tokens);
+    }
+  }
+  assert.ok(expectedTokensByKey.size > 0, 'en catalog should embed CLI command tokens');
+
+  for (const { locale, messages } of catalogs) {
+    if (locale === 'en') {
+      continue;
+    }
+    for (const [key, tokens] of expectedTokensByKey) {
+      for (const token of tokens) {
+        assert.ok(
+          messages[key].includes(token),
+          `${locale}.${key} must keep "${token}" in English (translated: "${messages[key]}")`,
+        );
+      }
+    }
+  }
+});

@@ -1,6 +1,141 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { test } from 'node:test';
+import { register } from 'node:module';
+import { afterEach, test } from 'node:test';
+import { render } from 'svelte/server';
+
+import type { AppLocale } from '$lib/locale';
+
+// ---------------------------------------------------------------------------
+// Server-rendered Settings localization tests (3.5)
+//
+// The standard node --test runner cannot load `.svelte` files, so the
+// `settings-ssr-loader.mjs` test-support module is registered here to compile
+// Svelte components (`svelte/server` render, no DOM) and `.svelte.ts` rune
+// modules. This lets us render the real SettingsView under a locale and prove
+// the rendered output follows the active locale without mounting a browser.
+// ---------------------------------------------------------------------------
+await register(new URL('./settings-ssr-loader.mjs', import.meta.url));
+
+const { getLocale: originalGetLocale, overwriteGetLocale } = await import('$lib/paraglide/runtime.js');
+
+afterEach(() => {
+  overwriteGetLocale(originalGetLocale);
+});
+
+/** Render SettingsView under the given locale and return the SSR body. */
+async function renderSettingsUnderLocale(locale: AppLocale): Promise<string> {
+  overwriteGetLocale(() => locale);
+  const { default: SettingsView } = await import('./SettingsView.svelte');
+  return render(SettingsView, { props: { initialSection: 'general' } }).body;
+}
+
+async function readMessageCatalog(locale: string): Promise<Record<string, string>> {
+  const content = await readFile(
+    new URL(`../../../../messages/${locale}.json`, import.meta.url),
+    'utf8',
+  );
+  return JSON.parse(content) as Record<string, string>;
+}
+
+/**
+ * Representative General/Tools/Commands/Versions copy that renders regardless
+ * of store state: sidebar section labels, General headings and theme options,
+ * workflow labels and descriptions in the Commands section, and Tools status
+ * and refresh/aria text.
+ */
+const SETTINGS_RENDER_MESSAGE_KEYS = [
+  'settings_section_general',
+  'settings_section_tools',
+  'settings_section_commands',
+  'settings_section_validation',
+  'settings_section_versions',
+  'settings_heading_theme',
+  'settings_heading_language',
+  'settings_theme_light',
+  'settings_theme_dark',
+  'settings_theme_system',
+  'workflow_label_propose',
+  'workflow_label_update',
+  'settings_command_desc_propose',
+  'settings_command_desc_sync',
+  'settings_tools_no_active_project',
+  'settings_tools_refresh',
+  'settings_commands_refresh_aria',
+  'settings_versions_never_checked',
+  'settings_versions_refresh_aria',
+] as const;
+
+/**
+ * Keys whose English value is a distinctive word or phrase that only appears
+ * when a message silently falls back to the base locale. Curated empirically:
+ * other keys legitimately contain English terms inside their translations
+ * (e.g. "Validation panel" in the Japanese description), so an absence check
+ * would be a false positive there.
+ */
+const ENGLISH_FALLBACK_GUARD_KEYS = [
+  'settings_section_general',
+  'settings_section_commands',
+  'settings_heading_theme',
+  'settings_heading_language',
+  'settings_theme_light',
+  'settings_theme_dark',
+  'settings_command_desc_propose',
+  'settings_command_desc_sync',
+  'settings_tools_no_active_project',
+  'settings_commands_refresh_aria',
+  'workflow_label_propose',
+  'workflow_label_update',
+] as const;
+
+async function assertSettingsLocaleRender(locale: AppLocale): Promise<void> {
+  const body = await renderSettingsUnderLocale(locale);
+  const catalog = await readMessageCatalog(locale);
+  const en = await readMessageCatalog('en');
+
+  // The rendered Settings output must carry the target locale's copy.
+  for (const key of SETTINGS_RENDER_MESSAGE_KEYS) {
+    const expected = catalog[key];
+    assert.ok(typeof expected === 'string' && expected.length > 0, `${locale} catalog should have non-empty ${key}`);
+    assert.ok(body.includes(expected), `${locale} render should contain ${key} = "${expected}"`);
+  }
+
+  // No silent English fallback for the distinctive guarded keys.
+  for (const key of ENGLISH_FALLBACK_GUARD_KEYS) {
+    if (en[key] !== catalog[key]) {
+      assert.ok(!body.includes(en[key]), `${locale} render must not fall back to en "${en[key]}" for ${key}`);
+    }
+  }
+}
+
+test('SettingsView server-renders representative Japanese copy from the ja catalog', async () => {
+  await assertSettingsLocaleRender('ja');
+});
+
+test('SettingsView server-renders representative German copy from the de catalog', async () => {
+  await assertSettingsLocaleRender('de');
+});
+
+test('switching the locale and re-rendering updates the Settings output without reload', async () => {
+  const ja = await readMessageCatalog('ja');
+  const de = await readMessageCatalog('de');
+
+  const jaBody = await renderSettingsUnderLocale('ja');
+  const deBody = await renderSettingsUnderLocale('de');
+
+  // The same component instance re-renders into different localized output.
+  assert.notEqual(jaBody, deBody, 're-rendering under a different locale must change the output');
+
+  // Section labels follow the locale.
+  assert.ok(jaBody.includes(ja.settings_section_general), 'ja render should show the ja General label');
+  assert.ok(deBody.includes(de.settings_section_general), 'de render should show the de General label');
+  assert.ok(!jaBody.includes(de.settings_section_general), 'ja render must not contain the de General label');
+
+  // Workflow labels follow the locale too.
+  assert.ok(jaBody.includes(ja.workflow_label_propose), 'ja render should show the ja workflow label');
+  assert.ok(deBody.includes(de.workflow_label_propose), 'de render should show the de workflow label');
+  assert.ok(!jaBody.includes(de.workflow_label_propose), 'ja render must not contain the de workflow label');
+});
 
 test('tabs.svelte.ts includes settings in TabType and defines a regular closeable settings tab', async () => {
   const source = await readFile(new URL('../../state/tabs.svelte.ts', import.meta.url), 'utf8');
@@ -91,8 +226,8 @@ test('commandTypes.ts keeps sync and update in core commands and out of expanded
 
   // Workflow labels are centralized in the metadata module (was
   // CORE_COMMAND_LABELS / EXPANDED_COMMAND_LABELS in commandTypes.ts).
-  assert.match(workflowMetadataSource, /sync: \{ id: 'sync', label: 'Sync'/);
-  assert.match(workflowMetadataSource, /update: \{ id: 'update', label: 'Update'/);
+  assert.match(workflowMetadataSource, /sync: \{ id: 'sync', labelMessageId: 'workflow_label_sync'/);
+  assert.match(workflowMetadataSource, /update: \{ id: 'update', labelMessageId: 'workflow_label_update'/);
 });
 
 test('SettingsView and shared settings surfaces use restrained solid radii', async () => {
@@ -303,7 +438,7 @@ test('SettingsView.svelte wires per-project copy with buildProjectUpdateCommand 
   assert.match(source, /<Copy class="h-3\.5 w-3\.5"/);
 
   // Aria-label includes "Copy" and the project path
-  assert.match(source, /aria-label=.*FIXED_LABELS\.common\.copy.*project\.path/);
+  assert.match(source, /aria-label=.*t\(m\.common_copy\).*project\.path/);
 });
 
 test('SettingsView.svelte no longer renders the single project update command copy block', async () => {
@@ -320,13 +455,13 @@ test('SettingsView.svelte preserves the projectsToUpdate heading and empty-state
   const source = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
 
   // projectsToUpdate heading still present
-  assert.match(source, /FIXED_LABELS\.settings\.versions\.projectsToUpdate/);
+  assert.match(source, /t\(m\.settings_versions_projects_to_update\)/);
 
   // Empty state when no projects registered
   assert.match(source, /settings_versions_no_registered_projects/);
 
   // afterUpdatingOpenSpec heading still present
-  assert.match(source, /FIXED_LABELS\.settings\.versions\.afterUpdatingOpenSpec/);
+  assert.match(source, /t\(m\.settings_versions_after_updating\)/);
 
   // post_update_description still present
   assert.match(source, /settings_versions_post_update_description/);
@@ -362,7 +497,7 @@ test('SettingsView.svelte has Tools section with read-only content and refresh',
   assert.match(source, /'tools' as const/);
 
   // Tools heading
-  assert.match(source, /headings\.tools/);
+  assert.match(source, /t\(m\.settings_heading_tools\)/);
 
   // Description uses i18n
   assert.match(source, /settings_tools_description/);
@@ -387,9 +522,9 @@ test('SettingsView.svelte has Tools section with read-only content and refresh',
 
   // Delivery label helper
   assert.match(source, /getDeliveryLabel/);
-  assert.match(source, /FIXED_LABELS\.settings\.tools\.commands/);
-  assert.match(source, /FIXED_LABELS\.settings\.tools\.skills/);
-  assert.match(source, /FIXED_LABELS\.settings\.tools\.both/);
+  assert.match(source, /t\(m\.settings_tools_delivery_commands\)/);
+  assert.match(source, /t\(m\.settings_tools_delivery_skills\)/);
+  assert.match(source, /t\(m\.settings_tools_delivery_both\)/);
 
   // ExternalLink icon for docs
   assert.match(source, /ExternalLink/);
@@ -433,7 +568,7 @@ test('SettingsView.svelte Tools section shows active repository and copyable ope
   // Both documentation links render in the same paragraph: supported-tools and openspec init reference
   assert.match(toolsBlock, /OPENSPEC_SUPPORTED_TOOLS_DOCS_URL/);
   assert.match(toolsBlock, /OPENSPEC_INIT_DOCS_URL/);
-  assert.match(toolsBlock, /FIXED_LABELS\.settings\.docs\.initCommand/);
+  assert.match(toolsBlock, /t\(m\.settings_docs_init_command\)/);
 });
 
 test('SettingsView.svelte Tools section shows empty state and keeps docs links and refresh when no project is active', async () => {
@@ -494,18 +629,15 @@ test('SettingsView.svelte Commands section header has refresh button wired to re
 test('SettingsView.svelte Commands section rows source descriptions from getWorkflowCommandDescription', async () => {
   const source = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
 
-  // getWorkflowCommandDescription is imported from uiText
+  // getWorkflowMetadata is imported from workflowMetadata for reactive label/description
   assert.match(
     source,
-    /import \{ FIXED_LABELS, getWorkflowCommandDescription, getWorkflowCommandLabel \} from '\$lib\/uiText'/,
+    /import \{ getWorkflowMetadata \} from '\$lib\/workflowMetadata'/,
   );
 
-  // The description is rendered inside the shared command-row snippet
-  assert.equal(
-    (source.match(/getWorkflowCommandDescription\(command\)/g) ?? []).length,
-    1,
-    'description should be rendered once inside the shared command-row snippet',
-  );
+  // The description is rendered inside the shared command-row snippet via t()
+  assert.match(source, /t\(\(m as unknown as Record<string, \(\) => string>\)\[meta\.labelMessageId\]\)/);
+  assert.match(source, /t\(\(m as unknown as Record<string, \(\) => string>\)\[meta\.descriptionMessageId\]\)/);
 
   // Both Core and Expanded groups render their rows through the shared snippet
   assert.equal(
@@ -625,23 +757,20 @@ test('SettingsView.svelte Commands section shows an always-visible openspec conf
     'the guide-only derived variable should be removed');
 });
 
-test('uiText.ts delegates getWorkflowCommandLabel to workflowMetadata and has tools labels', async () => {
+test('uiText.ts delegates getWorkflowCommandLabel to workflowMetadata and no longer carries Settings fixed labels', async () => {
   const source = await readFile(new URL('../../uiText.ts', import.meta.url), 'utf8');
 
   // Delegates to workflowMetadata
-  assert.match(source, /import \{ getWorkflowLabel, getWorkflowMetadata \} from '\.\/workflowMetadata'/);
+  assert.match(source, /import \{ getWorkflowLabel, getWorkflowDescriptionMessageId \} from '\.\/workflowMetadata'/);
   assert.match(source, /return getWorkflowLabel\(command\)/);
 
-  // tools section/heading labels
-  assert.match(source, /tools: 'Tools'/);
-  assert.match(source, /tools: 'Tools & Integrations'/);
+  // The obsolete Settings subtree is gone: every Settings-facing label lives
+  // in the localized message catalogs, not in FIXED_LABELS.
+  assert.equal(source.includes('settings: {'), false, 'the FIXED_LABELS settings subtree should be removed');
+  assert.equal(source.includes("'Tools & Integrations'"), false, 'Settings heading labels should not remain in FIXED_LABELS');
+  assert.equal(source.includes('noIntegrations'), false, 'Settings tools labels should not remain in FIXED_LABELS');
 
-  // tools object with delivery labels
-  assert.match(source, /tools: \{/);
-  assert.match(source, /delivery: 'Delivery'/);
-  assert.match(source, /noIntegrations:/);
-
-  // update label is Update
+  // update label is Update (workflowCommands subtree is retained)
   assert.match(source, /update: 'Update'/);
 
   // No old workflowFormats

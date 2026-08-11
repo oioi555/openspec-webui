@@ -3,7 +3,6 @@ import { toast } from 'svelte-sonner';
 import { getApiErrorMessage, getVersionStatus, refreshVersionStatus, type VersionStatusResponse } from '$lib/api';
 import { t } from '$lib/i18n';
 import * as m from '$lib/paraglide/messages.js';
-import { FIXED_LABELS } from '$lib/uiText';
 
 import {
   createVersionNotificationStoreWithAdapter,
@@ -46,8 +45,8 @@ export function createVersionStatusStore() {
 
   function getToolLabel(toolId: 'webui' | 'openspec') {
     return toolId === 'webui'
-      ? FIXED_LABELS.settings.versions.webui
-      : FIXED_LABELS.settings.versions.openspecCli;
+      ? t(m.settings_versions_webui_label)
+      : t(m.settings_versions_openspec_label);
   }
 
   function notifyIfNeeded(nextSnapshot: VersionStatusResponse) {

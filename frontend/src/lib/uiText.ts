@@ -1,7 +1,7 @@
 import * as m from './paraglide/messages.js';
 import type { SearchResult, ValidationItemType } from './types/api';
 import type { WorkflowCommand } from './types/commandTypes';
-import { getWorkflowLabel, getWorkflowMetadata } from './workflowMetadata';
+import { getWorkflowLabel, getWorkflowDescriptionMessageId } from './workflowMetadata';
 
 export const FIXED_LABELS = {
   appName: 'OpenSpec WebUI',
@@ -77,70 +77,6 @@ export const FIXED_LABELS = {
   emptyProject: {
     title: 'No Active Project',
     addProject: 'Add Project',
-  },
-  settings: {
-    title: 'Settings',
-    sections: {
-      general: 'General',
-      tools: 'Tools',
-      commands: 'Commands',
-      validation: 'Validation',
-      versions: 'Versions',
-    },
-    headings: {
-      language: 'Language',
-      theme: 'Theme',
-      explorer: 'Explorer',
-      tools: 'Tools & Integrations',
-      commands: 'Commands',
-      validation: 'Validation',
-      versions: 'Versions',
-      coreCommands: 'Core Commands',
-      expandedCommands: 'Expanded Commands',
-    },
-    themeOptions: {
-      light: 'Light',
-      dark: 'Dark',
-      system: 'System',
-    },
-    enablePreviewTabs: 'Enable preview tabs',
-    docs: {
-      opsxReference: 'OPSX Reference',
-      supportedTools: 'Supported Tools',
-      initCommand: 'openspec init reference',
-      commands: 'Commands',
-      workflows: 'Workflows',
-    },
-    tools: {
-      delivery: 'Delivery',
-      example: 'Example',
-      source: 'Detected',
-      commands: 'Commands',
-      skills: 'Skills',
-      both: 'Commands & Skills',
-      noIntegrations: 'No tool integrations detected. Copy commands are still available in all six official formats.',
-      refresh: 'Refresh',
-      refreshing: 'Refreshing…',
-    },
-    workspaceCommand: 'Workspace',
-    changeCommand: 'Change',
-    versions: {
-      webui: 'OpenSpec WebUI',
-      openspecCli: 'OpenSpec CLI',
-      current: 'Current',
-      latest: 'Latest',
-      status: 'Status',
-      updateCommand: 'Update Command',
-      projectCommand: 'Project Command',
-      releases: 'Releases',
-      projectsToUpdate: 'Projects to Update',
-      upToDate: 'Up to date',
-      updateAvailable: 'Update available',
-      unavailable: 'Unavailable',
-      unknown: 'Unknown',
-      notInstalled: 'Not installed',
-      afterUpdatingOpenSpec: 'After updating OpenSpec CLI',
-    },
   },
   workflowCommands: {
     propose: 'Propose',
@@ -267,7 +203,7 @@ export function getWorkflowCommandLabel(command: WorkflowCommand): string {
  * already provided by the surrounding `t(...)` calls in the same component.
  */
 export function getWorkflowCommandDescription(id: WorkflowCommand): string {
-  const messageId = getWorkflowMetadata(id).descriptionMessageId;
+  const messageId = getWorkflowDescriptionMessageId(id);
   if (!messageId) return '';
   const message = (m as unknown as Record<string, () => string>)[messageId];
   return message ? message() : '';
