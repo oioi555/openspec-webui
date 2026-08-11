@@ -74,14 +74,15 @@ function verifyTarballContents(packInfo, packageJson, packageLock) {
 }
 
 async function smokeTestInstalledCli(installDir, expectedVersion, configHome) {
+  const installedCli = join(installDir, 'node_modules', '.bin', packedBinName);
   const helpOutput = run(
-    npmCommand,
-    ['exec', '--prefix', installDir, 'openspec-webui', '--', '--help'],
+    installedCli,
+    ['--help'],
     { capture: true }
   ).stdout;
   const versionOutput = run(
-    npmCommand,
-    ['exec', '--prefix', installDir, 'openspec-webui', '--', '--version'],
+    installedCli,
+    ['--version'],
     { capture: true }
   ).stdout.trim();
 
@@ -90,8 +91,8 @@ async function smokeTestInstalledCli(installDir, expectedVersion, configHome) {
 
   await new Promise((resolve, reject) => {
     const child = spawn(
-      npmCommand,
-      ['exec', '--prefix', installDir, 'openspec-webui', '--', '--no-open', '--port', '0'],
+      installedCli,
+      ['--no-open', '--port', '0'],
       {
         cwd: repoRoot,
         env: { ...process.env, XDG_CONFIG_HOME: configHome },
