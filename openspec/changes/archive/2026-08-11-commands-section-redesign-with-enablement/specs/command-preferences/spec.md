@@ -1,19 +1,14 @@
-# command-preferences Specification
-
-## Purpose
-Settings for OpenSpec command visibility and preferences.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Two-column settings layout
-The settings dialog SHALL use a two-column layout with a left sidebar listing setting categories (General, Tools, Commands, Versions) and a right content area showing the selected category's settings. Selecting a category in the sidebar SHALL update the right content area without closing the dialog. The General category SHALL include both theme settings and preview-tab behavior settings. The Versions category SHALL show version and update information for OpenSpec WebUI and OpenSpec CLI. The Tools and Commands sections SHALL reuse shared OpenSpec documentation URL constants for their documentation links so those URLs remain consistent with other frontend surfaces. The Tools section SHALL be read-only: it SHALL explain how OpenSpec installs per-tool commands and skills, SHALL link to the official supported-tools documentation, SHALL link to the `openspec init` CLI reference, SHALL explain that per-repository integrations are added or removed by re-running `openspec init`, SHALL display the active repository path, SHALL expose a copyable `openspec init <active-repository-path>` command block that places the command on the clipboard without executing it, SHALL list the integrations detected for the active repository, and SHALL NOT include any command-format selection control. The Commands category SHALL render `sync` and `update` in the Core Commands group, SHALL NOT render `sync` or `update` in the Expanded Commands group, and SHALL NOT render `onboard` in either group, matching the OpenSpec v1.8 core profile command list.
+The settings dialog SHALL use a two-column layout with a left sidebar listing setting categories (General, Tools, Commands, Versions) and a right content area showing the selected category's settings. Selecting a category in the sidebar SHALL update the right content area without closing the dialog. The General category SHALL include both theme settings and preview-tab behavior settings. The Versions category SHALL show version and update information for OpenSpec WebUI and OpenSpec CLI. The Tools and Commands sections SHALL reuse shared OpenSpec documentation URL constants for their documentation links so those URLs remain consistent with other frontend surfaces. The Tools section SHALL be read-only: it SHALL explain how OpenSpec installs per-tool commands and skills, SHALL link to the official supported-tools documentation, SHALL explain that per-repository integrations are added or removed by re-running `openspec init`, SHALL list the integrations detected for the active repository, and SHALL NOT include any command-format selection control. The Commands category SHALL render `sync` and `update` in the Core Commands group, SHALL NOT render `sync` or `update` in the Expanded Commands group, and SHALL NOT render `onboard` in either group, matching the OpenSpec v1.8 core profile command list.
 
 The Commands category SHALL render, for each listed command, a one-line localized description of what the command does, sourced from the shared workflow metadata structure so the metadata remains the single source of truth. The Commands category SHALL include a refresh control in its section header that re-runs the same availability detection used by the Tools section. The Core Commands group and the Expanded Commands group are classifications only — the OpenSpec `core` profile is the default set, not a guarantee that those commands are present in any given installation — so both groups SHALL apply the same availability rule: a command is shown as toggleable only when the CLI-reported `workflows` list includes it. Each row SHALL render a checkbox matching the checkbox styling used by other Settings sections when the command is present in the CLI-reported `workflows` list, and SHALL render a circle-off icon in place of the checkbox when the command is absent from the `workflows` list (the operator cannot toggle it from this row while it remains absent). The Commands category SHALL NOT render a shared availability caption, a separate per-row unavailable marker, a per-row waiting status string, or any warning Callout whose trigger is "Expanded commands are unavailable" — the checkbox / circle-off pair is the single source of per-row availability truth. The Commands category SHALL NOT render an enablement guide whose trigger is the missing Expanded commands; instead it SHALL render, below the command groups and always visible, a single copyable command block for `openspec config profile` using the same code-plus-copy-button affordance used by the Tools and Versions sections, with a caption explaining that the command opens the interactive global workflow selector and that running `openspec update` in the project is required afterwards. Copying the command SHALL place it on the clipboard only; the section SHALL NOT execute any command from the browser. The existing visibility-toggle persistence behavior, documentation links paragraph, and availability/profile status indicator in the section header are preserved.
 
 #### Scenario: Reuse shared OpenSpec docs links in Settings
 - **WHEN** the Tools or Commands section renders OpenSpec documentation links in Settings
 - **THEN** those links reuse the shared OpenSpec docs URL constants
-- **AND** the Tools section links to the OpenSpec supported tools docs and the `openspec init` CLI reference
+- **AND** the Tools section links to the OpenSpec supported tools docs
 - **AND** the Commands section links to the OpenSpec commands and workflows docs
 
 #### Scenario: Tools section is read-only with no format selection
@@ -80,20 +75,3 @@ The Commands category SHALL render, for each listed command, a one-line localize
 - **WHEN** the Commands section header renders the availability/profile status indicator and availability detection reports a profile
 - **THEN** the indicator labels the profile as a global profile (e.g. "Global profile: custom"), not a local one
 - **AND** the wording is consistent with the section's other "global OpenSpec workflows" copy
-
-### Requirement: Retired command format preferences are migrated and ignored
-The system SHALL ignore any stored command-format preference when generating command text. The stored `format` field (with retired values `standard`, `claude-code`, or `skill`) and the legacy `aiTool` field (with retired values such as `default` or `claude-code`) SHALL NOT influence command generation. The system SHALL preserve the stored command visibility preferences alongside the retired fields, SHALL remove the retired `format` and `aiTool` fields from the stored preferences object on the next preferences write, and SHALL keep command generation fully functional when no format preference exists.
-
-#### Scenario: Stored format value is ignored after upgrade
-- **WHEN** localStorage contains a command preferences object whose `format` field is `claude-code`
-- **THEN** command generation does not use that stored format
-- **AND** the stored command visibility preferences continue to apply
-
-#### Scenario: Legacy aiTool value is ignored after upgrade
-- **WHEN** localStorage contains a legacy `aiTool` value such as `default` from a previous version
-- **THEN** command generation does not use that stored value
-
-#### Scenario: Retired fields are cleaned on next write
-- **WHEN** the system writes command preferences after a stored `format` or `aiTool` value was present
-- **THEN** the written preferences object no longer contains a `format` or `aiTool` field
-- **AND** the command visibility preferences are unchanged

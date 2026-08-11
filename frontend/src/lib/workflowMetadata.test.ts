@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import { ALL_COMMANDS, type WorkflowCommand } from './types/commandTypes';
 import {
   CHANGE_WORKFLOWS,
+  getWorkflowCommandDescription,
   getWorkflowLabel,
   getWorkflowMetadata,
   getWorkflowScope,
@@ -27,6 +28,25 @@ const OFFICIAL_SKILL_NAMES: Record<WorkflowCommand, string> = {
   verify: 'openspec-verify-change',
   'bulk-archive': 'openspec-bulk-archive-change',
 };
+
+const EXPECTED_DESCRIPTION_MESSAGE_IDS: Record<WorkflowCommand, string> = {
+  propose: 'settings_command_desc_propose',
+  explore: 'settings_command_desc_explore',
+  apply: 'settings_command_desc_apply',
+  archive: 'settings_command_desc_archive',
+  sync: 'settings_command_desc_sync',
+  update: 'settings_command_desc_update',
+  new: 'settings_command_desc_new',
+  continue: 'settings_command_desc_continue',
+  ff: 'settings_command_desc_ff',
+  verify: 'settings_command_desc_verify',
+  'bulk-archive': 'settings_command_desc_bulk_archive',
+};
+
+/** message ids use the command id with `-` translated to `_` (e.g. `bulk-archive` -> `settings_command_desc_bulk_archive`). */
+function expectedDescriptionMessageId(workflow: WorkflowCommand): string {
+  return `settings_command_desc_${workflow.replaceAll('-', '_')}`;
+}
 
 test('workflow metadata is complete for every surfaced workflow', () => {
   assert.deepEqual(Object.keys(WORKFLOW_METADATA).sort(), [...ALL_COMMANDS].sort());
@@ -91,4 +111,23 @@ test('onboard is absent from workflow metadata', () => {
   assert.equal(metadataKeys.includes('onboard'), false);
   assert.equal(listIds.includes('onboard' as WorkflowCommand), false);
   assert.equal((WORKFLOW_METADATA as Partial<Record<string, WorkflowMetadata>>).onboard, undefined);
+});
+
+test('every workflow carries a non-empty descriptionMessageId in the settings_command_desc_ namespace', () => {
+  for (const workflow of ALL_COMMANDS) {
+    const metadata: WorkflowMetadata = WORKFLOW_METADATA[workflow];
+    const messageId = metadata.descriptionMessageId;
+
+    assert.ok(messageId, `${workflow} should have a non-empty descriptionMessageId`);
+    assert.match(messageId!, /^settings_command_desc_/, `${workflow} message id should use the settings_command_desc_ namespace`);
+    assert.equal(messageId, expectedDescriptionMessageId(workflow));
+    assert.equal(messageId, EXPECTED_DESCRIPTION_MESSAGE_IDS[workflow]);
+  }
+});
+
+test('getWorkflowCommandDescription returns the pinned description message id for every workflow', () => {
+  for (const workflow of ALL_COMMANDS) {
+    assert.equal(getWorkflowCommandDescription(workflow), EXPECTED_DESCRIPTION_MESSAGE_IDS[workflow]);
+    assert.equal(getWorkflowCommandDescription(workflow), expectedDescriptionMessageId(workflow));
+  }
 });

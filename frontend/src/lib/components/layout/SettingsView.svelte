@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Copy, ExternalLink, FlaskConical, Info, ListChecks, Monitor, Moon, RefreshCw, Settings, Sun, Wrench } from '@lucide/svelte';
+  import { CircleOff, Copy, ExternalLink, FlaskConical, Info, ListChecks, Monitor, Moon, RefreshCw, Settings, Sun, Wrench } from '@lucide/svelte';
   import { buildProjectUpdateCommand, buildToolsInitCommand } from '$lib/state/projectVersionStatusCore';
   import { projectVersionStatusStore } from '$lib/state/projectVersionStatus.svelte.ts';
   import { Callout } from '$lib/components/shared/callout';
@@ -18,7 +18,7 @@
   import { projectStore } from '$lib/state/projects.svelte.ts';
   import { LOCALE_LABELS, localeStore, type AppLocale } from '$lib/state/locale.svelte.ts';
   import * as m from '$lib/paraglide/messages.js';
-  import { FIXED_LABELS, getWorkflowCommandLabel } from '$lib/uiText';
+  import { FIXED_LABELS, getWorkflowCommandDescription, getWorkflowCommandLabel } from '$lib/uiText';
   import { copyToClipboard } from '$lib/utils';
   import { versionStatusStore } from '$lib/state/versionStatus.svelte.ts';
   import { RELEASE_PAGE_URLS, UPDATE_COMMANDS, type VersionedToolId } from '$lib/state/versionStatusCore';
@@ -97,11 +97,6 @@
     if (!target.checked) {
       tabStore.confirmAllPreviewTabs();
     }
-  }
-
-  function toggleCommand(command: WorkflowCommand, event: Event) {
-    const target = event.currentTarget as HTMLInputElement;
-    commandPreferencesStore.setCommandVisibility(command, target.checked);
   }
 
   let validationConcurrencyInput = $state<string>(
@@ -536,41 +531,61 @@
           </p>
         </div>
 
-        <div class="text-right text-sm text-muted-foreground">
-          {#if commandPreferencesStore.availabilityLoading}
-            <div>{t(m.settings_commands_checking)}</div>
-          {:else if availabilityReady}
-            <div>{t(m.settings_commands_profile, { profile: commandPreferencesStore.availability.profile || t(m.settings_profile_unknown) })}</div>
-          {:else}
-            <div class="text-warning">{t(m.settings_commands_unavailable)}</div>
-          {/if}
+        <div class="flex shrink-0 flex-col items-end gap-2 pt-0.5">
+          <Button
+            variant="ghost"
+            size="icon"
+            class="size-8 text-muted-foreground hover:text-foreground"
+            disabled={commandPreferencesStore.availabilityLoading}
+            aria-label={commandPreferencesStore.availabilityLoading ? t(m.settings_commands_checking) : t(m.settings_commands_refresh_aria)}
+            onclick={() => commandPreferencesStore.refreshAvailability()}
+          >
+            <RefreshCw class={`h-4 w-4 ${commandPreferencesStore.availabilityLoading ? 'animate-spin' : ''}`} />
+          </Button>
+
+          <div class="text-right text-sm text-muted-foreground">
+            {#if commandPreferencesStore.availabilityLoading}
+              <div>{t(m.settings_commands_checking)}</div>
+            {:else if availabilityReady}
+              <div>{t(m.settings_commands_profile, { profile: commandPreferencesStore.availability.profile || t(m.settings_profile_unknown) })}</div>
+            {:else}
+              <div class="text-warning">{t(m.settings_commands_unavailable)}</div>
+            {/if}
+          </div>
         </div>
       </div>
       </SectionHeader>
 
       <div class="space-y-4 p-4">
+        {#snippet commandRow(command: WorkflowCommand)}
+          {@const isAvailable = availabilityReady && commandPreferencesStore.availability.workflows.includes(command)}
+          <div class="flex items-center justify-between gap-4 px-4 py-3 text-sm">
+            <div>
+              <div class="font-medium text-foreground">{getWorkflowCommandLabel(command)}</div>
+              <div class="mt-1 text-xs text-muted-foreground">{getWorkflowCommandDescription(command)}</div>
+            </div>
+
+            {#if !isAvailable}
+              <CircleOff class="h-4 w-4 shrink-0 text-muted-foreground" aria-label={t(m.settings_commands_icon_unavailable_aria)} />
+            {:else}
+              <input
+                type="checkbox"
+                checked={commandPreferencesStore.commandVisibility[command]}
+                disabled={commandPreferencesStore.availabilityLoading}
+                onchange={(event) => commandPreferencesStore.setCommandVisibility(command, (event.currentTarget as HTMLInputElement).checked)}
+              />
+            {/if}
+          </div>
+        {/snippet}
+
         <div class="space-y-2">
           <div>
             <h4 class="text-sm font-semibold text-foreground">{FIXED_LABELS.settings.headings.coreCommands}</h4>
-            <p class="mt-1 text-sm text-muted-foreground">{t(m.settings_core_commands_description)}</p>
           </div>
 
           <div class="divide-y divide-border overflow-hidden rounded-md border border-border bg-secondary/50">
             {#each CORE_COMMANDS as command}
-              <label class="flex items-center justify-between gap-4 px-4 py-3 text-sm">
-                <div>
-                  <div class="font-medium text-foreground">{getWorkflowCommandLabel(command)}</div>
-                  <div class="mt-1 text-xs text-muted-foreground">
-                    {t(m.settings_core_commands_always_available)}
-                  </div>
-                </div>
-
-                <input
-                  type="checkbox"
-                  checked={commandPreferencesStore.commandVisibility[command]}
-                  onchange={(event) => toggleCommand(command, event)}
-                />
-              </label>
+              {@render commandRow(command)}
             {/each}
           </div>
         </div>
@@ -587,36 +602,28 @@
         <div class="space-y-2">
           <div>
             <h4 class="text-sm font-semibold text-foreground">{FIXED_LABELS.settings.headings.expandedCommands}</h4>
-            <p class="mt-1 text-sm text-muted-foreground">{t(m.settings_expanded_commands_description)}</p>
           </div>
 
           <div class="divide-y divide-border overflow-hidden rounded-md border border-border bg-secondary/50">
             {#each EXPANDED_COMMANDS as command}
-              {@const isAvailable = availabilityReady && commandPreferencesStore.availability.workflows.includes(command)}
-              <label class="flex items-center justify-between gap-4 px-4 py-3 text-sm">
-                <div>
-                  <div class="font-medium text-foreground">{getWorkflowCommandLabel(command)}</div>
-                  <div class="mt-1 text-xs text-muted-foreground">
-                    {#if availabilityReady}
-                      {#if isAvailable}
-                        {t(m.settings_expanded_available)}
-                      {:else}
-                        {t(m.settings_expanded_unavailable)}
-                      {/if}
-                    {:else}
-                      {t(m.settings_expanded_waiting)}
-                    {/if}
-                  </div>
-                </div>
-
-                <input
-                  type="checkbox"
-                  checked={commandPreferencesStore.commandVisibility[command]}
-                  disabled={!availabilityReady || !isAvailable || commandPreferencesStore.availabilityLoading}
-                  onchange={(event) => toggleCommand(command, event)}
-                />
-              </label>
+              {@render commandRow(command)}
             {/each}
+          </div>
+        </div>
+
+        <div>
+          <div class="text-sm text-muted-foreground">{t(m.settings_commands_config_profile_caption)}</div>
+          <div class="mt-1 flex items-center gap-2 rounded-sm border border-border bg-background px-3 py-2">
+            <code class="min-w-0 flex-1 overflow-x-auto text-xs text-primary">openspec config profile</code>
+            <Button
+              variant="ghost"
+              size="icon"
+              class="size-8 shrink-0 text-muted-foreground hover:text-foreground"
+              aria-label={t(m.settings_commands_config_profile_aria)}
+              onclick={() => handleCopyCommand('openspec config profile', 'openspec config profile')}
+            >
+              <Copy class="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </div>

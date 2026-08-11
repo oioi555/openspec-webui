@@ -459,19 +459,177 @@ test('SettingsView.svelte Tools section shows empty state and keeps docs links a
   assert.match(toolsBlock, /settings_tools_refreshing/);
 });
 
-test('SettingsView.svelte Commands section uses availability.workflows for expanded gating', async () => {
+test('SettingsView.svelte Commands section gates every row on availability.workflows', async () => {
   const source = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
 
-  // Expanded commands use availability.workflows.includes instead of isExpandedCommandAvailable
+  // Every row computes isAvailable from the workflows list via availability.workflows.includes
   assert.match(source, /availability\.workflows\.includes\(command\)/);
   assert.match(source, /commandPreferencesStore\.availability\.workflows\.includes/);
+});
+
+test('SettingsView.svelte Commands section header has refresh button wired to refreshAvailability', async () => {
+  const source = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
+
+  const commandsStart = source.indexOf('id="settings-commands"');
+  const commandsEnd = source.indexOf('<!-- validation section -->', commandsStart);
+  assert.ok(commandsStart > 0, 'commands section should exist');
+  assert.ok(commandsEnd > commandsStart, 'validation section comment should follow commands section');
+  const commandsBlock = source.slice(commandsStart, commandsEnd);
+
+  // Refresh button inside the Commands SectionHeader calls refreshAvailability on click
+  assert.match(commandsBlock, /onclick=\{\(\) => commandPreferencesStore\.refreshAvailability\(\)\}/);
+
+  // aria-label uses the commands-specific refresh i18n message (and the checking message while loading)
+  assert.match(commandsBlock, /settings_commands_refresh_aria/);
+  assert.match(commandsBlock, /settings_commands_checking/);
+
+  // Button is disabled while the availability lookup is in-flight
+  assert.match(commandsBlock, /disabled=\{commandPreferencesStore\.availabilityLoading\}/);
+
+  // RefreshCw icon is present and spins while loading
+  assert.match(commandsBlock, /<RefreshCw/);
+  assert.match(commandsBlock, /commandPreferencesStore\.availabilityLoading \? 'animate-spin' : ''/);
+});
+
+test('SettingsView.svelte Commands section rows source descriptions from getWorkflowCommandDescription', async () => {
+  const source = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
+
+  // getWorkflowCommandDescription is imported from uiText
+  assert.match(
+    source,
+    /import \{ FIXED_LABELS, getWorkflowCommandDescription, getWorkflowCommandLabel \} from '\$lib\/uiText'/,
+  );
+
+  // The description is rendered inside the shared command-row snippet
+  assert.equal(
+    (source.match(/getWorkflowCommandDescription\(command\)/g) ?? []).length,
+    1,
+    'description should be rendered once inside the shared command-row snippet',
+  );
+
+  // Both Core and Expanded groups render their rows through the shared snippet
+  assert.equal(
+    (source.match(/\{@render commandRow\(command\)\}/g) ?? []).length,
+    2,
+    'both Core and Expanded groups should render rows via the shared command-row snippet',
+  );
+});
+
+test('SettingsView.svelte Commands section has no shared caption and no per-row status strings', async () => {
+  const source = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
+
+  const commandsStart = source.indexOf('id="settings-commands"');
+  const commandsEnd = source.indexOf('<!-- validation section -->', commandsStart);
+  assert.ok(commandsStart > 0, 'commands section should exist');
+  assert.ok(commandsEnd > commandsStart, 'validation section comment should follow commands section');
+  const commandsBlock = source.slice(commandsStart, commandsEnd);
+
+  // The shared availability caption is not rendered
+  assert.equal(source.includes('settings_commands_availability_caption'), false,
+    'the shared availability caption should be removed');
+
+  // The earlier per-group Core caption key is gone
+  assert.equal(source.includes('settings_commands_core_always_available_caption'), false,
+    'the per-group Core caption key should be removed');
+
+  // No per-row status strings or markers remain in the component
+  assert.equal(source.includes('settings_core_commands_always_available'), false,
+    'per-row core availability string should be removed');
+  assert.equal(source.includes('settings_expanded_available'), false,
+    'per-row expanded available status string should be removed');
+  assert.equal(source.includes('settings_expanded_unavailable'), false,
+    'per-row expanded unavailable status string should be removed');
+  assert.equal(source.includes('settings_expanded_waiting'), false,
+    'per-row waiting status string should be removed');
+  assert.equal(source.includes('settings_commands_expanded_unavailable_marker'), false,
+    'per-row unavailable marker should be removed');
+
+  // Core and Expanded rows share a single command-row snippet
+  assert.match(commandsBlock, /\{#snippet commandRow\(command: WorkflowCommand\)\}/);
+  assert.equal(
+    (commandsBlock.match(/\{@render commandRow\(command\)\}/g) ?? []).length,
+    2,
+    'both Core and Expanded groups should render rows via the shared snippet',
+  );
+});
+
+test('SettingsView.svelte Commands section rows show a checkbox or a circle-off icon based on workflows', async () => {
+  const source = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
+
+  const commandsStart = source.indexOf('id="settings-commands"');
+  const commandsEnd = source.indexOf('<!-- validation section -->', commandsStart);
+  assert.ok(commandsStart > 0, 'commands section should exist');
+  const commandsBlock = source.slice(commandsStart, commandsEnd);
+
+  // Check and Square are gone; CircleOff remains for unavailable rows
+  assert.match(source, /import \{ [^}]*CircleOff[^}]* \} from '@lucide\/svelte'/);
+  assert.equal(source.includes('import { Check'), false, 'Check should be removed from the lucide import');
+  assert.equal(source.includes('import { Square'), false, 'Square should be removed from the lucide import');
+
+  // Available rows render a normal checkbox toggling through the persistence path
+  assert.match(commandsBlock, /type="checkbox"/);
+  assert.match(commandsBlock, /checked=\{commandPreferencesStore\.commandVisibility\[command\]\}/);
+  assert.match(commandsBlock, /setCommandVisibility\(command, \(event\.currentTarget as HTMLInputElement\)\.checked\)/);
+
+  // The checkbox is disabled while loading
+  assert.match(commandsBlock, /disabled=\{commandPreferencesStore\.availabilityLoading\}/);
+
+  // Unavailable rows render the non-interactive circle-off icon with a localized aria
+  assert.match(commandsBlock, /<CircleOff class="h-4 w-4 shrink-0 text-muted-foreground"/);
+  assert.match(commandsBlock, /settings_commands_icon_unavailable_aria/);
+
+  // The three-state icon aria keys for enabled/disabled are gone
+  assert.equal(source.includes('settings_commands_icon_enabled_aria'), false,
+    'the enabled icon aria key should be removed');
+  assert.equal(source.includes('settings_commands_icon_disabled_aria'), false,
+    'the disabled icon aria key should be removed');
+});
+
+test('SettingsView.svelte Commands section shows an always-visible openspec config profile copy block and no enablement guide', async () => {
+  const source = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
+
+  const commandsStart = source.indexOf('id="settings-commands"');
+  const commandsEnd = source.indexOf('<!-- validation section -->', commandsStart);
+  assert.ok(commandsStart > 0, 'commands section should exist');
+  assert.ok(commandsEnd > commandsStart, 'validation section comment should follow commands section');
+  const commandsBlock = source.slice(commandsStart, commandsEnd);
+
+  // Copy-block caption and aria
+  assert.match(commandsBlock, /settings_commands_config_profile_caption/);
+  assert.match(commandsBlock, /settings_commands_config_profile_aria/);
+
+  // Code element carries the literal command
+  assert.match(
+    commandsBlock,
+    /<code class="min-w-0 flex-1 overflow-x-auto text-xs text-primary">openspec config profile<\/code>/,
+  );
+
+  // Copy button is wired to handleCopyCommand with the literal command
+  assert.match(
+    commandsBlock,
+    /onclick=\{\(\) => handleCopyCommand\('openspec config profile', 'openspec config profile'\)\}/,
+  );
+
+  // The earlier warning Callout enablement guide and its keys are gone
+  assert.equal(source.includes('settings_commands_expanded_enablement_heading'), false,
+    'the enablement guide heading key should be removed');
+  assert.equal(source.includes('settings_commands_expanded_enablement_body'), false,
+    'the enablement guide body key should be removed');
+  assert.equal(source.includes('settings_commands_expanded_enablement_step_config'), false,
+    'the enablement guide step-config key should be removed');
+  assert.equal(source.includes('settings_commands_expanded_enablement_step_update'), false,
+    'the enablement guide step-update key should be removed');
+  assert.equal(source.includes('settings_commands_expanded_enablement_refresh_hint'), false,
+    'the enablement guide refresh-hint key should be removed');
+  assert.equal(source.includes('allListedCommandsAvailable'), false,
+    'the guide-only derived variable should be removed');
 });
 
 test('uiText.ts delegates getWorkflowCommandLabel to workflowMetadata and has tools labels', async () => {
   const source = await readFile(new URL('../../uiText.ts', import.meta.url), 'utf8');
 
   // Delegates to workflowMetadata
-  assert.match(source, /import \{ getWorkflowLabel \} from '\.\/workflowMetadata'/);
+  assert.match(source, /import \{ getWorkflowLabel, getWorkflowMetadata \} from '\.\/workflowMetadata'/);
   assert.match(source, /return getWorkflowLabel\(command\)/);
 
   // tools section/heading labels

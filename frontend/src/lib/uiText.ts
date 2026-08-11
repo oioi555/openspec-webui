@@ -1,6 +1,7 @@
+import * as m from './paraglide/messages.js';
 import type { SearchResult, ValidationItemType } from './types/api';
 import type { WorkflowCommand } from './types/commandTypes';
-import { getWorkflowLabel } from './workflowMetadata';
+import { getWorkflowLabel, getWorkflowMetadata } from './workflowMetadata';
 
 export const FIXED_LABELS = {
   appName: 'OpenSpec WebUI',
@@ -252,6 +253,24 @@ export const FIXED_LABELS = {
 
 export function getWorkflowCommandLabel(command: WorkflowCommand): string {
   return getWorkflowLabel(command);
+}
+
+/**
+ * Localized one-line description for a workflow command, sourced from the
+ * `descriptionMessageId` on the workflow metadata (typed against the
+ * generated paraglide message ids). Falls back to '' when the metadata
+ * carries no description id or the message is unavailable.
+ *
+ * Note: `t()` from `./i18n` is intentionally not used here — it pulls in the
+ * Svelte-rune locale store, which breaks the node/tsx unit tests that import
+ * `FIXED_LABELS` from this module. In Svelte markup, locale reactivity is
+ * already provided by the surrounding `t(...)` calls in the same component.
+ */
+export function getWorkflowCommandDescription(id: WorkflowCommand): string {
+  const messageId = getWorkflowMetadata(id).descriptionMessageId;
+  if (!messageId) return '';
+  const message = (m as unknown as Record<string, () => string>)[messageId];
+  return message ? message() : '';
 }
 
 export function getSearchResultTypeLabel(type: SearchResult['type']): string {

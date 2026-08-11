@@ -189,3 +189,22 @@ test('translated tools section keeps `openspec init` in English', async () => {
     }
   }
 });
+
+test('translated commands section keeps CLI command tokens in English', async () => {
+  const settings = await readJson<{ locales: string[] }>('../../project.inlang/settings.json');
+
+  for (const locale of settings.locales.filter((candidate) => candidate !== 'en')) {
+    const messages = await readJson<Record<string, string>>(`../../messages/${locale}.json`);
+
+    assert.match(
+      messages.settings_commands_config_profile_caption,
+      /openspec update/,
+      `${locale}.settings_commands_config_profile_caption should keep openspec update in English`,
+    );
+    assert.match(
+      messages.settings_commands_config_profile_aria,
+      /openspec config profile/,
+      `${locale}.settings_commands_config_profile_aria should keep openspec config profile in English`,
+    );
+  }
+});

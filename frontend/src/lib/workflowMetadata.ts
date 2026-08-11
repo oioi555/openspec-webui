@@ -1,3 +1,4 @@
+import * as m from './paraglide/messages.js';
 import { ALL_COMMANDS, type WorkflowCommand } from './types/commandTypes';
 
 /**
@@ -29,23 +30,33 @@ export interface WorkflowMetadata {
   scope: WorkflowScope;
   /** Official OpenSpec generated skill name (e.g. `openspec-sync-specs`). */
   skillName: string;
+  /**
+   * Paraglide message id for the one-line command description shown in the
+   * Settings Commands section (e.g. `settings_command_desc_propose`).
+   *
+   * Typed against the generated paraglide message-id union so a stale or
+   * misspelled key fails the typecheck; the `settings_command_desc_*` keys
+   * live in `frontend/messages/*.json` and are regenerated into
+   * `frontend/src/lib/paraglide/` by `compileI18n()`.
+   */
+  descriptionMessageId?: keyof typeof m;
 }
 
 export const WORKSPACE_WORKFLOWS = ['propose', 'explore', 'new', 'bulk-archive'] as const satisfies readonly WorkflowCommand[];
 export const CHANGE_WORKFLOWS = ['apply', 'continue', 'ff', 'update', 'verify', 'sync', 'archive'] as const satisfies readonly WorkflowCommand[];
 
 const WORKFLOW_METADATA_BY_ID: Record<WorkflowCommand, WorkflowMetadata> = {
-  propose: { id: 'propose', label: 'Propose', scope: 'workspace', skillName: 'openspec-propose' },
-  explore: { id: 'explore', label: 'Explore', scope: 'workspace', skillName: 'openspec-explore' },
-  apply: { id: 'apply', label: 'Apply', scope: 'change', skillName: 'openspec-apply-change' },
-  archive: { id: 'archive', label: 'Archive', scope: 'change', skillName: 'openspec-archive-change' },
-  sync: { id: 'sync', label: 'Sync', scope: 'change', skillName: 'openspec-sync-specs' },
-  update: { id: 'update', label: 'Revise Plan', scope: 'change', skillName: 'openspec-update-change' },
-  new: { id: 'new', label: 'New', scope: 'workspace', skillName: 'openspec-new-change' },
-  continue: { id: 'continue', label: 'Continue', scope: 'change', skillName: 'openspec-continue-change' },
-  ff: { id: 'ff', label: 'Fast Forward', scope: 'change', skillName: 'openspec-ff-change' },
-  verify: { id: 'verify', label: 'Verify', scope: 'change', skillName: 'openspec-verify-change' },
-  'bulk-archive': { id: 'bulk-archive', label: 'Bulk Archive', scope: 'workspace', skillName: 'openspec-bulk-archive-change' },
+  propose: { id: 'propose', label: 'Propose', scope: 'workspace', skillName: 'openspec-propose', descriptionMessageId: 'settings_command_desc_propose' },
+  explore: { id: 'explore', label: 'Explore', scope: 'workspace', skillName: 'openspec-explore', descriptionMessageId: 'settings_command_desc_explore' },
+  apply: { id: 'apply', label: 'Apply', scope: 'change', skillName: 'openspec-apply-change', descriptionMessageId: 'settings_command_desc_apply' },
+  archive: { id: 'archive', label: 'Archive', scope: 'change', skillName: 'openspec-archive-change', descriptionMessageId: 'settings_command_desc_archive' },
+  sync: { id: 'sync', label: 'Sync', scope: 'change', skillName: 'openspec-sync-specs', descriptionMessageId: 'settings_command_desc_sync' },
+  update: { id: 'update', label: 'Revise Plan', scope: 'change', skillName: 'openspec-update-change', descriptionMessageId: 'settings_command_desc_update' },
+  new: { id: 'new', label: 'New', scope: 'workspace', skillName: 'openspec-new-change', descriptionMessageId: 'settings_command_desc_new' },
+  continue: { id: 'continue', label: 'Continue', scope: 'change', skillName: 'openspec-continue-change', descriptionMessageId: 'settings_command_desc_continue' },
+  ff: { id: 'ff', label: 'Fast Forward', scope: 'change', skillName: 'openspec-ff-change', descriptionMessageId: 'settings_command_desc_ff' },
+  verify: { id: 'verify', label: 'Verify', scope: 'change', skillName: 'openspec-verify-change', descriptionMessageId: 'settings_command_desc_verify' },
+  'bulk-archive': { id: 'bulk-archive', label: 'Bulk Archive', scope: 'workspace', skillName: 'openspec-bulk-archive-change', descriptionMessageId: 'settings_command_desc_bulk_archive' },
 };
 
 /** Every surfaced workflow, keyed by workflow id. There is intentionally no entry for the blocked setup workflow. */
@@ -70,4 +81,8 @@ export function getWorkflowScope(workflow: WorkflowCommand): WorkflowScope {
 
 export function getWorkflowSkillName(workflow: WorkflowCommand): string {
   return WORKFLOW_METADATA_BY_ID[workflow].skillName;
+}
+
+export function getWorkflowCommandDescription(workflow: WorkflowCommand): string | undefined {
+  return WORKFLOW_METADATA_BY_ID[workflow].descriptionMessageId;
 }
