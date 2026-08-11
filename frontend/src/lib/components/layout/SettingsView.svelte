@@ -422,6 +422,29 @@
           <div>
             <h2 class="text-lg font-semibold text-foreground">{FIXED_LABELS.settings.headings.tools}</h2>
             <p class="mt-1 text-sm text-muted-foreground">{t(m.settings_tools_description)}</p>
+            <p class="flex flex-wrap items-center gap-2 mt-1 text-sm text-muted-foreground">
+              <Info class="h-5 w-5 shrink-0 text-info" />
+              {t(m.docs_intro)}
+              <a
+                href={OPENSPEC_SUPPORTED_TOOLS_DOCS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center gap-1 underline hover:text-foreground"
+              >
+                {FIXED_LABELS.settings.docs.supportedTools}
+                <ExternalLink class="h-3.5 w-3.5" />
+              </a>
+              ·
+              <a
+                href={OPENSPEC_INIT_DOCS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center gap-1 underline hover:text-foreground"
+              >
+                {FIXED_LABELS.settings.docs.initCommand}
+                <ExternalLink class="h-3.5 w-3.5" />
+              </a>
+            </p>
           </div>
 
           <div class="flex shrink-0 items-center gap-2 pt-0.5">
@@ -440,30 +463,6 @@
       </SectionHeader>
 
       <div class="space-y-4 p-4">
-        <p class="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-          <Info class="h-5 w-5 shrink-0 text-info" />
-          {t(m.docs_intro)}
-          <a
-            href={OPENSPEC_SUPPORTED_TOOLS_DOCS_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            class="inline-flex items-center gap-1 underline hover:text-foreground"
-          >
-            {FIXED_LABELS.settings.docs.supportedTools}
-            <ExternalLink class="h-3.5 w-3.5" />
-          </a>
-          ·
-          <a
-            href={OPENSPEC_INIT_DOCS_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            class="inline-flex items-center gap-1 underline hover:text-foreground"
-          >
-            {FIXED_LABELS.settings.docs.initCommand}
-            <ExternalLink class="h-3.5 w-3.5" />
-          </a>
-        </p>
-
         {#if commandPreferencesStore.availabilityLoading && !availabilityReady}
           <Callout variant="info">
             {t(m.settings_commands_checking)}
@@ -526,8 +525,8 @@
           <p class="flex flex-wrap items-center gap-2 mt-1 text-sm text-muted-foreground">
             <Info class="h-5 w-5 shrink-0 text-info" />
             {t(m.docs_intro)}
-            <a href={OPENSPEC_COMMANDS_DOCS_URL} target="_blank" class="underline hover:text-foreground">{FIXED_LABELS.settings.docs.commands}</a> ·
-            <a href={OPENSPEC_WORKFLOWS_DOCS_URL} target="_blank" class="underline hover:text-foreground">{FIXED_LABELS.settings.docs.workflows}</a>
+            <a href={OPENSPEC_COMMANDS_DOCS_URL} target="_blank" class="inline-flex items-center gap-1 underline hover:text-foreground">{FIXED_LABELS.settings.docs.commands}<ExternalLink class="h-3.5 w-3.5" /></a> ·
+            <a href={OPENSPEC_WORKFLOWS_DOCS_URL} target="_blank" class="inline-flex items-center gap-1 underline hover:text-foreground">{FIXED_LABELS.settings.docs.workflows}<ExternalLink class="h-3.5 w-3.5" /></a>
           </p>
         </div>
 
@@ -829,12 +828,12 @@
           <div>
             <div class="text-xs uppercase tracking-wide text-muted-foreground">{FIXED_LABELS.settings.versions.projectsToUpdate}</div>
             {#if projectStore.projects.length > 0}
-              <ul class="mt-2 space-y-0.5">
+              <ul class="mt-2 divide-y divide-border overflow-hidden rounded-md border border-border bg-secondary/50">
                 {#each projectStore.projects as project (project.path)}
                   {@const entry = projectVersionSnapshot?.projects.find((p: { path: string }) => p.path === project.path)}
                   {@const status = entry?.status ?? 'unknown'}
                   {@const generationVersion = entry?.generationVersion ?? null}
-                  <li class="flex items-center gap-2 rounded-sm px-1 py-1 text-sm" title={project.path}>
+                  <li class="flex items-center gap-2 px-4 py-3 text-sm" title={project.path}>
                     <span class={`h-2 w-2 shrink-0 rounded-full ${getProjectStatusDotClass(status)}`} aria-hidden="true"></span>
                     <span class="min-w-0 flex-1 truncate text-foreground">{project.path}</span>
                     <span class="shrink-0 text-xs text-muted-foreground">
