@@ -5,7 +5,7 @@
 ## Requirements
 
 ### Requirement: Detect per-project OpenSpec generation version
-The system SHALL detect the OpenSpec generation version for each registered project by reading the version recorded in the frontmatter of an OpenSpec-generated skill file (`metadata.generatedBy`) within that project. Detection SHALL be read-only and SHALL NOT modify, create, or delete any file in the project. Detection SHALL scan the standard skill directories that OpenSpec generates for representative AI tools, including the shared `.agents/skills` root used by Codex and vendor-neutral agent skills.
+The system SHALL detect the OpenSpec generation version for each registered project by reading the version recorded in the frontmatter of an OpenSpec-generated skill file (`metadata.generatedBy`) within that project. Detection SHALL be read-only and SHALL NOT modify, create, or delete any file in the project. Detection SHALL scan the standard skill directories that OpenSpec generates for representative AI tools, including the shared `.agents/skills` root used by Codex and vendor-neutral agent skills and the `.commandcode/skills` root used by Command Code.
 
 #### Scenario: Generation version is readable from a skill file
 - **WHEN** a registered project contains an OpenSpec-generated skill file
@@ -14,6 +14,11 @@ The system SHALL detect the OpenSpec generation version for each registered proj
 
 #### Scenario: Generation version is readable from the shared agents skill root
 - **WHEN** a registered project's only OpenSpec-generated skill file is under `.agents/skills`
+- **AND** that file's frontmatter records a version in `metadata.generatedBy`
+- **THEN** the system reports that recorded version as the project's generation version
+
+#### Scenario: Generation version is readable from the Command Code skill root
+- **WHEN** a registered project's only OpenSpec-generated skill file is under `.commandcode/skills`
 - **AND** that file's frontmatter records a version in `metadata.generatedBy`
 - **THEN** the system reports that recorded version as the project's generation version
 

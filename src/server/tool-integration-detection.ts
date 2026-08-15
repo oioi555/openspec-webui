@@ -159,6 +159,7 @@ const TOOL_SIGNATURES: readonly ToolSpec[] = [
   // --- opsx-dash (filename `opsx-<id>.*` command files) ---
   ['Auggie', [['.augment/commands', 'filename', 'opsx-dash']], [['.augment/skills', 'skill-slash']]],
   ['Bob Shell', [['.bob/commands', 'filename', 'opsx-dash']], [['.bob/skills', 'skill-slash']]],
+  ['Command Code', [['.commandcode/commands', 'filename', 'opsx-dash']], [['.commandcode/skills', 'skill-slash']]],
   ['Cursor', [['.cursor/commands', 'filename', 'opsx-dash']], [['.cursor/skills', 'skill-slash']]],
   ['Factory Droid', [['.factory/commands', 'filename', 'opsx-dash']], [['.factory/skills', 'skill-slash']]],
   ['iFlow', [['.iflow/commands', 'filename', 'opsx-dash']], [['.iflow/skills', 'skill-slash']]],

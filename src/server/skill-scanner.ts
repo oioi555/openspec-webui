@@ -12,6 +12,7 @@ import { parseDocument } from 'yaml';
  * same one catalogued in tool-integration-detection.ts); `.github/copilot/skills`
  * is retained as a compatibility fallback for tooling that uses the older path.
  * `.agents/skills` is the shared root used by Codex and vendor-neutral agents.
+ * `.commandcode/skills` is appended so existing roots retain scan precedence.
  */
 export const SKILL_ROOTS: readonly string[] = [
   '.claude/skills',
@@ -19,6 +20,7 @@ export const SKILL_ROOTS: readonly string[] = [
   '.github/skills',
   '.github/copilot/skills',
   '.agents/skills',
+  '.commandcode/skills',
 ];
 
 export const SKILL_FILE_NAME = 'SKILL.md';

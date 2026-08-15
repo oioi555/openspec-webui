@@ -84,6 +84,40 @@ test('derives normalized workflow ids for filename-shaped command files', async 
   });
 });
 
+test('detects Command Code commands and skills with their documented forms', async () => {
+  const root = await makeProjectRoot();
+  await write(root, '.commandcode/commands/opsx-propose.md');
+  await write(root, '.commandcode/commands/opsx-verify.md');
+  await write(root, '.commandcode/skills/openspec-apply-change/SKILL.md', '# openspec-apply-change');
+
+  const integrations = await detectToolIntegrations(root);
+  assert.deepEqual(integrations, [
+    {
+      tool: 'Command Code',
+      delivery: 'both',
+      form: 'opsx-dash',
+      example: '/opsx-propose',
+      source: '.commandcode/commands/opsx-propose.md',
+      commands: {
+        form: 'opsx-dash',
+        items: [
+          { workflowId: 'propose', source: '.commandcode/commands/opsx-propose.md' },
+          { workflowId: 'verify', source: '.commandcode/commands/opsx-verify.md' },
+        ],
+      },
+      skills: {
+        form: 'skill-slash',
+        items: [
+          {
+            skillName: 'openspec-apply-change',
+            source: '.commandcode/skills/openspec-apply-change/SKILL.md',
+          },
+        ],
+      },
+    },
+  ]);
+});
+
 test('detects prompts and workflows directory variants with the dash form', async () => {
   const root = await makeProjectRoot();
   await write(root, '.github/prompts/opsx-propose.md');
@@ -458,6 +492,7 @@ test('getSupportedToolOptions catalog includes representative official tools', (
     'Qoder',
     'Auggie',
     'Bob Shell',
+    'Command Code',
     'Cursor',
     'Factory Droid',
     'iFlow',
