@@ -58,6 +58,13 @@ test('detects the generation version from the standard .github/skills root', asy
   assert.equal(await detectProjectGenerationVersion(root), '1.8.0');
 });
 
+test('detects the generation version when only the shared .agents/skills root exists', async () => {
+  const root = await makeProjectRoot();
+  await write(root, '.agents/skills/openspec-propose/SKILL.md', skillMarkdown('1.9.0'));
+
+  assert.equal(await detectProjectGenerationVersion(root), '1.9.0');
+});
+
 test('prefers the standard .github/skills root over the .github/copilot/skills fallback', async () => {
   const root = await makeProjectRoot();
   await write(root, '.github/skills/openspec-propose/SKILL.md', skillMarkdown('1.8.0'));
@@ -181,6 +188,7 @@ test('detection does not modify, create, or delete any project file', async () =
   await write(root, '.opencode/skills/openspec-propose/SKILL.md', skillMarkdown('1.8.0'));
   await write(root, '.github/skills/openspec-propose/SKILL.md', skillMarkdown('1.8.0'));
   await write(root, '.github/copilot/skills/openspec-propose/SKILL.md', skillMarkdown('1.8.0'));
+  await write(root, '.agents/skills/openspec-propose/SKILL.md', skillMarkdown('1.8.0'));
   await write(root, 'openspec/config.yaml', 'schema: spec-driven');
   await write(root, 'README.md', '# Demo project');
   // Empty directories must survive detection too.

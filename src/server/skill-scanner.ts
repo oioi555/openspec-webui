@@ -11,12 +11,14 @@ import { parseDocument } from 'yaml';
  * `.github/skills` is the repository-standard GitHub Copilot skill root (the
  * same one catalogued in tool-integration-detection.ts); `.github/copilot/skills`
  * is retained as a compatibility fallback for tooling that uses the older path.
+ * `.agents/skills` is the shared root used by Codex and vendor-neutral agents.
  */
 export const SKILL_ROOTS: readonly string[] = [
   '.claude/skills',
   '.opencode/skills',
   '.github/skills',
   '.github/copilot/skills',
+  '.agents/skills',
 ];
 
 export const SKILL_FILE_NAME = 'SKILL.md';
