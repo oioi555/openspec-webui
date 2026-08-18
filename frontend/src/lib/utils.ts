@@ -40,6 +40,14 @@ export function formatChangeName(name: string): string {
   return name.replace(/^\d{4}-\d{2}-\d{2}-/, '');
 }
 
+export function matchesArchivedChangeName(changeName: string, archivedChangeName: string): boolean {
+  return archivedChangeName === changeName || formatChangeName(archivedChangeName) === changeName;
+}
+
+export function isArchivedChangeName(changeName: string, archivedChangeNames: readonly string[]): boolean {
+  return archivedChangeNames.some((archivedName) => matchesArchivedChangeName(changeName, archivedName));
+}
+
 function padDatePart(value: number): string {
   return value.toString().padStart(2, '0');
 }

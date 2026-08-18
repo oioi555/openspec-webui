@@ -6,7 +6,7 @@
   import * as m from '$lib/paraglide/messages.js';
   import { tabStore, type TabType } from '$lib/state/tabs.svelte.ts';
   import { archivedChanges } from '$lib/state/appData.svelte.ts';
-  import { formatChangeName } from '$lib/utils.ts';
+  import { formatChangeName, isArchivedChangeName } from '$lib/utils.ts';
   import { toast } from 'svelte-sonner';
   import { FIXED_LABELS, getPinnedTabAriaLabel, getPreviewTabAriaLabel, getRegularTabAriaLabel } from '$lib/uiText';
   import { getEntityVisual, type IconComponent } from '$lib/visualSemantics';
@@ -23,9 +23,11 @@
     color: getEntityVisual('archived-change').iconClass,
   };
 
-  function getTabIcon(tab: { type: string; name: string }) {
+  let archivedChangeNames = $derived(archivedChanges.value.map((change) => change.name));
+
+  function getTabIcon(tab: { type: string; name: string }, archivedNames: readonly string[]) {
     if (tab.type === 'change') {
-      const isArchived = archivedChanges.value.some((c) => c.name === tab.name);
+      const isArchived = isArchivedChangeName(tab.name, archivedNames);
       return isArchived ? ARCHIVED_CHANGE_ICON : TAB_ICONS.change;
     }
     return TAB_ICONS[tab.type as TabType] ?? TAB_ICONS.dashboard;
@@ -121,7 +123,7 @@
     -->
     <div class="flex min-w-full h-12 items-end pl-2" role="tablist">
       {#each tabStore.tabs as tab, index (tab.id)}
-        {@const iconDef = getTabIcon(tab)}
+        {@const iconDef = getTabIcon(tab, archivedChangeNames)}
         {@const isActive = tabStore.activeTabId === tab.id}
         {@const isHome = isHomeTab(tab)}
         {@const isPinned = tab.pinned ?? false}

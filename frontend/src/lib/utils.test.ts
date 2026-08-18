@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { copyToClipboard, formatChangeName, formatDate } from './utils';
+import {
+  copyToClipboard,
+  formatChangeName,
+  formatDate,
+  isArchivedChangeName,
+  matchesArchivedChangeName,
+} from './utils';
 
 test('formatChangeName removes archived change date prefixes', () => {
   assert.equal(formatChangeName('2026-04-10-refactor-tabbar-vscode-style'), 'refactor-tabbar-vscode-style');
@@ -13,6 +19,33 @@ test('formatChangeName leaves active change names unchanged', () => {
 
 test('formatChangeName only removes a leading archive date prefix', () => {
   assert.equal(formatChangeName('refactor-2026-04-10-tabbar'), 'refactor-2026-04-10-tabbar');
+});
+
+test('matchesArchivedChangeName accepts exact archived names', () => {
+  assert.equal(matchesArchivedChangeName('2026-04-10-fix-tab-icon', '2026-04-10-fix-tab-icon'), true);
+});
+
+test('matchesArchivedChangeName accepts a date-prefixed archive of an original name', () => {
+  assert.equal(matchesArchivedChangeName('fix-tab-icon', '2026-04-10-fix-tab-icon'), true);
+});
+
+test('matchesArchivedChangeName rejects unrelated archive names', () => {
+  assert.equal(matchesArchivedChangeName('fix-tab-icon', '2026-04-10-fix-activity-bar'), false);
+});
+
+test('matchesArchivedChangeName preserves date-like prefixes in original names', () => {
+  assert.equal(
+    matchesArchivedChangeName('2025-12-01-fix-tab-icon', '2026-04-10-2025-12-01-fix-tab-icon'),
+    true,
+  );
+  assert.equal(matchesArchivedChangeName('fix-tab-icon', '2026-04-10-2025-12-01-fix-tab-icon'), false);
+});
+
+test('isArchivedChangeName follows refreshed archive names for an open original-name tab', () => {
+  const changeName = 'fix-tab-icon';
+
+  assert.equal(isArchivedChangeName(changeName, []), false);
+  assert.equal(isArchivedChangeName(changeName, ['2026-04-10-fix-tab-icon']), true);
 });
 
 test('formatDate returns canonical local text for valid ISO strings', () => {

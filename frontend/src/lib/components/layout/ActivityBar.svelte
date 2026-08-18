@@ -1,7 +1,6 @@
 <script lang="ts">
   import { Archive, FileText, FlaskConical, LayoutDashboard, PanelLeftClose, PanelLeftOpen, Search, Settings } from '@lucide/svelte';
   import * as Tooltip from '$lib/components/ui/tooltip';
-  import { decodeName } from '$lib/utils';
   import { archivedChanges, project } from '$lib/state/appData.svelte.ts';
   import { projectStore } from '$lib/state/projects.svelte.ts';
   import { layoutStore, type ActivityPreset } from '$lib/state/layout.svelte.ts';
@@ -13,41 +12,25 @@
   import * as m from '$lib/paraglide/messages.js';
   import { FIXED_LABELS } from '$lib/uiText';
   import {
+    activitySectionFromPath,
     isActivityBarExplorerOpen,
     shouldToggleCurrentPreset,
     type ActivityBarActiveSection,
   } from './activityBarController';
 
-  function sectionFromPath(path: string): ActivityPreset {
-    if (path === '/specs' || path.startsWith('/specs/')) {
-      return 'specs';
-    }
-
-    if (path === '/changes') {
-      return 'archive';
-    }
-
-    if (path.startsWith('/changes/')) {
-      const changeName = decodeName(path.slice('/changes/'.length));
-      return archivedChanges.value.some((change) => change.name === changeName) ? 'archive' : 'home';
-    }
-
-    return 'home';
-  }
-
   let lastSyncedContext = $state('');
 
   $effect(() => {
     const path = tabStore.activeTab.path;
-    const archivedNames = archivedChanges.value.map((change) => change.name).join('\u0000');
-    const syncContext = `${path}::${archivedNames}`;
+    const archivedChangeNames = archivedChanges.value.map((change) => change.name);
+    const syncContext = `${path}::${archivedChangeNames.join('\u0000')}`;
 
     if (syncContext === lastSyncedContext) {
       return;
     }
 
     lastSyncedContext = syncContext;
-    layoutStore.syncActivityPreset(sectionFromPath(path));
+    layoutStore.syncActivityPreset(activitySectionFromPath(path, archivedChangeNames));
   });
 
   let activeSection = $derived.by((): ActivityBarActiveSection => {

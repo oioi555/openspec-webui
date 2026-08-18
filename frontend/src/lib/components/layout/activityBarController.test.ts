@@ -2,7 +2,18 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 
-import { isActivityBarExplorerOpen, shouldToggleCurrentPreset } from './activityBarController';
+import {
+  activitySectionFromPath,
+  isActivityBarExplorerOpen,
+  shouldToggleCurrentPreset,
+} from './activityBarController';
+
+test('activity section follows an open original-name Change into the archive', () => {
+  const path = '/changes/fix-tab-icon';
+
+  assert.equal(activitySectionFromPath(path, []), 'home');
+  assert.equal(activitySectionFromPath(path, ['2026-04-10-fix-tab-icon']), 'archive');
+});
 
 test('same-section clicks only toggle when the explorer surface is currently open', () => {
   assert.equal(

@@ -1,6 +1,24 @@
 import type { ActivityPreset, ResponsiveMode } from '../../state/layout.svelte.ts';
+import { decodeName, isArchivedChangeName } from '../../utils';
 
 export type ActivityBarActiveSection = ActivityPreset | 'settings';
+
+export function activitySectionFromPath(path: string, archivedChangeNames: readonly string[]): ActivityPreset {
+  if (path === '/specs' || path.startsWith('/specs/')) {
+    return 'specs';
+  }
+
+  if (path === '/changes') {
+    return 'archive';
+  }
+
+  if (path.startsWith('/changes/')) {
+    const changeName = decodeName(path.slice('/changes/'.length));
+    return isArchivedChangeName(changeName, archivedChangeNames) ? 'archive' : 'home';
+  }
+
+  return 'home';
+}
 
 interface ExplorerVisibilityContext {
   hasActiveProject: boolean;
