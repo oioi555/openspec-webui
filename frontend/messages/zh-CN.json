@@ -67,7 +67,6 @@
   "settings_docs_workflows": "工作流",
   "settings_language_description": "选择应用界面的显示语言。",
   "settings_language_display_heading": "WebUI 显示语言",
-  "settings_language_independence": "此设置只会更改 OpenSpec WebUI。它不会编辑活动项目的 `openspec/config.yaml`，也不会决定生成产物的语言。",
   "settings_language_artifact_heading": "OpenSpec 产物语言",
   "settings_language_artifact_description": "产物语言在每个 OpenSpec 项目的 context 中单独配置。",
   "settings_language_existing_project": "对于现有项目，请在 `openspec/config.yaml` 的 `context` 中添加语言指引。",

@@ -67,7 +67,6 @@
   "settings_docs_workflows": "Workflows",
   "settings_language_description": "Wähle die Sprache der Benutzeroberfläche.",
   "settings_language_display_heading": "Anzeigesprache der WebUI",
-  "settings_language_independence": "Dies ändert nur OpenSpec WebUI. Es bearbeitet weder `openspec/config.yaml` des aktiven Projekts noch bestimmt es die Sprache erzeugter Artefakte.",
   "settings_language_artifact_heading": "Sprache der OpenSpec-Artefakte",
   "settings_language_artifact_description": "Die Artefaktsprache wird separat im Kontext jedes OpenSpec-Projekts konfiguriert.",
   "settings_language_existing_project": "Füge bei einem bestehenden Projekt Sprachhinweise zu `context` in `openspec/config.yaml` hinzu.",

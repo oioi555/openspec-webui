@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CircleOff, Copy, ExternalLink, FlaskConical, Info, Languages, ListChecks, Monitor, Moon, Network, RefreshCw, Settings, Sun, Wrench } from '@lucide/svelte';
+  import { CircleHelp, CircleOff, Copy, ExternalLink, FlaskConical, Info, Languages, ListChecks, Monitor, Moon, Network, RefreshCw, Settings, Sun, Wrench } from '@lucide/svelte';
   import { getApiErrorMessage, getToolCompatibilityReference } from '$lib/api';
   import { buildProjectUpdateCommand, buildToolsInitCommand } from '$lib/state/projectVersionStatusCore';
   import { projectVersionStatusStore } from '$lib/state/projectVersionStatus.svelte.ts';
@@ -10,6 +10,7 @@
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
   import * as Select from '$lib/components/ui/select';
+  import * as Tooltip from '$lib/components/ui/tooltip';
   import { t } from '$lib/i18n';
   import {
     OPENSPEC_COMMANDS_DOCS_URL,
@@ -444,43 +445,59 @@
     <SurfaceCard id="settings-language" data-settings-section="language">
       <SectionHeader>
         <h2 class="text-lg font-semibold text-foreground">{t(m.settings_section_language)}</h2>
+        <p class="flex flex-wrap items-center gap-2 mt-1 text-sm text-muted-foreground">
+          <Info class="h-5 w-5 shrink-0 text-info" />
+          {t(m.docs_intro)}
+          <a
+            href={OPENSPEC_MULTI_LANGUAGE_DOCS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-1 underline hover:text-foreground"
+          >
+            {t(m.settings_language_docs)}
+            <ExternalLink class="h-3.5 w-3.5" />
+          </a>
+        </p>
       </SectionHeader>
 
       <div class="space-y-6 p-4">
         <div class="space-y-3">
           <div>
-            <h3 class="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{t(m.settings_language_display_heading)}</h3>
+            <div class="flex items-center justify-between gap-4">
+              <h3 class="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{t(m.settings_language_display_heading)}</h3>
+              <Select.Root value={localeStore.value} onValueChange={(value) => setLocale(value as AppLocale)}>
+                <Select.Trigger class="w-full sm:w-64" aria-label={t(m.settings_language_display_heading)}>
+                  {LOCALE_LABELS[localeStore.value]}
+                </Select.Trigger>
+                <Select.Content>
+                  {#each localeStore.supportedLocales as locale}
+                    <Select.Item value={locale}>{LOCALE_LABELS[locale]}</Select.Item>
+                  {/each}
+                </Select.Content>
+              </Select.Root>
+            </div>
             <p class="mt-1 text-sm text-muted-foreground">{t(m.settings_language_description)}</p>
           </div>
-          <Select.Root value={localeStore.value} onValueChange={(value) => setLocale(value as AppLocale)}>
-            <Select.Trigger class="w-full sm:w-64" aria-label={t(m.settings_language_display_heading)}>
-              {LOCALE_LABELS[localeStore.value]}
-            </Select.Trigger>
-            <Select.Content>
-              {#each localeStore.supportedLocales as locale}
-                <Select.Item value={locale}>{LOCALE_LABELS[locale]}</Select.Item>
-              {/each}
-            </Select.Content>
-          </Select.Root>
-          <Callout variant="info">{t(m.settings_language_independence)}</Callout>
         </div>
 
         <div class="space-y-3 border-t border-border pt-5">
           <div>
-            <h3 class="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{t(m.settings_language_artifact_heading)}</h3>
+            <div class="flex items-center gap-1.5">
+              <h3 class="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{t(m.settings_language_artifact_heading)}</h3>
+              <Tooltip.Root>
+                <Tooltip.Trigger class="text-muted-foreground hover:text-foreground" aria-label={t(m.settings_language_artifact_heading)}>
+                  <CircleHelp class="h-4 w-4" />
+                </Tooltip.Trigger>
+                <Tooltip.Content class="max-w-xs">
+                  <div class="space-y-1 text-xs">
+                    <p>{t(m.settings_language_existing_project)}</p>
+                    <p>{t(m.settings_language_structural_keywords)}</p>
+                  </div>
+                </Tooltip.Content>
+              </Tooltip.Root>
+            </div>
             <p class="mt-1 text-sm text-muted-foreground">{t(m.settings_language_artifact_description)}</p>
           </div>
-          <p class="text-sm text-muted-foreground">{t(m.settings_language_existing_project)}</p>
-          <p class="text-sm text-muted-foreground">{t(m.settings_language_structural_keywords)}</p>
-          <a
-            href={OPENSPEC_MULTI_LANGUAGE_DOCS_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            class="inline-flex items-center gap-1 text-sm underline hover:text-foreground"
-          >
-            {t(m.settings_language_docs)}
-            <ExternalLink class="h-3.5 w-3.5" />
-          </a>
         </div>
 
         <div>

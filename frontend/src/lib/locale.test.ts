@@ -36,7 +36,6 @@ const TOOLS_COMMAND_KEYS = [
 const LANGUAGE_AND_ZED_KEYS = [
   'settings_section_language',
   'settings_language_display_heading',
-  'settings_language_independence',
   'settings_language_artifact_heading',
   'settings_language_artifact_description',
   'settings_language_existing_project',
@@ -293,7 +292,6 @@ test('every locale has complete Language and Zed copy with fixed OpenSpec tokens
       assert.notEqual(messages[key].trim(), '', `${locale} has empty ${key}`);
     }
 
-    assert.match(messages.settings_language_independence, /openspec\/config\.yaml/);
     assert.match(messages.settings_language_existing_project, /`context`/);
     assert.match(messages.settings_language_existing_project, /openspec\/config\.yaml/);
     assert.match(messages.settings_language_structural_keywords, /`SHALL`/);

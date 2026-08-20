@@ -312,14 +312,21 @@ test('SettingsView renders an independent Language section with guidance before 
   assert.equal(generalBlock.includes('<Select.Root'), false, 'General must not contain the locale selector');
   assert.match(languageBlock, /<Select\.Root value=\{localeStore\.value\}/);
   assert.match(languageBlock, /OPENSPEC_MULTI_LANGUAGE_DOCS_URL/);
+  assert.match(languageBlock, /settings_language_description/);
+  assert.match(languageBlock, /settings_language_artifact_description/);
   assert.match(languageBlock, /settings_language_existing_project/);
   assert.match(languageBlock, /settings_language_structural_keywords/);
+  // New structure: docs link lives in the section header, the display row is
+  // right-aligned, and the artifact guidance lives in a help tooltip.
+  assert.match(languageBlock, /<Tooltip\.Root>/);
+  assert.match(languageBlock, /flex items-center justify-between gap-4/);
+  assert.match(languageBlock, /<CircleHelp class="h-4 w-4" \/>/);
 
+  const docs = languageBlock.indexOf('settings_language_docs');
   const display = languageBlock.indexOf('settings_language_display_heading');
   const artifact = languageBlock.indexOf('settings_language_artifact_heading');
-  const docs = languageBlock.indexOf('settings_language_docs');
   const command = languageBlock.indexOf('settings_language_new_project_caption');
-  assert.ok(display < artifact && artifact < docs && docs < command);
+  assert.ok(docs < display && display < artifact && artifact < command, 'docs link precedes display row, then artifact, then command');
 });
 
 test('Language command is locale-derived and copy-only', async () => {
@@ -341,11 +348,7 @@ test('Japanese Language section renders complete guidance and the Japanese CLI e
   const keys = [
     'settings_section_language',
     'settings_language_display_heading',
-    'settings_language_independence',
     'settings_language_artifact_heading',
-    'settings_language_artifact_description',
-    'settings_language_existing_project',
-    'settings_language_structural_keywords',
     'settings_language_docs',
     'settings_language_new_project_caption',
     'settings_language_command_aria',
@@ -354,6 +357,13 @@ test('Japanese Language section renders complete guidance and the Japanese CLI e
   for (const key of keys) {
     assert.ok(body.includes(catalog[key]), `ja render should contain ${key}`);
   }
+  // The one-line descriptions are visible in the body; the two artifact detail
+  // sentences live inside a tooltip that is not open during SSR, so they are
+  // not part of the render.
+  assert.ok(body.includes(catalog.settings_language_description));
+  assert.ok(body.includes(catalog.settings_language_artifact_description));
+  assert.equal(body.includes(catalog.settings_language_existing_project), false);
+  assert.equal(body.includes(catalog.settings_language_structural_keywords), false);
   assert.ok(body.includes('openspec init --language'));
   assert.ok(body.includes('Japanese'));
 });
