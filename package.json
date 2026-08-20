@@ -48,25 +48,25 @@
     "@fastify/websocket": "^11.3.0",
     "chokidar": "^5.0.0",
     "commander": "^15.0.0",
-    "fastify": "^5.12.0",
+    "fastify": "^5.12.1",
     "open": "^11.0.1",
     "yaml": "^2.9.0"
   },
   "devDependencies": {
     "@inlang/paraglide-js": "^2.24.1",
     "@inlang/plugin-message-format": "^4.4.3",
-    "@lucide/svelte": "^1.31.0",
+    "@lucide/svelte": "^1.33.0",
     "@sveltejs/vite-plugin-svelte": "^7.3.0",
     "@tailwindcss/typography": "^0.5.20",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26.2.0",
     "@types/ws": "^8.18.1",
-    "bits-ui": "^2.18.1",
+    "bits-ui": "^2.19.0",
     "clsx": "^2.1.1",
     "generate-license-file": "^4.2.1",
-    "marked": "^18.0.9",
+    "marked": "^18.0.10",
     "shadcn-svelte": "^1.5.0",
-    "svelte": "^5.56.9",
+    "svelte": "^5.56.10",
     "svelte-check": "^4.7.6",
     "svelte-sonner": "^1.2.1",
     "tailwind-merge": "^3.6.0",
@@ -74,6 +74,6 @@
     "tailwindcss-animate": "^1.0.7",
     "tsx": "^4.23.12",
     "typescript": "^6.0.3",
-    "vite": "^8.2.1"
+    "vite": "^8.2.2"
   }
 }
