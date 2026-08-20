@@ -30,8 +30,8 @@ OpenSpec WebUI is a local browser interface for projects that use OpenSpec. Your
 
 ### Work with AI coding tools
 
-- Copy context-aware next commands for the current workflow state
-- Switch between command formats for OpenSpec-supported AI coding tools
+- Automatically detect configured AI tools for the active repository and surface the optimal next command per tool — use any of your configured tools selectively
+- Copy context-aware next commands for the current workflow state (e.g. `/openspec-apply-change` vs `$openspec-apply-change` resolved per detected tool)
 - Copy selected text as attributed Markdown quotes for AI prompts
 
 ### Other
