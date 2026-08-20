@@ -1,5 +1,16 @@
 import type { InvocationFormId } from './commandTypes';
 
+export type {
+  OpenSpecToolDefinition,
+  OpenSpecToolDefinitionSource,
+  OpenSpecToolDeliveryDefinition,
+  SharedSkillsAccessMode,
+  SharedSkillsCompatibility,
+  SharedSkillsEvidenceKind,
+  SharedSkillsScope,
+  ToolCompatibilityReferenceResponse,
+} from '../../../../src/shared/types.ts';
+
 export type ApiErrorCode =
   | 'ACTIVATION_FAILED'
   | 'INVALID_PROJECT_PATH'

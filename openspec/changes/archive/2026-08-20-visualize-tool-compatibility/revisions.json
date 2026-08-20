@@ -1,0 +1,63 @@
+{
+  "changeId": "visualize-tool-compatibility",
+  "revisions": [
+    {
+      "id": "rev-0f040a9d",
+      "description": "Changed Shared .agents compatibility from an exhaustive per-official-tool classification to a non-exhaustive, source-attributed research snapshot of discovered candidates; missing rows now carry no compatibility conclusion and verification wording is replaced by research/observation wording.",
+      "reason": "An exhaustive matrix would imply that every OpenSpec-supported client must be continually tested. The intended product value is to surface currently known or plausible shared-path consumers without asserting complete ecosystem coverage.",
+      "author": "AI",
+      "createdAt": "2026-08-20T09:21:05.240Z",
+      "metadata": {
+        "type": "behavior",
+        "affectedAPI": "GET /api/tool-reference",
+        "affectedField": "sharedCompatibility",
+        "updateTarget": [
+          "design",
+          "delta-specs"
+        ],
+        "source": {
+          "file": "src/server/tool-compatibility-reference.ts",
+          "function": "validateToolCompatibilityReference"
+        }
+      }
+    },
+    {
+      "id": "rev-3f17a705",
+      "description": "Replaced the heavy shared-path header and duplicated client enumeration with a compact target-contract summary: agents/zed use slash references, Codex requires an explicit codex target and dollar references, and only a Codex-led tree is presented as shareable with slash-style clients.",
+      "reason": "The researched client rows already answer which clients may consume `.agents/skills`. The more important header information is that the same physical path has asymmetric OpenSpec invocation contracts and an agents-only setup is not a Codex setup.",
+      "author": "AI",
+      "createdAt": "2026-08-20T09:41:45.630Z",
+      "metadata": {
+        "type": "behavior",
+        "affectedAPI": "Shared .agents dialog view",
+        "affectedField": "target relationship summary",
+        "updateTarget": [
+          "design",
+          "delta-specs"
+        ],
+        "source": {
+          "file": "frontend/src/lib/components/layout/ToolCompatibilityDialog.svelte",
+          "function": "shared reference view"
+        }
+      }
+    },
+    {
+      "id": "rev-4bd46f1a",
+      "description": "Offset the tool-reference dialog overlay and centering container by the persistent 3rem Activity Bar so the dialog is constrained to the application content viewport at half-FHD and narrower widths.",
+      "reason": "The dialog was centered against the full browser viewport, allowing the z-60 Activity Bar to cover its left edge around 960px width.",
+      "author": "AI",
+      "createdAt": "2026-08-20T09:57:28.234Z",
+      "metadata": {
+        "type": "internal",
+        "updateTarget": [
+          "design",
+          "delta-specs"
+        ],
+        "source": {
+          "file": "frontend/src/lib/components/layout/ToolCompatibilityDialog.svelte",
+          "function": "dialog layout"
+        }
+      }
+    }
+  ]
+}

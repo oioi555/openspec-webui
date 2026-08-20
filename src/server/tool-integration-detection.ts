@@ -1,5 +1,6 @@
 import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
+import { OPEN_SPEC_TOOL_DEFINITIONS } from './tool-compatibility-reference.js';
 
 /**
  * The six official OpenSpec invocation forms (docs/supported-tools.md).
@@ -133,20 +134,6 @@ async function resolveSharedSkillTarget(
 }
 
 
-/**
- * Data-driven signature table for repo-local OpenSpec integrations, derived
- * from the official supported-tools.md "Tool Directory Reference". Display
- * names live here so detection stays table-driven. Only repo-local roots are
- * listed: global installs (e.g. `~/.minimax/skills`) are out of scope, and no
- * `.codex` root is invented (Codex writes to the shared `.agents/skills` root,
- * which is represented by the `agents` entry below as skill-dollar).
- *
- * Entry shape: [tool, [[dir, shape, form], ...commands], [[dir, form, ...], ...skills]]
- *   shape 'folder':   `<dir>/opsx/<id>.*`   (opsx-colon form)
- *   shape 'filename': `<dir>/opsx-<id>.*`   (opsx-dash / opsx-at form)
- *   skills: `<dir>/openspec-*` dirs with SKILL.md; the listed form plus any
- *   documented alternate forms that consume the same artifact tree.
- */
 type SkillSpec = readonly [
   dir: string,
   form: InvocationFormId,
@@ -159,48 +146,77 @@ type ToolSpec = readonly [
   skills: ReadonlyArray<SkillSpec>,
 ];
 
+const DETECTED_TOOL_IDS = [
+  'claude', 'codebuddy', 'crush', 'gemini', 'lingma', 'qoder',
+  'auggie', 'bob', 'command-code', 'cursor', 'factory', 'iflow', 'junie',
+  'oh-my-pi', 'opencode', 'qwen', 'roocode', 'trae',
+  'antigravity', 'cline', 'devin', 'kilocode',
+  'continue', 'github-copilot', 'kiro', 'pi', 'costrict', 'amazon-q',
+  'codeartsagent', 'forgecode', 'hermes', 'vibe', 'kimi',
+] as const;
+
+const DETECTION_DISPLAY_NAMES: Partial<Record<(typeof DETECTED_TOOL_IDS)[number], string>> = {
+  bob: 'Bob Shell',
+  devin: 'Devin',
+};
+
+function invocationForm(invocation: string | null): InvocationFormId | null {
+  if (!invocation) return null;
+  if (invocation.startsWith('/opsx:')) return 'opsx-colon';
+  if (invocation.startsWith('/opsx-')) return 'opsx-dash';
+  if (invocation.startsWith('@opsx-')) return 'opsx-at';
+  if (invocation.startsWith('/skill:')) return 'skill-colon';
+  if (invocation.startsWith('$openspec-')) return 'skill-dollar';
+  if (invocation.startsWith('/openspec-')) return 'skill-slash';
+  return null;
+}
+
+function commandSignature(
+  path: string,
+  invocation: string | null
+): ToolSpec[1][number] | null {
+  const form = invocationForm(invocation);
+  if (!form) return null;
+  const folderMarker = '/opsx/<id>';
+  const filenameMarker = '/opsx-<id>';
+  const folderIndex = path.indexOf(folderMarker);
+  if (folderIndex >= 0) {
+    return [path.slice(0, folderIndex), 'folder', form];
+  }
+  const filenameIndex = path.indexOf(filenameMarker);
+  return filenameIndex >= 0 ? [path.slice(0, filenameIndex), 'filename', form] : null;
+}
+
+function skillSignature(path: string, invocation: string | null): SkillSpec | null {
+  const form = invocationForm(invocation);
+  const markerIndex = path.indexOf('/openspec-*');
+  return form && markerIndex >= 0 ? [path.slice(0, markerIndex), form] : null;
+}
+
+/**
+ * Detection consumes path and invocation fields from the pinned official
+ * definition snapshot, while preserving the historical evidence-only tool set
+ * and ordering. Global-only and unsupported detector shapes remain reference
+ * rows rather than becoming repository evidence.
+ */
 const TOOL_SIGNATURES: readonly ToolSpec[] = [
-  // --- opsx-colon (folder-namespaced `opsx/<id>.*` command files) ---
-  ['Claude Code', [['.claude/commands', 'folder', 'opsx-colon']], [['.claude/skills', 'skill-slash']]],
-  ['CodeBuddy', [['.codebuddy/commands', 'folder', 'opsx-colon']], [['.codebuddy/skills', 'skill-slash']]],
-  ['Crush', [['.crush/commands', 'folder', 'opsx-colon']], [['.crush/skills', 'skill-slash']]],
-  ['Gemini CLI', [['.gemini/commands', 'folder', 'opsx-colon']], [['.gemini/skills', 'skill-slash']]],
-  ['Lingma', [['.lingma/commands', 'folder', 'opsx-colon']], [['.lingma/skills', 'skill-slash']]],
-  ['Qoder', [['.qoder/commands', 'folder', 'opsx-colon']], [['.qoder/skills', 'skill-slash']]],
-  // --- opsx-dash (filename `opsx-<id>.*` command files) ---
-  ['Auggie', [['.augment/commands', 'filename', 'opsx-dash']], [['.augment/skills', 'skill-slash']]],
-  ['Bob Shell', [['.bob/commands', 'filename', 'opsx-dash']], [['.bob/skills', 'skill-slash']]],
-  ['Command Code', [['.commandcode/commands', 'filename', 'opsx-dash']], [['.commandcode/skills', 'skill-slash']]],
-  ['Cursor', [['.cursor/commands', 'filename', 'opsx-dash']], [['.cursor/skills', 'skill-slash']]],
-  ['Factory Droid', [['.factory/commands', 'filename', 'opsx-dash']], [['.factory/skills', 'skill-slash']]],
-  ['iFlow', [['.iflow/commands', 'filename', 'opsx-dash']], [['.iflow/skills', 'skill-slash']]],
-  ['Junie', [['.junie/commands', 'filename', 'opsx-dash']], [['.junie/skills', 'skill-slash']]],
-  ['Oh My Pi', [['.omp/commands', 'filename', 'opsx-dash']], [['.omp/skills', 'skill-slash']]],
-  ['OpenCode', [['.opencode/commands', 'filename', 'opsx-dash']], [['.opencode/skills', 'skill-slash']]],
-  ['Qwen Code', [['.qwen/commands', 'filename', 'opsx-dash']], [['.qwen/skills', 'skill-slash']]],
-  ['Zoo Code', [['.roo/commands', 'filename', 'opsx-dash']], [['.roo/skills', 'skill-slash']]],
-  ['Trae', [['.trae/commands', 'filename', 'opsx-dash']], [['.trae/skills', 'skill-slash']]],
-  // --- opsx-dash workflows variants ---
-  ['Antigravity', [['.agent/workflows', 'filename', 'opsx-dash']], [['.agent/skills', 'skill-slash']]],
-  ['Cline', [['.clinerules/workflows', 'filename', 'opsx-dash']], [['.cline/skills', 'skill-slash']]],
-  ['Devin', [['.devin/workflows', 'filename', 'opsx-dash']], [['.devin/skills', 'skill-slash']]],
-  ['Kilo Code', [['.kilocode/workflows', 'filename', 'opsx-dash']], [['.kilocode/skills', 'skill-slash']]],
-  // --- opsx-dash prompt variants ---
-  ['Continue', [['.continue/prompts', 'filename', 'opsx-dash']], [['.continue/skills', 'skill-slash']]],
-  ['GitHub Copilot', [['.github/prompts', 'filename', 'opsx-dash']], [['.github/skills', 'skill-slash']]],
-  ['Kiro', [['.kiro/prompts', 'filename', 'opsx-dash']], [['.kiro/skills', 'skill-slash']]],
-  ['Pi', [['.pi/prompts', 'filename', 'opsx-dash']], [['.pi/skills', 'skill-slash']]],
-  // --- opsx-dash nested command dir ---
-  ['CoStrict', [['.cospec/openspec/commands', 'filename', 'opsx-dash']], [['.cospec/skills', 'skill-slash']]],
-  // --- opsx-at (Amazon Q prompts) ---
-  ['Amazon Q Developer', [['.amazonq/prompts', 'filename', 'opsx-at']], [['.amazonq/skills', 'skill-slash']]],
-  // --- skill-only tools ---
-  ['CodeArts', [], [['.codeartsdoer/skills', 'skill-slash']]],
-  ['ForgeCode', [], [['.forge/skills', 'skill-slash']]],
-  ['Hermes Agent', [], [['.hermes/skills', 'skill-slash']]],
-  ['Mistral Vibe', [], [['.vibe/skills', 'skill-slash']]],
-  ['Kimi Code', [], [['.kimi-code/skills', 'skill-colon']]],
-  // --- shared `.agents` root (target marker narrows these default forms) ---
+  ...DETECTED_TOOL_IDS.map((id): ToolSpec => {
+    const definition = OPEN_SPEC_TOOL_DEFINITIONS.find((candidate) => candidate.id === id);
+    if (!definition) {
+      throw new Error(`Missing official definition for detected tool ${id}`);
+    }
+    const command = definition.commands
+      ? commandSignature(definition.commands.path, definition.commands.invocation)
+      : null;
+    const skill = definition.skills
+      ? skillSignature(definition.skills.path, definition.skills.invocation)
+      : null;
+    return [
+      DETECTION_DISPLAY_NAMES[id] ?? definition.name,
+      command ? [command] : [],
+      skill ? [skill] : [],
+    ];
+  }),
   [AGENTS_SHARED_TOOL, [], [['.agents/skills', 'skill-slash', ['skill-dollar']]]],
 ];
 

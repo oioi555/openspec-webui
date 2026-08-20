@@ -11,6 +11,7 @@ import {
   type SkillInventory,
   type SkillInventoryItem,
   type ToolInvocationOption,
+  type ToolCompatibilityReferenceResponse,
   type Project,
   type ProjectListResponse,
   type ProjectSelectionResponse,
@@ -47,6 +48,7 @@ export type {
   SkillInventory,
   SkillInventoryItem,
   ToolInvocationOption,
+  ToolCompatibilityReferenceResponse,
   FileGroup,
   Project,
   ProjectEntry,
@@ -464,4 +466,8 @@ export async function browseDirectory(dirPath?: string): Promise<BrowseResult> {
 
 export async function getStores(): Promise<StoreDiscoveryResult> {
   return fetchApi<StoreDiscoveryResult>('/stores');
+}
+
+export async function getToolCompatibilityReference(): Promise<ToolCompatibilityReferenceResponse> {
+  return fetchApi<ToolCompatibilityReferenceResponse>('/tool-reference');
 }

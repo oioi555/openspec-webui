@@ -1,7 +1,18 @@
 import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { afterEach, test } from 'node:test';
 
-import { normalizeCommandAvailability } from './api';
+import {
+  getToolCompatibilityReference,
+  normalizeCommandAvailability,
+  setActiveProjectContext,
+} from './api';
+
+const originalFetch = globalThis.fetch;
+
+afterEach(() => {
+  globalThis.fetch = originalFetch;
+  setActiveProjectContext(null);
+});
 
 test('normalizeCommandAvailability passes through a full additive payload', () => {
   const normalized = normalizeCommandAvailability({
@@ -154,4 +165,29 @@ test('normalizeCommandAvailability degrades malformed payloads to unavailable', 
   assert.equal(normalized.status, 'unavailable');
   assert.deepEqual(normalized.workflows, []);
   assert.equal(normalized.error, null);
+});
+
+test('getToolCompatibilityReference loads project-independent reference data', async () => {
+  const requests: Request[] = [];
+  const fixture = {
+    officialDefinitions: [],
+    officialSource: {
+      version: 'v1.10.0',
+      url: 'https://example.test/supported-tools',
+      verifiedAt: '2026-08-20',
+    },
+    sharedCompatibility: [],
+  };
+  globalThis.fetch = async (input, init) => {
+    requests.push(new Request(new URL(String(input), 'http://localhost'), init));
+    return new Response(JSON.stringify(fixture), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  };
+  setActiveProjectContext('active-project');
+
+  assert.deepEqual(await getToolCompatibilityReference(), fixture);
+  assert.equal(requests[0]?.url.endsWith('/api/tool-reference'), true);
+  assert.equal(requests[0]?.headers.has('X-Project-Id'), false);
 });

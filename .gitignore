@@ -33,6 +33,7 @@ npm-debug.log*
 .github/
 .opencode*
 .opencode/
+.agents/skills/
 
 # OpenSpec: exclude active (unarchived) changes, keep archive/
 openspec/changes/*

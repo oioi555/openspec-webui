@@ -1752,6 +1752,20 @@ test('GET /api/stores returns registered stores without requiring a project head
   }
 });
 
+test('GET /api/tool-reference returns static reference data without an active project', async () => {
+  const runtime = await startServer();
+
+  try {
+    const result = await apiJson(runtime.baseUrl, '/api/tool-reference');
+    assert.equal(result.response.status, 200);
+    assert.equal(result.body.officialSource.version, 'v1.10.0');
+    assert.equal(result.body.officialDefinitions.length, 39);
+    assert.ok(result.body.sharedCompatibility.some((record: { clientId: string }) => record.clientId === 'grok-build'));
+  } finally {
+    await runtime.close();
+  }
+});
+
 test('GET /api/stores returns empty when the CLI reports no stores', async () => {
   const configHome = await createTempDir('openspec-webui-stores-empty-cfg-');
   process.env.XDG_CONFIG_HOME = configHome;

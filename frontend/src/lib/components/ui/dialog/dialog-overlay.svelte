@@ -5,10 +5,11 @@
   interface Props {
     class?: string;
     closeOnClick?: boolean;
+    ariaLabel?: string;
     [key: string]: unknown;
   }
 
-  let { class: className = '', closeOnClick = true, ...restProps }: Props = $props();
+  let { class: className = '', closeOnClick = true, ariaLabel = 'Close dialog', ...restProps }: Props = $props();
   const dialog = getDialogContext();
 
   function handleClick() {
@@ -22,7 +23,8 @@
   <button
     {...restProps}
     type="button"
-    aria-label="Close dialog"
+    tabindex="-1"
+    aria-label={ariaLabel}
     class={cn('fixed inset-0 z-40 bg-overlay', className)}
     onclick={handleClick}
   ></button>

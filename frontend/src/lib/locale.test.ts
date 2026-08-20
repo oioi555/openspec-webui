@@ -50,6 +50,65 @@ const LANGUAGE_AND_ZED_KEYS = [
   'settings_tools_shared_target_legacy',
 ] as const;
 
+const TOOL_REFERENCE_KEYS = [
+  'settings_tools_reference_button',
+  'tool_reference_title',
+  'tool_reference_description',
+  'tool_reference_close',
+  'tool_reference_loading',
+  'tool_reference_error',
+  'tool_reference_retry',
+  'tool_reference_view_official',
+  'tool_reference_view_shared',
+  'tool_reference_search_label',
+  'tool_reference_search_placeholder',
+  'tool_reference_search_clear',
+  'tool_reference_no_results',
+  'tool_reference_official_intro',
+  'tool_reference_official_source',
+  'tool_reference_verified',
+  'tool_reference_researched',
+  'tool_reference_tool',
+  'tool_reference_client',
+  'tool_reference_commands',
+  'tool_reference_skills',
+  'tool_reference_invocation',
+  'tool_reference_not_defined',
+  'tool_reference_not_documented',
+  'tool_reference_shared_intro',
+  'tool_reference_open_spec_targets',
+  'tool_reference_shared_path',
+  'tool_reference_invocation_style',
+  'tool_reference_codex_rule_title',
+  'tool_reference_codex_rule',
+  'tool_reference_shared_disclaimer',
+  'tool_reference_access_mode',
+  'tool_reference_scopes',
+  'tool_reference_evidence',
+  'tool_reference_source',
+  'tool_reference_version',
+  'tool_reference_external_client',
+  'tool_reference_mode_native_project',
+  'tool_reference_mode_native_global',
+  'tool_reference_mode_configurable',
+  'tool_reference_mode_import',
+  'tool_reference_mode_format_only',
+  'tool_reference_mode_unverified',
+  'tool_reference_mode_detail_native_project',
+  'tool_reference_mode_detail_native_global',
+  'tool_reference_mode_detail_configurable',
+  'tool_reference_mode_detail_import',
+  'tool_reference_mode_detail_format_only',
+  'tool_reference_mode_detail_unverified',
+  'tool_reference_scope_project',
+  'tool_reference_scope_global',
+  'tool_reference_scope_none',
+  'tool_reference_evidence_vendor_docs',
+  'tool_reference_evidence_standard_listing',
+  'tool_reference_evidence_research_summary',
+  'tool_reference_evidence_runtime_observed',
+] as const;
+
 class MockStorage {
   #values = new Map<string, string>();
 
@@ -265,6 +324,22 @@ test('every locale has complete Language and Zed copy with fixed OpenSpec tokens
     assert.match(messages.settings_language_structural_keywords, /`MUST`/);
     assert.match(messages.settings_tools_shared_target_zed, /Zed/);
     assert.match(messages.settings_tools_shared_target_agents, /\.agents/);
+  }
+});
+
+test('every locale has complete tool-reference copy with fixed technical tokens', async () => {
+  const settings = await readJson<{ locales: string[] }>('../../project.inlang/settings.json');
+
+  for (const locale of settings.locales) {
+    const messages = await readJson<Record<string, string>>(`../../messages/${locale}.json`);
+    for (const key of TOOL_REFERENCE_KEYS) {
+      assert.equal(typeof messages[key], 'string', `${locale} is missing ${key}`);
+      assert.notEqual(messages[key].trim(), '', `${locale} has empty ${key}`);
+    }
+    assert.match(messages.tool_reference_description, /OpenSpec/);
+    assert.match(messages.tool_reference_view_shared, /\.agents/);
+    assert.match(messages.tool_reference_codex_rule, /codex/);
+    assert.match(messages.tool_reference_codex_rule, /agents/);
   }
 });
 

@@ -11,6 +11,7 @@ import {
   type CommandAvailability,
 } from '../openspec-config.js';
 import { getSupportedToolOptions } from '../tool-integration-detection.js';
+import { TOOL_COMPATIBILITY_REFERENCE } from '../tool-compatibility-reference.js';
 import {
   ProjectRegistryError,
   createNoActiveProjectError,
@@ -285,6 +286,9 @@ export async function registerApiRoutes(
     const result = await storeDiscoveryService.listStores();
     return result;
   });
+
+  // Static ecosystem reference; intentionally independent of project context.
+  fastify.get('/api/tool-reference', async () => TOOL_COMPATIBILITY_REFERENCE);
 
   // Add or reactivate a project
   fastify.post<{ Body: AddProjectRequestBody }>('/api/projects', async (request, reply) => {

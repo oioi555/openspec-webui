@@ -236,6 +236,61 @@ export interface SearchResponse {
   results: SearchResult[];
 }
 
+// Tool Compatibility Reference Types
+
+export interface OpenSpecToolDeliveryDefinition {
+  path: string;
+  invocation: string | null;
+}
+
+export interface OpenSpecToolDefinition {
+  id: string;
+  name: string;
+  commands: OpenSpecToolDeliveryDefinition | null;
+  skills: OpenSpecToolDeliveryDefinition | null;
+}
+
+export interface OpenSpecToolDefinitionSource {
+  version: string;
+  url: string;
+  verifiedAt: string;
+}
+
+export type SharedSkillsAccessMode =
+  | 'native-project'
+  | 'native-global'
+  | 'configurable'
+  | 'import'
+  | 'format-only'
+  | 'unverified';
+
+export type SharedSkillsScope = 'project' | 'global';
+
+export type SharedSkillsEvidenceKind =
+  | 'vendor-docs'
+  | 'standard-listing'
+  | 'research-summary'
+  | 'runtime-observed';
+
+export interface SharedSkillsCompatibility {
+  clientId: string;
+  name: string;
+  openSpecToolId?: string;
+  accessMode: SharedSkillsAccessMode;
+  scopes: SharedSkillsScope[];
+  evidenceKind: SharedSkillsEvidenceKind;
+  source: string;
+  researchedAt: string;
+  minVersion?: string;
+  note?: string;
+}
+
+export interface ToolCompatibilityReferenceResponse {
+  officialDefinitions: OpenSpecToolDefinition[];
+  officialSource: OpenSpecToolDefinitionSource;
+  sharedCompatibility: SharedSkillsCompatibility[];
+}
+
 // WebSocket Event Types
 
 export type WSEntity = 'project' | 'specs' | 'changes' | 'all';

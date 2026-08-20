@@ -1,8 +1,10 @@
 <script lang="ts">
-  import { CircleOff, Copy, ExternalLink, FlaskConical, Info, Languages, ListChecks, Monitor, Moon, RefreshCw, Settings, Sun, Wrench } from '@lucide/svelte';
+  import { CircleOff, Copy, ExternalLink, FlaskConical, Info, Languages, ListChecks, Monitor, Moon, Network, RefreshCw, Settings, Sun, Wrench } from '@lucide/svelte';
+  import { getApiErrorMessage, getToolCompatibilityReference } from '$lib/api';
   import { buildProjectUpdateCommand, buildToolsInitCommand } from '$lib/state/projectVersionStatusCore';
   import { projectVersionStatusStore } from '$lib/state/projectVersionStatus.svelte.ts';
   import { Callout } from '$lib/components/shared/callout';
+  import ToolCompatibilityDialog from './ToolCompatibilityDialog.svelte';
   import { OptionCard } from '$lib/components/shared/option-card';
   import { InsetPanel, SectionHeader, SurfaceCard } from '$lib/components/shared/surface';
   import { Badge } from '$lib/components/ui/badge';
@@ -24,7 +26,7 @@
   import { copyToClipboard } from '$lib/utils';
   import { versionStatusStore } from '$lib/state/versionStatus.svelte.ts';
   import { RELEASE_PAGE_URLS, UPDATE_COMMANDS, type VersionedToolId } from '$lib/state/versionStatusCore';
-  import type { DetectedIntegration, ProjectVersionUpdateStatus, ToolVersionStatus } from '$lib/types/api';
+  import type { DetectedIntegration, ProjectVersionUpdateStatus, ToolCompatibilityReferenceResponse, ToolVersionStatus } from '$lib/types/api';
   import type { WorkflowCommand } from '$lib/types/commandTypes';
   import {
     CORE_COMMANDS,
@@ -89,6 +91,33 @@
 
   let activeSection = $state<Section>('general');
   let contentEl: HTMLDivElement | undefined = $state();
+  let toolReferenceOpen = $state(false);
+  let toolReference = $state<ToolCompatibilityReferenceResponse | null>(null);
+  let toolReferenceLoading = $state(false);
+  let toolReferenceError = $state<string | null>(null);
+
+  async function loadToolReference() {
+    if (toolReferenceLoading || toolReference) return;
+    toolReferenceLoading = true;
+    toolReferenceError = null;
+    try {
+      toolReference = await getToolCompatibilityReference();
+    } catch (error) {
+      toolReferenceError = getApiErrorMessage(error);
+    } finally {
+      toolReferenceLoading = false;
+    }
+  }
+
+  function openToolReference() {
+    toolReferenceOpen = true;
+    void loadToolReference();
+  }
+
+  function retryToolReference() {
+    toolReference = null;
+    void loadToolReference();
+  }
 
   function setTheme(theme: Theme) {
     themeStore.setTheme(theme);
@@ -505,6 +534,10 @@
           </div>
 
           <div class="flex shrink-0 items-center gap-2 pt-0.5">
+            <Button variant="outline" size="sm" aria-label={t(m.settings_tools_reference_button)} onclick={openToolReference}>
+              <Network class="h-4 w-4" />
+              <span class="hidden sm:inline">{t(m.settings_tools_reference_button)}</span>
+            </Button>
             <Button
               variant="ghost"
               size="icon"
@@ -925,3 +958,12 @@
     </SurfaceCard>
   </div>
 </div>
+
+<ToolCompatibilityDialog
+  open={toolReferenceOpen}
+  reference={toolReference}
+  loading={toolReferenceLoading}
+  error={toolReferenceError}
+  onClose={() => toolReferenceOpen = false}
+  onRetry={retryToolReference}
+/>
