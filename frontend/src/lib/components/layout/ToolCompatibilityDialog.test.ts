@@ -31,32 +31,31 @@ test('shared dialog foundation traps focus, restores the opener, and handles Esc
   assert.match(source, /aria-modal="true"/);
 });
 
-test('reference presentation supports every access mode and responsive rows', async () => {
+test('reference presentation is simplified to sharedSource and responsive rows', async () => {
   const source = await readFile(dialogUrl, 'utf8');
 
-  for (const mode of [
-    'native-project',
-    'native-global',
-    'configurable',
-    'import',
-    'format-only',
-    'unverified',
-  ]) {
-    assert.match(source, new RegExp(`case '${mode}'`));
-  }
   assert.match(source, /md:grid-cols-/);
   assert.match(source, /max-w-6xl/);
   assert.match(source, /break-all/);
   assert.match(source, /tool_reference_shared_disclaimer/);
-  assert.match(source, /tool_reference_codex_rule/);
   assert.match(source, />\/openspec-\*</);
   assert.match(source, />\$openspec-\*</);
   assert.doesNotMatch(source, /reportedProjectClients|tool_reference_native_consumers/);
   assert.match(source, /tool_reference_not_defined/);
   assert.match(source, /tool_reference_external_client/);
   assert.doesNotMatch(source, /is installed|are installed/);
-  assert.match(source, /tool_reference_evidence_research_summary/);
-  assert.match(source, /tool_reference_evidence_runtime_observed/);
+  // new minimal keys
+  assert.match(source, /tool_reference_shared_source/);
+  assert.match(source, /tool_reference_shared_updated/);
+  assert.match(source, /tool_reference_open_spec_link/);
+  assert.match(source, /tool_reference_note/);
+  assert.match(source, /reference\.sharedSource\.url/);
+  assert.match(source, /reference\.sharedSource\.updatedAt/);
+  assert.match(source, /record\.note/);
+  // old verbose access-mode detail must be gone
+  assert.doesNotMatch(source, /accessModeLabel|accessModeDetail|scopeLabel|evidenceLabel/);
+  assert.doesNotMatch(source, /tool_reference_access_mode/);
+  assert.doesNotMatch(source, /tool_reference_evidence/);
 });
 
 test('Settings opens the static reference without refreshing repository detection', async () => {

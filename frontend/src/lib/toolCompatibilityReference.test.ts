@@ -27,20 +27,11 @@ const compatibility: SharedSkillsCompatibility[] = [
     clientId: 'cursor',
     name: 'Cursor',
     openSpecToolId: 'cursor',
-    accessMode: 'native-project',
-    scopes: ['project'],
-    evidenceKind: 'vendor-docs',
-    source: 'https://cursor.com/docs/skills',
-    researchedAt: '2026-08-20',
   },
   {
     clientId: 'external',
     name: 'External Client',
-    accessMode: 'configurable',
-    scopes: ['project'],
-    evidenceKind: 'runtime-observed',
-    source: 'Runtime check',
-    researchedAt: '2026-08-20',
+    note: 'global requires config',
   },
 ];
 
@@ -52,7 +43,8 @@ test('official definition search matches name, id, and path and resets when clea
 });
 
 test('shared compatibility search includes classifications and external clients', () => {
-  assert.deepEqual(filterSharedSkillsCompatibility(compatibility, 'native-project').map((item) => item.clientId), ['cursor']);
+  assert.deepEqual(filterSharedSkillsCompatibility(compatibility, 'cursor').map((item) => item.clientId), ['cursor']);
   assert.deepEqual(filterSharedSkillsCompatibility(compatibility, 'External').map((item) => item.clientId), ['external']);
+  assert.deepEqual(filterSharedSkillsCompatibility(compatibility, 'global').map((item) => item.clientId), ['external']);
   assert.equal(filterSharedSkillsCompatibility(compatibility, '').length, compatibility.length);
 });

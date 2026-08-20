@@ -37,34 +37,52 @@ test('v1.10.0 official definition snapshot contains every upstream tool row', ()
   assert.equal(byId.get('minimax-code')?.skills?.path.startsWith('~/'), true);
 });
 
-test('shared compatibility is a non-exhaustive research snapshot', () => {
+test('shared compatibility is a minimal reference snapshot', () => {
   const ids = new Set(TOOL_COMPATIBILITY_REFERENCE.sharedCompatibility.map((record) => record.clientId));
-  assert.ok(TOOL_COMPATIBILITY_REFERENCE.sharedCompatibility.length < OPEN_SPEC_TOOL_DEFINITIONS.length);
   assert.equal(ids.has('amazon-q'), false);
   assert.equal(ids.has('grok-build'), true);
+  assert.equal(TOOL_COMPATIBILITY_REFERENCE.sharedCompatibility.length, 32);
+  assert.equal(TOOL_COMPATIBILITY_REFERENCE.sharedSource.url, 'https://github.com/vercel-labs/skills');
 
   const partial = cloneReference();
   partial.sharedCompatibility = partial.sharedCompatibility.filter((record) => record.clientId === 'grok-build');
   assert.doesNotThrow(() => validateToolCompatibilityReference(partial));
 });
 
-test('required shared-path candidates retain reported modes and Grok Build stays external', () => {
+test('shared clients retain OpenSpec linkage and minimal notes', () => {
   const byId = new Map(
     TOOL_COMPATIBILITY_REFERENCE.sharedCompatibility.map((record) => [record.clientId, record])
   );
 
   for (const id of [
     'opencode', 'codex', 'cursor', 'zed', 'antigravity', 'grok-build',
-    'gemini', 'github-copilot', 'kimi', 'qwen', 'kilocode', 'pi',
+    'gemini', 'github-copilot', 'kimi', 'kilocode', 'pi',
   ]) {
     const record = byId.get(id);
-    assert.equal(record?.accessMode, 'native-project', id);
-    assert.ok(record?.scopes.includes('project'), id);
-    assert.match(record?.researchedAt ?? '', /^\d{4}-\d{2}-\d{2}$/);
+    assert.ok(record, id);
+    // new minimal schema has no accessMode/scopes/evidence — just identity
+    assert.equal(typeof record!.name, 'string');
   }
   assert.equal(byId.get('grok-build')?.openSpecToolId, undefined);
-  assert.equal(byId.get('grok-build')?.evidenceKind, 'runtime-observed');
+  assert.equal(byId.get('hermes')?.note, 'Global shared path requires config (skills.external_dirs)');
+  assert.equal(byId.get('forgecode')?.note, 'Global ~/.agents/skills only (project uses .forge/skills)');
+  assert.deepEqual(
+    TOOL_COMPATIBILITY_REFERENCE.sharedCompatibility
+      .filter((record) => !record.openSpecToolId)
+      .map((record) => record.clientId)
+      .sort(),
+    [
+      'amp', 'antigravity-cli', 'deep-agents', 'dexto', 'firebender',
+      'grok-build', 'loaf', 'promptscript', 'replit', 'warp',
+    ]
+  );
+  assert.equal(byId.has('qwen'), false);
   assert.equal(byId.has('zcode'), false);
+  // no per-row evidence fields
+  for (const record of TOOL_COMPATIBILITY_REFERENCE.sharedCompatibility) {
+    assert.equal((record as unknown as Record<string, unknown>).accessMode, undefined);
+    assert.equal((record as unknown as Record<string, unknown>).source, undefined);
+  }
 });
 
 test('dataset validation rejects duplicate ids and broken official links', () => {
@@ -77,33 +95,20 @@ test('dataset validation rejects duplicate ids and broken official links', () =>
   assert.throws(() => validateToolCompatibilityReference(brokenLink), /unknown OpenSpec tool/);
 });
 
-test('dataset validation rejects invalid classifications, scopes, provenance, and dates', () => {
-  const invalidMode = cloneReference();
-  invalidMode.sharedCompatibility[0]!.accessMode = 'automatic' as never;
-  assert.throws(() => validateToolCompatibilityReference(invalidMode), /Invalid access mode/);
-
-  const invalidScope = cloneReference();
-  invalidScope.sharedCompatibility[0]!.scopes = ['project', 'project'];
-  assert.throws(() => validateToolCompatibilityReference(invalidScope), /Invalid or duplicate scope/);
-
+test('dataset validation rejects invalid source and dates', () => {
   const missingSource = cloneReference();
-  missingSource.sharedCompatibility[0]!.source = '';
-  assert.throws(() => validateToolCompatibilityReference(missingSource), /requires a source/);
+  missingSource.sharedSource.url = '';
+  assert.throws(() => validateToolCompatibilityReference(missingSource), /requires url and revision/);
 
   const invalidDate = cloneReference();
-  invalidDate.sharedCompatibility[0]!.researchedAt = 'August 20';
+  invalidDate.sharedSource.updatedAt = 'August 20';
   assert.throws(() => validateToolCompatibilityReference(invalidDate), /must be an ISO date/);
 
   const missingMetadata = cloneReference();
   missingMetadata.officialSource.version = '';
   assert.throws(() => validateToolCompatibilityReference(missingMetadata), /requires version and URL/);
 
-  const invalidGlobalMode = cloneReference();
-  invalidGlobalMode.sharedCompatibility[0]!.accessMode = 'native-global';
-  invalidGlobalMode.sharedCompatibility[0]!.scopes = ['project'];
-  assert.throws(() => validateToolCompatibilityReference(invalidGlobalMode), /requires global scope/);
-
-  const emptyVersion = cloneReference();
-  emptyVersion.sharedCompatibility[0]!.minVersion = ' ';
-  assert.throws(() => validateToolCompatibilityReference(emptyVersion), /empty minimum version/);
+  const emptyNote = cloneReference();
+  emptyNote.sharedCompatibility[0]!.note = ' ';
+  assert.throws(() => validateToolCompatibilityReference(emptyNote), /empty note/);
 });

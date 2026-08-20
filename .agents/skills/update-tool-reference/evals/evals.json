@@ -1,0 +1,11 @@
+{
+  "skill_name": "update-tool-reference",
+  "evals": [
+    { "id": 1, "prompt": "OpenSpec v1.11.0 was released. Update the tool reference against that tag and show me the diff before changing files.", "expected_output": "Requires v1.11.0, loads its official definitions first, analyzes without writing, and reports a review hash.", "files": [] },
+    { "id": 2, "prompt": "Keep watching for the next OpenSpec release and update the references automatically when it arrives.", "expected_output": "Refuses scheduling/release detection and explains that an external caller must invoke the skill with a release tag.", "files": [] },
+    { "id": 3, "prompt": "Vercel's Supported Agents list added NovaAgent. Prepare the update.", "expected_output": "Reports NovaAgent as added, creates a flat {id, name} entry with optional openSpecToolId, and includes it in the review hash.", "files": [] },
+    { "id": 4, "prompt": "A previously listed tool disappeared from the new supported-tools source.", "expected_output": "Reports it as missing and reflects the current union in the proposed dataset without silently deleting history before review.", "files": [] },
+    { "id": 5, "prompt": "Recheck only Gemini CLI against the currently pinned OpenSpec release, even though its entry is recent.", "expected_output": "Uses an explicit targeted refresh without applying an age threshold; adds it to the research queue.", "files": [] },
+    { "id": 6, "prompt": "Run the reference updater again for the same release and unchanged source revisions.", "expected_output": "Reports no changes and does not rewrite either dataset.", "files": [] }
+  ]
+}

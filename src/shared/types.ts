@@ -256,38 +256,31 @@ export interface OpenSpecToolDefinitionSource {
   verifiedAt: string;
 }
 
-export type SharedSkillsAccessMode =
-  | 'native-project'
-  | 'native-global'
-  | 'configurable'
-  | 'import'
-  | 'format-only'
-  | 'unverified';
-
-export type SharedSkillsScope = 'project' | 'global';
-
-export type SharedSkillsEvidenceKind =
-  | 'vendor-docs'
-  | 'standard-listing'
-  | 'research-summary'
-  | 'runtime-observed';
+export interface SharedSkillsSource {
+  url: string;
+  revision: string;
+  updatedAt: string;
+}
 
 export interface SharedSkillsCompatibility {
   clientId: string;
   name: string;
   openSpecToolId?: string;
-  accessMode: SharedSkillsAccessMode;
-  scopes: SharedSkillsScope[];
-  evidenceKind: SharedSkillsEvidenceKind;
-  source: string;
-  researchedAt: string;
-  minVersion?: string;
   note?: string;
 }
+
+// Deprecated aliases kept for backward imports — not used in new minimal schema
+/** @deprecated use SharedSkillsCompatibility directly */
+export type SharedSkillsAccessMode = string;
+/** @deprecated */
+export type SharedSkillsScope = string;
+/** @deprecated */
+export type SharedSkillsEvidenceKind = string;
 
 export interface ToolCompatibilityReferenceResponse {
   officialDefinitions: OpenSpecToolDefinition[];
   officialSource: OpenSpecToolDefinitionSource;
+  sharedSource: SharedSkillsSource;
   sharedCompatibility: SharedSkillsCompatibility[];
 }
 

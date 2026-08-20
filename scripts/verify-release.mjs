@@ -75,10 +75,18 @@ function verifyTarballContents(packInfo, packageJson, packageLock) {
   assert(filePaths.includes('README.md'), 'Tarball is missing README.md');
   assert(filePaths.includes('LICENSE'), 'Tarball is missing LICENSE');
   assert(filePaths.includes('dist/cli/index.js'), 'Tarball is missing dist/cli/index.js');
+  assert(
+    filePaths.includes('dist/server/data/tool-reference/openspec-tools.json'),
+    'Tarball is missing the OpenSpec tool definition dataset'
+  );
+  assert(
+    filePaths.includes('dist/server/data/tool-reference/shared-agents-research.json'),
+    'Tarball is missing the Shared Agent Skills research dataset'
+  );
   assert(filePaths.includes('dist-frontend/index.html'), 'Tarball is missing dist-frontend/index.html');
 }
 
-async function smokeTestInstalledCli(installDir, expectedVersion, configHome) {
+async function smokeTestInstalledCli(installDir, expectedVersion, configHome, expectedReferenceCounts) {
   const installedCli = join(installDir, 'node_modules', '.bin', packedBinName);
   const helpOutput = run(
     installedCli,
@@ -110,6 +118,8 @@ async function smokeTestInstalledCli(installDir, expectedVersion, configHome) {
     let stdout = '';
     let stderr = '';
     let ready = false;
+    let verifyingReference = false;
+    let startupError = null;
 
     const finish = (callback) => {
       if (settled) {
@@ -127,9 +137,21 @@ async function smokeTestInstalledCli(installDir, expectedVersion, configHome) {
 
     child.stdout.on('data', (chunk) => {
       stdout += chunk.toString();
-      if (!ready && stdout.includes('OpenSpec WebUI running at http://127.0.0.1:')) {
-        ready = true;
-        child.kill('SIGTERM');
+      const url = stdout.match(/OpenSpec WebUI running at (http:\/\/127\.0\.0\.1:\d+)/)?.[1];
+      if (!ready && !verifyingReference && url) {
+        verifyingReference = true;
+        void fetch(`${url}/api/tool-reference`)
+          .then(async (response) => {
+            assert(response.ok, `Packed tool-reference API returned ${response.status}`);
+            const reference = await response.json();
+            assert(reference.officialDefinitions?.length === expectedReferenceCounts.official, 'Packed tool-reference API did not load official JSON data');
+            assert(reference.sharedCompatibility?.length === expectedReferenceCounts.shared, 'Packed tool-reference API did not project research JSON data');
+            ready = true;
+          })
+          .catch((error) => {
+            startupError = error;
+          })
+          .finally(() => child.kill('SIGTERM'));
       }
     });
 
@@ -142,6 +164,10 @@ async function smokeTestInstalledCli(installDir, expectedVersion, configHome) {
     });
 
     child.on('exit', (code) => {
+      if (startupError) {
+        finish(() => reject(startupError));
+        return;
+      }
       if (!ready && code !== 0) {
         finish(() => reject(new Error(`Packed CLI startup failed with exit code ${code}\nSTDOUT:\n${stdout}\nSTDERR:\n${stderr}`)));
         return;
@@ -166,6 +192,12 @@ async function main() {
   run(npmCommand, ['run', 'build']);
   run(npmCommand, ['run', 'test']);
   run(npmCommand, ['run', 'typecheck']);
+  const builtOfficial = JSON.parse(await readFile(join(repoRoot, 'dist/server/data/tool-reference/openspec-tools.json'), 'utf8'));
+  const builtResearch = JSON.parse(await readFile(join(repoRoot, 'dist/server/data/tool-reference/shared-agents-research.json'), 'utf8'));
+  const expectedReferenceCounts = {
+    official: builtOfficial.tools.length,
+    shared: builtResearch.clients.length,
+  };
 
   const dryRunInfo = parsePackJson(run(npmCommand, ['pack', '--dry-run', '--json'], { capture: true }).stdout);
   verifyTarballContents(dryRunInfo, packageJson, packageLock);
@@ -186,11 +218,12 @@ async function main() {
     const tarballPath = join(packDir, packedInfo.filename);
 
     run(npmCommand, ['install', '--prefix', installDir, '--no-package-lock', tarballPath]);
-    await smokeTestInstalledCli(installDir, packageJson.version, configHome);
+    await smokeTestInstalledCli(installDir, packageJson.version, configHome, expectedReferenceCounts);
 
     console.log(`Verified tarball: ${packedInfo.filename}`);
     console.log(`Verified packed CLI version: ${packageJson.version}`);
     console.log('Verified packed CLI startup: openspec-webui --no-open --port 0');
+    console.log('Verified packed tool-reference API without source-tree data or network access');
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }

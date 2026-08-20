@@ -4,10 +4,8 @@ export type {
   OpenSpecToolDefinition,
   OpenSpecToolDefinitionSource,
   OpenSpecToolDeliveryDefinition,
-  SharedSkillsAccessMode,
   SharedSkillsCompatibility,
-  SharedSkillsEvidenceKind,
-  SharedSkillsScope,
+  SharedSkillsSource,
   ToolCompatibilityReferenceResponse,
 } from '../../../../src/shared/types.ts';
 

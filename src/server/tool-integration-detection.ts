@@ -211,6 +211,8 @@ const TOOL_SIGNATURES: readonly ToolSpec[] = [
     const skill = definition.skills
       ? skillSignature(definition.skills.path, definition.skills.invocation)
       : null;
+    if (definition.commands && !command) throw new Error(`Unsupported command signature for detected tool ${id}`);
+    if (definition.skills && !skill) throw new Error(`Unsupported skill signature for detected tool ${id}`);
     return [
       DETECTION_DISPLAY_NAMES[id] ?? definition.name,
       command ? [command] : [],

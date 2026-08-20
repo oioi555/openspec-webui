@@ -34,6 +34,10 @@ npm-debug.log*
 .opencode*
 .opencode/
 .agents/skills/
+!.agents/skills/
+.agents/skills/*
+!.agents/skills/update-tool-reference/
+!.agents/skills/update-tool-reference/**
 
 # OpenSpec: exclude active (unarchived) changes, keep archive/
 openspec/changes/*

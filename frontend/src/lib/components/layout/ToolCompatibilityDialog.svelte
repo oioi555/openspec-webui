@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ExternalLink, Info, Network, RotateCcw, Search, X } from '@lucide/svelte';
+  import { ExternalLink, Network, RotateCcw, Search, X } from '@lucide/svelte';
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
   import * as Dialog from '$lib/components/ui/dialog';
@@ -12,10 +12,6 @@
   } from '$lib/toolCompatibilityReference';
   import type {
     OpenSpecToolDeliveryDefinition,
-    SharedSkillsAccessMode,
-    SharedSkillsCompatibility,
-    SharedSkillsEvidenceKind,
-    SharedSkillsScope,
     ToolCompatibilityReferenceResponse,
   } from '$lib/types/api';
 
@@ -48,64 +44,6 @@
   let compatibilityRecords = $derived(
     filterSharedSkillsCompatibility(reference?.sharedCompatibility ?? [], query)
   );
-
-  function accessModeLabel(mode: SharedSkillsAccessMode): string {
-    switch (mode) {
-      case 'native-project': return t(m.tool_reference_mode_native_project);
-      case 'native-global': return t(m.tool_reference_mode_native_global);
-      case 'configurable': return t(m.tool_reference_mode_configurable);
-      case 'import': return t(m.tool_reference_mode_import);
-      case 'format-only': return t(m.tool_reference_mode_format_only);
-      case 'unverified': return t(m.tool_reference_mode_unverified);
-    }
-  }
-
-  function accessModeVariant(mode: SharedSkillsAccessMode): 'success' | 'info' | 'warning' | 'secondary' | 'outline' {
-    switch (mode) {
-      case 'native-project': return 'success';
-      case 'native-global': return 'info';
-      case 'configurable':
-      case 'import': return 'warning';
-      case 'format-only': return 'secondary';
-      case 'unverified': return 'outline';
-    }
-  }
-
-  function accessModeDetail(mode: SharedSkillsAccessMode): string {
-    switch (mode) {
-      case 'native-project': return t(m.tool_reference_mode_detail_native_project);
-      case 'native-global': return t(m.tool_reference_mode_detail_native_global);
-      case 'configurable': return t(m.tool_reference_mode_detail_configurable);
-      case 'import': return t(m.tool_reference_mode_detail_import);
-      case 'format-only': return t(m.tool_reference_mode_detail_format_only);
-      case 'unverified': return t(m.tool_reference_mode_detail_unverified);
-    }
-  }
-
-  function scopeLabel(scope: SharedSkillsScope): string {
-    return scope === 'project'
-      ? t(m.tool_reference_scope_project)
-      : t(m.tool_reference_scope_global);
-  }
-
-  function scopesLabel(scopes: SharedSkillsScope[]): string {
-    return scopes.length > 0
-      ? scopes.map(scopeLabel).join(', ')
-      : t(m.tool_reference_scope_none);
-  }
-
-  function evidenceLabel(kind: SharedSkillsEvidenceKind): string {
-    switch (kind) {
-      case 'vendor-docs': return t(m.tool_reference_evidence_vendor_docs);
-      case 'standard-listing': return t(m.tool_reference_evidence_standard_listing);
-      case 'research-summary': return t(m.tool_reference_evidence_research_summary);
-      case 'runtime-observed': return t(m.tool_reference_evidence_runtime_observed);
-    }
-  }
-
-  function isExternalSource(source: string): boolean {
-    return /^https?:\/\//.test(source);
-  }
 </script>
 
 {#snippet deliveryDetails(delivery: OpenSpecToolDeliveryDefinition | null)}
@@ -229,7 +167,14 @@
             </Tabs.Content>
 
             <Tabs.Content value="shared" class="mt-0 space-y-4">
-              <p class="text-sm text-muted-foreground">{t(m.tool_reference_shared_intro)}</p>
+              <div class="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/20 p-4 text-xs text-muted-foreground">
+                <span>{t(m.tool_reference_shared_source)}:</span>
+                <a class="inline-flex items-center gap-1 text-primary underline" href={reference.sharedSource.url} target="_blank" rel="noreferrer">
+                  vercel-labs/skills<ExternalLink class="size-3" />
+                </a>
+                <span>{reference.sharedSource.revision.slice(0,7)}</span>
+                <span class="ml-2">{t(m.tool_reference_shared_updated)} {reference.sharedSource.updatedAt}</span>
+              </div>
 
               <div class="overflow-hidden rounded-lg border border-border bg-card">
                 <div class="hidden grid-cols-[minmax(7rem,0.7fr)_minmax(9rem,1fr)_minmax(8rem,1fr)] gap-3 border-b border-border bg-muted/40 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground md:grid">
@@ -249,50 +194,34 @@
                 </div>
               </div>
 
-              <div class="flex gap-2 rounded-md border border-warning-border bg-warning-bg px-3 py-2 text-sm text-warning" role="note">
-                <Info class="mt-0.5 size-4 shrink-0" />
-                <p><strong>{t(m.tool_reference_codex_rule_title)}</strong> {t(m.tool_reference_codex_rule)}</p>
-              </div>
-
               {#if compatibilityRecords.length === 0}
                 <p class="py-12 text-center text-sm text-muted-foreground">{t(m.tool_reference_no_results)}</p>
               {:else}
                 <div role="table" aria-label={t(m.tool_reference_view_shared)} class="space-y-2 md:space-y-0 md:overflow-hidden md:rounded-lg md:border md:border-border">
-                  <div role="row" class="hidden grid-cols-[minmax(10rem,0.9fr)_minmax(9rem,0.75fr)_minmax(0,1.7fr)] gap-4 border-b border-border bg-muted/40 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground md:grid">
+                  <div role="row" class="hidden grid-cols-[minmax(12rem,1fr)_minmax(10rem,0.8fr)_minmax(0,1fr)] gap-4 border-b border-border bg-muted/40 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground md:grid">
                     <div role="columnheader">{t(m.tool_reference_client)}</div>
-                    <div role="columnheader">{t(m.tool_reference_access_mode)}</div>
-                    <div role="columnheader">{t(m.tool_reference_evidence)}</div>
+                    <div role="columnheader">{t(m.tool_reference_open_spec_link)}</div>
+                    <div role="columnheader">{t(m.tool_reference_note)}</div>
                   </div>
                   {#each compatibilityRecords as record (record.clientId)}
-                    <div role="row" class="grid gap-3 rounded-lg border border-border bg-card p-4 md:grid-cols-[minmax(10rem,0.9fr)_minmax(9rem,0.75fr)_minmax(0,1.7fr)] md:rounded-none md:border-x-0 md:border-t-0 md:p-4 md:last:border-b-0">
+                    <div role="row" class="grid gap-3 rounded-lg border border-border bg-card p-4 md:grid-cols-[minmax(12rem,1fr)_minmax(10rem,0.8fr)_minmax(0,1fr)] md:rounded-none md:border-x-0 md:border-t-0 md:p-4 md:last:border-b-0">
                       <div role="cell" class="min-w-0">
                         <div class="font-medium text-foreground">{record.name}</div>
+                      </div>
+                      <div role="cell" class="min-w-0">
+                        <div class="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground md:hidden">{t(m.tool_reference_open_spec_link)}</div>
                         {#if record.openSpecToolId}
-                          <Badge variant="outline" class="mt-1 font-mono">{record.openSpecToolId}</Badge>
+                          <Badge variant="secondary" class="font-mono">{record.openSpecToolId}</Badge>
                         {:else}
-                          <Badge variant="secondary" class="mt-1">{t(m.tool_reference_external_client)}</Badge>
+                          <Badge variant="secondary">{t(m.tool_reference_external_client)}</Badge>
                         {/if}
                       </div>
                       <div role="cell" class="min-w-0">
-                        <div class="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground md:hidden">{t(m.tool_reference_access_mode)}</div>
-                          <Badge variant={accessModeVariant(record.accessMode)}>{accessModeLabel(record.accessMode)}</Badge>
-                          <p class="mt-2 text-xs text-muted-foreground">{accessModeDetail(record.accessMode)}</p>
-                          <div class="mt-2 text-xs text-muted-foreground">
-                          {t(m.tool_reference_scopes)}: {scopesLabel(record.scopes)}
-                        </div>
-                      </div>
-                      <div role="cell" class="min-w-0 space-y-1 text-xs text-muted-foreground">
-                        <div class="font-medium text-foreground">{evidenceLabel(record.evidenceKind)}</div>
-                        <div>{t(m.tool_reference_researched)} {record.researchedAt}</div>
-                        {#if record.minVersion}
-                          <div>{t(m.tool_reference_version)}: {record.minVersion}</div>
-                        {/if}
-                        {#if isExternalSource(record.source)}
-                          <a class="inline-flex max-w-full items-center gap-1 break-all text-primary underline" href={record.source} target="_blank" rel="noreferrer">
-                            {t(m.tool_reference_source)}<ExternalLink class="size-3 shrink-0" />
-                          </a>
+                        <div class="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground md:hidden">{t(m.tool_reference_note)}</div>
+                        {#if record.note}
+                          <span class="text-sm text-muted-foreground">{record.note}</span>
                         {:else}
-                          <div class="break-words">{t(m.tool_reference_source)}: {record.source}</div>
+                          <span class="text-sm text-muted-foreground">—</span>
                         {/if}
                       </div>
                     </div>

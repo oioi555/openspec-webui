@@ -1,185 +1,171 @@
 import type {
   OpenSpecToolDefinition,
   OpenSpecToolDefinitionSource,
-  SharedSkillsAccessMode,
   SharedSkillsCompatibility,
-  SharedSkillsEvidenceKind,
-  SharedSkillsScope,
+  SharedSkillsSource,
   ToolCompatibilityReferenceResponse,
 } from '../shared/types.js';
+import officialDataJson from './data/tool-reference/openspec-tools.json' with { type: 'json' };
+import researchDataJson from './data/tool-reference/shared-agents-research.json' with { type: 'json' };
 
-const OFFICIAL_DOCS_URL =
-  'https://github.com/Fission-AI/OpenSpec/blob/v1.10.0/docs/supported-tools.md';
-const SNAPSHOT_DATE = '2026-08-20';
-
-const commands = (path: string, invocation: string): OpenSpecToolDefinition['commands'] => ({
-  path,
-  invocation,
-});
-
-const skills = (
-  path: string,
-  invocation: string | null = '/openspec-<skill>'
-): OpenSpecToolDefinition['skills'] => ({ path, invocation });
-
-export const OPEN_SPEC_TOOL_DEFINITION_SOURCE: OpenSpecToolDefinitionSource = {
-  version: 'v1.10.0',
-  url: OFFICIAL_DOCS_URL,
-  verifiedAt: SNAPSHOT_DATE,
-};
-
-/**
- * Complete snapshot of the v1.10.0 Tool Directory Reference. This is reference
- * data, not evidence that a tool is installed in the active repository.
- */
-export const OPEN_SPEC_TOOL_DEFINITIONS: OpenSpecToolDefinition[] = [
-  { id: 'amazon-q', name: 'Amazon Q Developer', skills: skills('.amazonq/skills/openspec-*/SKILL.md'), commands: commands('.amazonq/prompts/opsx-<id>.md', '@opsx-<id>') },
-  { id: 'antigravity', name: 'Antigravity', skills: skills('.agent/skills/openspec-*/SKILL.md'), commands: commands('.agent/workflows/opsx-<id>.md', '/opsx-<id>') },
-  { id: 'auggie', name: 'Auggie', skills: skills('.augment/skills/openspec-*/SKILL.md'), commands: commands('.augment/commands/opsx-<id>.md', '/opsx-<id>') },
-  { id: 'bob', name: 'IBM Bob Shell', skills: skills('.bob/skills/openspec-*/SKILL.md'), commands: commands('.bob/commands/opsx-<id>.md', '/opsx-<id>') },
-  { id: 'claude', name: 'Claude Code', skills: skills('.claude/skills/openspec-*/SKILL.md'), commands: commands('.claude/commands/opsx/<id>.md', '/opsx:<id>') },
-  { id: 'cline', name: 'Cline', skills: skills('.cline/skills/openspec-*/SKILL.md'), commands: commands('.clinerules/workflows/opsx-<id>.md', '/opsx-<id>') },
-  { id: 'command-code', name: 'Command Code', skills: skills('.commandcode/skills/openspec-*/SKILL.md'), commands: commands('.commandcode/commands/opsx-<id>.md', '/opsx-<id>') },
-  { id: 'codeartsagent', name: 'CodeArts', skills: skills('.codeartsdoer/skills/openspec-*/SKILL.md'), commands: null },
-  { id: 'codebuddy', name: 'CodeBuddy', skills: skills('.codebuddy/skills/openspec-*/SKILL.md'), commands: commands('.codebuddy/commands/opsx/<id>.md', '/opsx:<id>') },
-  { id: 'codex', name: 'Codex', skills: skills('.agents/skills/openspec-*/SKILL.md', '$openspec-<skill>'), commands: null },
-  { id: 'devin', name: 'Devin Desktop, formerly Windsurf', skills: skills('.devin/skills/openspec-*/SKILL.md'), commands: commands('.devin/workflows/opsx-<id>.md', '/opsx-<id>') },
-  { id: 'forgecode', name: 'ForgeCode', skills: skills('.forge/skills/openspec-*/SKILL.md'), commands: null },
-  { id: 'continue', name: 'Continue', skills: skills('.continue/skills/openspec-*/SKILL.md'), commands: commands('.continue/prompts/opsx-<id>.prompt', '/opsx-<id>') },
-  { id: 'costrict', name: 'CoStrict', skills: skills('.cospec/skills/openspec-*/SKILL.md'), commands: commands('.cospec/openspec/commands/opsx-<id>.md', '/opsx-<id>') },
-  { id: 'crush', name: 'Crush', skills: skills('.crush/skills/openspec-*/SKILL.md'), commands: commands('.crush/commands/opsx/<id>.md', '/opsx:<id>') },
-  { id: 'cursor', name: 'Cursor', skills: skills('.cursor/skills/openspec-*/SKILL.md'), commands: commands('.cursor/commands/opsx-<id>.md', '/opsx-<id>') },
-  { id: 'factory', name: 'Factory Droid', skills: skills('.factory/skills/openspec-*/SKILL.md'), commands: commands('.factory/commands/opsx-<id>.md', '/opsx-<id>') },
-  { id: 'gemini', name: 'Gemini CLI', skills: skills('.gemini/skills/openspec-*/SKILL.md'), commands: commands('.gemini/commands/opsx/<id>.toml', '/opsx:<id>') },
-  { id: 'github-copilot', name: 'GitHub Copilot', skills: skills('.github/skills/openspec-*/SKILL.md'), commands: commands('.github/prompts/opsx-<id>.prompt.md', '/opsx-<id>') },
-  { id: 'hermes', name: 'Hermes Agent', skills: skills('.hermes/skills/openspec-*/SKILL.md'), commands: null },
-  { id: 'iflow', name: 'iFlow', skills: skills('.iflow/skills/openspec-*/SKILL.md'), commands: commands('.iflow/commands/opsx-<id>.md', '/opsx-<id>') },
-  { id: 'junie', name: 'Junie', skills: skills('.junie/skills/openspec-*/SKILL.md'), commands: commands('.junie/commands/opsx-<id>.md', '/opsx-<id>') },
-  { id: 'kilocode', name: 'Kilo Code', skills: skills('.kilocode/skills/openspec-*/SKILL.md'), commands: commands('.kilocode/workflows/opsx-<id>.md', '/opsx-<id>') },
-  { id: 'kimi', name: 'Kimi Code', skills: skills('.kimi-code/skills/openspec-*/SKILL.md', '/skill:openspec-<skill>'), commands: null },
-  { id: 'kiro', name: 'Kiro', skills: skills('.kiro/skills/openspec-*/SKILL.md'), commands: commands('.kiro/prompts/opsx-<id>.prompt.md', '/opsx-<id>') },
-  { id: 'lingma', name: 'Lingma', skills: skills('.lingma/skills/openspec-*/SKILL.md'), commands: commands('.lingma/commands/opsx/<id>.md', '/opsx:<id>') },
-  { id: 'minimax-code', name: 'MiniMax Code', skills: skills('~/.minimax/skills/openspec-*/SKILL.md', null), commands: null },
-  { id: 'vibe', name: 'Mistral Vibe', skills: skills('.vibe/skills/openspec-*/SKILL.md'), commands: null },
-  { id: 'oh-my-pi', name: 'Oh My Pi', skills: skills('.omp/skills/openspec-*/SKILL.md'), commands: commands('.omp/commands/opsx-<id>.md', '/opsx-<id>') },
-  { id: 'opencode', name: 'OpenCode', skills: skills('.opencode/skills/openspec-*/SKILL.md'), commands: commands('.opencode/commands/opsx-<id>.md', '/opsx-<id>') },
-  { id: 'pi', name: 'Pi', skills: skills('.pi/skills/openspec-*/SKILL.md'), commands: commands('.pi/prompts/opsx-<id>.md', '/opsx-<id>') },
-  { id: 'qoder', name: 'Qoder', skills: skills('.qoder/skills/openspec-*/SKILL.md'), commands: commands('.qoder/commands/opsx/<id>.md', '/opsx:<id>') },
-  { id: 'qwen', name: 'Qwen Code', skills: skills('.qwen/skills/openspec-*/SKILL.md'), commands: commands('.qwen/commands/opsx-<id>.md', '/opsx-<id>') },
-  { id: 'rovodev', name: 'Rovo Dev CLI', skills: skills('.rovodev/skills/openspec-*/SKILL.md', 'use the openspec-<skill> skill'), commands: null },
-  { id: 'roocode', name: 'Zoo Code', skills: skills('.roo/skills/openspec-*/SKILL.md'), commands: commands('.roo/commands/opsx-<id>.md', '/opsx-<id>') },
-  { id: 'trae', name: 'Trae', skills: skills('.trae/skills/openspec-*/SKILL.md'), commands: commands('.trae/commands/opsx-<id>.md', '/opsx-<id>') },
-  { id: 'zed', name: 'Zed Agent', skills: skills('.agents/skills/openspec-*/SKILL.md', '/openspec-<skill> or @openspec-<skill>'), commands: null },
-  { id: 'zcode', name: 'ZCode', skills: skills('.zcode/skills/openspec-*/SKILL.md'), commands: commands('.zcode/commands/opsx/<id>.md', '/opsx:<id>') },
-  { id: 'agents', name: 'Shared .agents skills', skills: skills('.agents/skills/openspec-*/SKILL.md'), commands: null },
-];
-
-const RESEARCH_SUMMARY = 'user-supplied:chatgpt-research-2026-08-20';
-
-function officialCandidate(
-  id: string,
-  accessMode: SharedSkillsAccessMode,
-  scopes: SharedSkillsScope[],
-  evidenceKind: SharedSkillsEvidenceKind = 'research-summary',
-  source = RESEARCH_SUMMARY,
-  minVersion?: string
-): SharedSkillsCompatibility {
-  const definition = OPEN_SPEC_TOOL_DEFINITIONS.find((candidate) => candidate.id === id);
-  if (!definition) throw new Error(`Missing official tool definition for compatibility candidate ${id}`);
-  return {
-    clientId: id,
-    name: definition.name,
-    openSpecToolId: id,
-    accessMode,
-    scopes,
-    evidenceKind,
-    source,
-    researchedAt: SNAPSHOT_DATE,
-    ...(minVersion ? { minVersion } : {}),
+export interface OfficialToolDataset {
+  schemaVersion: 1;
+  source: {
+    version: string;
+    revision: string;
+    url: string;
+    checkedAt: string;
   };
+  tools: OpenSpecToolDefinition[];
 }
 
-function externalCandidate(clientId: string, name: string): SharedSkillsCompatibility {
-  return {
-    clientId,
-    name,
-    accessMode: 'native-project',
-    scopes: ['project'],
-    evidenceKind: 'research-summary',
-    source: RESEARCH_SUMMARY,
-    researchedAt: SNAPSHOT_DATE,
-  };
+export interface ResearchClient {
+  id: string;
+  name: string;
+  openSpecToolId?: string;
+  note?: string;
 }
 
-/**
- * Non-exhaustive snapshot of clients for which the current research found a
- * useful `.agents/skills` signal. Missing rows intentionally mean no conclusion.
- */
-export const SHARED_SKILLS_COMPATIBILITY: SharedSkillsCompatibility[] = [
-  officialCandidate('antigravity', 'native-project', ['project'], 'vendor-docs', 'https://antigravity.google/docs/skills'),
-  officialCandidate('auggie', 'native-project', ['project']),
-  officialCandidate('cline', 'unverified', ['project']),
-  officialCandidate('command-code', 'native-project', ['project', 'global']),
-  officialCandidate('codex', 'native-project', ['project', 'global'], 'vendor-docs', 'https://developers.openai.com/codex/build-skills'),
-  officialCandidate('devin', 'native-project', ['project']),
-  officialCandidate('forgecode', 'native-global', ['global']),
-  officialCandidate('crush', 'native-project', ['project']),
-  officialCandidate('cursor', 'native-project', ['project', 'global'], 'vendor-docs', 'https://cursor.com/docs/skills'),
-  officialCandidate('factory', 'native-project', ['project']),
-  officialCandidate('gemini', 'native-project', ['project', 'global']),
-  officialCandidate('github-copilot', 'native-project', ['project', 'global']),
-  officialCandidate('hermes', 'configurable', ['project']),
-  officialCandidate('kilocode', 'native-project', ['project']),
-  officialCandidate('kimi', 'native-project', ['project', 'global']),
-  officialCandidate('vibe', 'native-project', ['project', 'global']),
-  officialCandidate('opencode', 'native-project', ['project', 'global'], 'vendor-docs', 'https://opencode.ai/docs/skills'),
-  officialCandidate('pi', 'native-project', ['project', 'global']),
-  officialCandidate('qoder', 'native-project', ['project']),
-  officialCandidate('qwen', 'native-project', ['project']),
-  officialCandidate('rovodev', 'native-project', ['project', 'global']),
-  officialCandidate('roocode', 'native-project', ['project']),
-  officialCandidate('zed', 'native-project', ['project', 'global'], 'vendor-docs', 'https://zed.dev/docs/ai/skills', '1.4.2'),
-  officialCandidate('agents', 'native-project', ['project'], 'standard-listing', OFFICIAL_DOCS_URL),
-  {
-    clientId: 'grok-build',
-    name: 'Grok Build',
-    accessMode: 'native-project',
-    scopes: ['project'],
-    evidenceKind: 'runtime-observed',
-    source: 'runtime:openspec-webui-maintainer',
-    researchedAt: SNAPSHOT_DATE,
-  },
-  externalCandidate('amp', 'Amp'),
-  externalCandidate('replit', 'Replit'),
-  externalCandidate('antigravity-cli', 'Antigravity CLI'),
-  externalCandidate('dexto', 'Dexto'),
-  externalCandidate('deep-agents', 'Deep Agents'),
-  externalCandidate('firebender', 'Firebender'),
-  externalCandidate('warp', 'Warp'),
-  externalCandidate('loaf', 'Loaf'),
-  externalCandidate('promptscript', 'PromptScript'),
-];
+export interface SharedAgentsResearchDataset {
+  schemaVersion: 1;
+  updatedAt: string;
+  source: SharedSkillsSource;
+  clients: ResearchClient[];
+}
 
-const ACCESS_MODES = new Set<SharedSkillsAccessMode>([
-  'native-project',
-  'native-global',
-  'configurable',
-  'import',
-  'format-only',
-  'unverified',
-]);
-const SCOPES = new Set<SharedSkillsScope>(['project', 'global']);
-const EVIDENCE_KINDS = new Set<SharedSkillsEvidenceKind>([
-  'vendor-docs',
-  'standard-listing',
-  'research-summary',
-  'runtime-observed',
-]);
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function requireRecord(value: unknown, field: string): Record<string, unknown> {
+  if (!isRecord(value)) throw new Error(`${field} must be an object`);
+  return value;
+}
+
+function requireString(value: unknown, field: string): string {
+  if (typeof value !== 'string' || !value.trim()) throw new Error(`${field} must be a non-empty string`);
+  return value;
+}
+
+function requireOptionalString(value: unknown, field: string): string | undefined {
+  return value === undefined ? undefined : requireString(value, field);
+}
 
 function assertIsoDate(value: string, field: string): void {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || Number.isNaN(Date.parse(`${value}T00:00:00Z`))) {
     throw new Error(`${field} must be an ISO date (YYYY-MM-DD)`);
   }
+}
+
+function parseDelivery(value: unknown, field: string): OpenSpecToolDefinition['commands'] {
+  if (value === null) return null;
+  const delivery = requireRecord(value, field);
+  const invocation = delivery.invocation;
+  if (invocation !== null && typeof invocation !== 'string') {
+    throw new Error(`${field}.invocation must be a string or null`);
+  }
+  return {
+    path: requireString(delivery.path, `${field}.path`),
+    invocation,
+  };
+}
+
+export function validateOfficialToolDataset(value: unknown): OfficialToolDataset {
+  const data = requireRecord(value, 'official dataset');
+  if (data.schemaVersion !== 1) throw new Error('Official dataset has unsupported schemaVersion');
+  const source = requireRecord(data.source, 'official source');
+  const checkedAt = requireString(source.checkedAt, 'official source.checkedAt');
+  assertIsoDate(checkedAt, 'official source.checkedAt');
+  if (!Array.isArray(data.tools)) throw new Error('official tools must be an array');
+
+  const ids = new Set<string>();
+  const tools = data.tools.map((item, index): OpenSpecToolDefinition => {
+    const tool = requireRecord(item, `official tools[${index}]`);
+    const id = requireString(tool.id, `official tools[${index}].id`);
+    if (ids.has(id)) throw new Error(`Duplicate official tool id: ${id}`);
+    ids.add(id);
+    const commands = parseDelivery(tool.commands, `official tool ${id}.commands`);
+    const skills = parseDelivery(tool.skills, `official tool ${id}.skills`);
+    if (!commands && !skills) throw new Error(`Official tool ${id} has no Commands or Skills delivery`);
+    return { id, name: requireString(tool.name, `official tool ${id}.name`), commands, skills };
+  });
+
+  return {
+    schemaVersion: 1,
+    source: {
+      version: requireString(source.version, 'official source.version'),
+      revision: requireString(source.revision, 'official source.revision'),
+      url: requireString(source.url, 'official source.url'),
+      checkedAt,
+    },
+    tools,
+  };
+}
+
+export function validateResearchDataset(
+  value: unknown,
+  official: OfficialToolDataset
+): SharedAgentsResearchDataset {
+  const data = requireRecord(value, 'research dataset');
+  if (data.schemaVersion !== 1) throw new Error('Research dataset has unsupported schemaVersion');
+  const updatedAt = requireString(data.updatedAt, 'research updatedAt');
+  assertIsoDate(updatedAt, 'research updatedAt');
+  const sourceRaw = requireRecord(data.source, 'research source');
+  const source: SharedSkillsSource = {
+    url: requireString(sourceRaw.url, 'research source.url'),
+    revision: requireString(sourceRaw.revision, 'research source.revision'),
+    updatedAt: requireString(sourceRaw.updatedAt ?? updatedAt, 'research source.updatedAt'),
+  };
+  // updatedAt already validated; validate source.updatedAt as well if different
+  assertIsoDate(source.updatedAt, 'research source.updatedAt');
+  if (!Array.isArray(data.clients)) throw new Error('research clients must be an array');
+
+  const officialIds = new Set(official.tools.map((tool) => tool.id));
+  const clientIds = new Set<string>();
+  const clients = data.clients.map((item, index): ResearchClient => {
+    const client = requireRecord(item, `research clients[${index}]`);
+    const id = requireString(client.id, `research clients[${index}].id`);
+    if (clientIds.has(id)) throw new Error(`Duplicate research client id: ${id}`);
+    clientIds.add(id);
+    const name = requireString(client.name, `research client ${id}.name`);
+    const openSpecToolId = requireOptionalString(client.openSpecToolId, `research client ${id}.openSpecToolId`);
+    if (openSpecToolId && !officialIds.has(openSpecToolId)) {
+      throw new Error(`Research client ${id} references unknown OpenSpec tool ${openSpecToolId}`);
+    }
+    const note = requireOptionalString(client.note, `research client ${id}.note`);
+    return {
+      id,
+      name,
+      ...(openSpecToolId ? { openSpecToolId } : {}),
+      ...(note ? { note } : {}),
+    };
+  });
+
+  // Sort not required but keep stable order as given; validation ensures no duplicates
+  return { schemaVersion: 1, updatedAt, source, clients };
+}
+
+export function projectToolCompatibilityReference(
+  official: OfficialToolDataset,
+  research: SharedAgentsResearchDataset
+): ToolCompatibilityReferenceResponse {
+  const sharedCompatibility: SharedSkillsCompatibility[] = research.clients.map((client) => ({
+    clientId: client.id,
+    name: client.name,
+    ...(client.openSpecToolId ? { openSpecToolId: client.openSpecToolId } : {}),
+    ...(client.note ? { note: client.note } : {}),
+  }));
+
+  return {
+    officialDefinitions: official.tools,
+    officialSource: {
+      version: official.source.version,
+      url: official.source.url,
+      verifiedAt: official.source.checkedAt,
+    },
+    sharedSource: research.source,
+    sharedCompatibility,
+  };
 }
 
 export function validateToolCompatibilityReference(
@@ -189,73 +175,47 @@ export function validateToolCompatibilityReference(
     throw new Error('Official tool source metadata requires version and URL');
   }
   assertIsoDate(reference.officialSource.verifiedAt, 'officialSource.verifiedAt');
-
+  if (!reference.sharedSource.url.trim() || !reference.sharedSource.revision.trim()) {
+    throw new Error('Shared source metadata requires url and revision');
+  }
+  assertIsoDate(reference.sharedSource.updatedAt, 'sharedSource.updatedAt');
   const officialIds = new Set<string>();
   for (const definition of reference.officialDefinitions) {
-    if (!definition.id.trim() || !definition.name.trim()) {
-      throw new Error('Official tool definitions require non-empty id and name');
-    }
-    if (officialIds.has(definition.id)) {
-      throw new Error(`Duplicate official tool id: ${definition.id}`);
-    }
+    if (!definition.id.trim() || !definition.name.trim()) throw new Error('Official tool definitions require non-empty id and name');
+    if (officialIds.has(definition.id)) throw new Error(`Duplicate official tool id: ${definition.id}`);
     officialIds.add(definition.id);
-    if (!definition.commands && !definition.skills) {
-      throw new Error(`Official tool ${definition.id} has no Commands or Skills delivery`);
+    for (const delivery of [definition.commands, definition.skills]) {
+      if (delivery && !delivery.path.trim()) throw new Error(`Official tool ${definition.id} has an empty delivery path`);
     }
-    for (const [deliveryName, delivery] of [
-      ['commands', definition.commands],
-      ['skills', definition.skills],
-    ] as const) {
-      if (delivery && !delivery.path.trim()) {
-        throw new Error(`Official tool ${definition.id} has an empty ${deliveryName} path`);
-      }
-    }
+    if (!definition.commands && !definition.skills) throw new Error(`Official tool ${definition.id} has no Commands or Skills delivery`);
   }
-
   const clientIds = new Set<string>();
   for (const record of reference.sharedCompatibility) {
-    if (!record.clientId.trim() || !record.name.trim()) {
-      throw new Error('Compatibility records require non-empty clientId and name');
-    }
-    if (clientIds.has(record.clientId)) {
-      throw new Error(`Duplicate compatibility client id: ${record.clientId}`);
-    }
+    if (!record.clientId.trim() || !record.name.trim()) throw new Error('Compatibility records require non-empty clientId and name');
+    if (clientIds.has(record.clientId)) throw new Error(`Duplicate compatibility client id: ${record.clientId}`);
     clientIds.add(record.clientId);
-    if (!ACCESS_MODES.has(record.accessMode)) {
-      throw new Error(`Invalid access mode for ${record.clientId}: ${record.accessMode}`);
+    if (record.openSpecToolId && !officialIds.has(record.openSpecToolId)) {
+      throw new Error(`Compatibility record ${record.clientId} references unknown OpenSpec tool ${record.openSpecToolId}`);
     }
-    if (!EVIDENCE_KINDS.has(record.evidenceKind)) {
-      throw new Error(`Invalid evidence kind for ${record.clientId}: ${record.evidenceKind}`);
-    }
-    if (!record.source.trim()) {
-      throw new Error(`Compatibility record ${record.clientId} requires a source or reference`);
-    }
-    assertIsoDate(record.researchedAt, `${record.clientId}.researchedAt`);
-    if (record.minVersion !== undefined && record.minVersion.trim() === '') {
-      throw new Error(`Compatibility record ${record.clientId} has an empty minimum version`);
-    }
-    const uniqueScopes = new Set(record.scopes);
-    if (uniqueScopes.size !== record.scopes.length || record.scopes.some((scope) => !SCOPES.has(scope))) {
-      throw new Error(`Invalid or duplicate scope for ${record.clientId}`);
-    }
-    if (record.accessMode === 'native-project' && !record.scopes.includes('project')) {
-      throw new Error(`Project-native record ${record.clientId} must include project scope`);
-    }
-    if (record.accessMode === 'native-global' && !record.scopes.includes('global')) {
-      throw new Error(`Global-native record ${record.clientId} requires global scope`);
-    }
-    if (record.openSpecToolId) {
-      if (!officialIds.has(record.openSpecToolId)) {
-        throw new Error(`Compatibility record ${record.clientId} references unknown OpenSpec tool ${record.openSpecToolId}`);
-      }
-    }
+    if (record.note !== undefined && !record.note.trim()) throw new Error(`Compatibility record ${record.clientId} has an empty note`);
   }
-
   return reference;
 }
 
-export const TOOL_COMPATIBILITY_REFERENCE = validateToolCompatibilityReference({
-  officialDefinitions: OPEN_SPEC_TOOL_DEFINITIONS,
-  officialSource: OPEN_SPEC_TOOL_DEFINITION_SOURCE,
-  sharedCompatibility: SHARED_SKILLS_COMPATIBILITY,
-});
+export const OFFICIAL_TOOL_DATASET = validateOfficialToolDataset(officialDataJson);
+export const SHARED_AGENTS_RESEARCH_DATASET = validateResearchDataset(researchDataJson, OFFICIAL_TOOL_DATASET);
+
+export const OPEN_SPEC_TOOL_DEFINITION_SOURCE: OpenSpecToolDefinitionSource = {
+  version: OFFICIAL_TOOL_DATASET.source.version,
+  url: OFFICIAL_TOOL_DATASET.source.url,
+  verifiedAt: OFFICIAL_TOOL_DATASET.source.checkedAt,
+};
+export const OPEN_SPEC_TOOL_DEFINITIONS = OFFICIAL_TOOL_DATASET.tools;
+export const SHARED_SKILLS_COMPATIBILITY = projectToolCompatibilityReference(
+  OFFICIAL_TOOL_DATASET,
+  SHARED_AGENTS_RESEARCH_DATASET
+).sharedCompatibility;
+export const SHARED_SKILLS_SOURCE = SHARED_AGENTS_RESEARCH_DATASET.source;
+export const TOOL_COMPATIBILITY_REFERENCE = validateToolCompatibilityReference(
+  projectToolCompatibilityReference(OFFICIAL_TOOL_DATASET, SHARED_AGENTS_RESEARCH_DATASET)
+);

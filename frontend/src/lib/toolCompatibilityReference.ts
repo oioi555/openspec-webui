@@ -29,7 +29,6 @@ export function filterSharedSkillsCompatibility(
     record.name,
     record.clientId,
     record.openSpecToolId,
-    record.accessMode,
-    record.source,
+    record.note,
   ], query));
 }
