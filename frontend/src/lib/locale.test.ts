@@ -3,6 +3,8 @@ import { readFile } from 'node:fs/promises';
 import { afterEach, test } from 'node:test';
 
 import {
+  buildArtifactLanguageInitCommand,
+  CLI_LANGUAGE_BY_LOCALE,
   LOCALE_STORAGE_KEY,
   loadStoredLocale,
   resolveBootstrapLocale,
@@ -29,6 +31,23 @@ const TOOLS_COMMAND_KEYS = [
   'settings_tools_init_command_caption',
   'settings_tools_init_command_aria',
   'settings_tools_no_active_project',
+] as const;
+
+const LANGUAGE_AND_ZED_KEYS = [
+  'settings_section_language',
+  'settings_language_display_heading',
+  'settings_language_independence',
+  'settings_language_artifact_heading',
+  'settings_language_artifact_description',
+  'settings_language_existing_project',
+  'settings_language_structural_keywords',
+  'settings_language_docs',
+  'settings_language_new_project_caption',
+  'settings_language_command_aria',
+  'settings_tools_shared_target_zed',
+  'settings_tools_shared_target_agents',
+  'settings_tools_shared_target_codex',
+  'settings_tools_shared_target_legacy',
 ] as const;
 
 class MockStorage {
@@ -74,6 +93,26 @@ test('saveStoredLocale and loadStoredLocale persist supported locales', () => {
 
   assert.equal(localStorage.getItem(LOCALE_STORAGE_KEY), 'ja');
   assert.equal(loadStoredLocale(), 'ja');
+});
+
+test('every supported locale maps to the expected artifact-language command example', () => {
+  const expected = {
+    en: 'English',
+    ja: 'Japanese',
+    de: 'German',
+    es: 'Spanish',
+    fr: 'French',
+    'pt-BR': 'Portuguese (pt-BR)',
+    'zh-CN': 'Chinese (Simplified)',
+  } as const;
+
+  assert.deepEqual(CLI_LANGUAGE_BY_LOCALE, expected);
+  for (const [locale, language] of Object.entries(expected)) {
+    assert.equal(
+      buildArtifactLanguageInitCommand(locale as keyof typeof expected),
+      `openspec init --language "${language}"`,
+    );
+  }
 });
 
 test('resolveBootstrapLocale prefers stored locale over browser locale', () => {
@@ -206,6 +245,26 @@ test('translated commands section keeps CLI command tokens in English', async ()
       /openspec config profile/,
       `${locale}.settings_commands_config_profile_aria should keep openspec config profile in English`,
     );
+  }
+});
+
+test('every locale has complete Language and Zed copy with fixed OpenSpec tokens', async () => {
+  const settings = await readJson<{ locales: string[] }>('../../project.inlang/settings.json');
+
+  for (const locale of settings.locales) {
+    const messages = await readJson<Record<string, string>>(`../../messages/${locale}.json`);
+    for (const key of LANGUAGE_AND_ZED_KEYS) {
+      assert.equal(typeof messages[key], 'string', `${locale} is missing ${key}`);
+      assert.notEqual(messages[key].trim(), '', `${locale} has empty ${key}`);
+    }
+
+    assert.match(messages.settings_language_independence, /openspec\/config\.yaml/);
+    assert.match(messages.settings_language_existing_project, /`context`/);
+    assert.match(messages.settings_language_existing_project, /openspec\/config\.yaml/);
+    assert.match(messages.settings_language_structural_keywords, /`SHALL`/);
+    assert.match(messages.settings_language_structural_keywords, /`MUST`/);
+    assert.match(messages.settings_tools_shared_target_zed, /Zed/);
+    assert.match(messages.settings_tools_shared_target_agents, /\.agents/);
   }
 });
 

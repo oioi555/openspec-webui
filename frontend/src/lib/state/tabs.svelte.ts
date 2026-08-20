@@ -129,7 +129,7 @@ function getLookupKeys(tabIdOrPath: string) {
   return normalizedPath === canonicalPath ? [canonicalPath] : [normalizedPath, canonicalPath];
 }
 
-export type SettingsSection = 'general' | 'tools' | 'commands' | 'validation' | 'versions';
+export type SettingsSection = 'general' | 'language' | 'tools' | 'commands' | 'validation' | 'versions';
 
 interface OpenSettingsOptions {
   initialSection?: SettingsSection;

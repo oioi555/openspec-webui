@@ -2145,6 +2145,7 @@ test('availability route surfaces both skill-slash and skill-dollar for a shared
         alternateForms: ['skill-dollar'],
         items: [{ skillName: 'openspec-propose', source: '.agents/skills/openspec-propose/SKILL.md' }],
       },
+      sharedSkillTarget: 'legacy',
     });
 
     // Two distinct forms: the frontend must open an explicit candidate menu

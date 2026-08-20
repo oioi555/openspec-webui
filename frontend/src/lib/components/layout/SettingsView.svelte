@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CircleOff, Copy, ExternalLink, FlaskConical, Info, ListChecks, Monitor, Moon, RefreshCw, Settings, Sun, Wrench } from '@lucide/svelte';
+  import { CircleOff, Copy, ExternalLink, FlaskConical, Info, Languages, ListChecks, Monitor, Moon, RefreshCw, Settings, Sun, Wrench } from '@lucide/svelte';
   import { buildProjectUpdateCommand, buildToolsInitCommand } from '$lib/state/projectVersionStatusCore';
   import { projectVersionStatusStore } from '$lib/state/projectVersionStatus.svelte.ts';
   import { Callout } from '$lib/components/shared/callout';
@@ -12,10 +12,12 @@
   import {
     OPENSPEC_COMMANDS_DOCS_URL,
     OPENSPEC_INIT_DOCS_URL,
+    OPENSPEC_MULTI_LANGUAGE_DOCS_URL,
     OPENSPEC_SUPPORTED_TOOLS_DOCS_URL,
     OPENSPEC_WORKFLOWS_DOCS_URL,
   } from '$lib/openspecDocs';
   import { projectStore } from '$lib/state/projects.svelte.ts';
+  import { buildArtifactLanguageInitCommand } from '$lib/locale';
   import { LOCALE_LABELS, localeStore, type AppLocale } from '$lib/state/locale.svelte.ts';
   import * as m from '$lib/paraglide/messages.js';
   import { getWorkflowMetadata } from '$lib/workflowMetadata';
@@ -34,7 +36,7 @@
   import { uiPreferencesStore } from '$lib/state/uiPreferences.svelte.ts';
   import { validationPreferencesStore } from '$lib/state/validationPreferences.svelte.ts';
 
-  type Section = 'general' | 'tools' | 'commands' | 'validation' | 'versions';
+  type Section = 'general' | 'language' | 'tools' | 'commands' | 'validation' | 'versions';
 
   interface Props {
     initialSection?: Section;
@@ -45,6 +47,7 @@
 
   const SECTION_IDS: Record<Section, string> = {
     general: 'settings-general',
+    language: 'settings-language',
     tools: 'settings-tools',
     commands: 'settings-commands',
     validation: 'settings-validation',
@@ -56,6 +59,11 @@
       id: 'general' as const,
       label: t(m.settings_section_general),
       icon: Settings
+    },
+    {
+      id: 'language' as const,
+      label: t(m.settings_section_language),
+      icon: Languages
     },
     {
       id: 'tools' as const,
@@ -144,6 +152,7 @@
   }
 
   let availabilityReady = $derived(commandPreferencesStore.availability.status === 'ready');
+  let artifactLanguageCommand = $derived(buildArtifactLanguageInitCommand(localeStore.value));
   let integrations = $derived(commandPreferencesStore.availability.integrations);
   let versionSnapshot = $derived(versionStatusStore.snapshot);
   let projectVersionSnapshot = $derived(projectVersionStatusStore.snapshot);
@@ -166,6 +175,21 @@
         return t(m.settings_tools_delivery_skills);
       case 'both':
         return t(m.settings_tools_delivery_both);
+    }
+  }
+
+  function getIntegrationLabel(integration: DetectedIntegration): string {
+    switch (integration.sharedSkillTarget) {
+      case 'zed':
+        return t(m.settings_tools_shared_target_zed);
+      case 'agents':
+        return t(m.settings_tools_shared_target_agents);
+      case 'codex':
+        return t(m.settings_tools_shared_target_codex);
+      case 'legacy':
+        return t(m.settings_tools_shared_target_legacy);
+      default:
+        return integration.tool;
     }
   }
 
@@ -366,30 +390,6 @@
           </OptionCard>
         </div>
 
-        <div class="space-y-3">
-          <div>
-            <h2 class="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{t(m.settings_heading_language)}</h2>
-          </div>
-          <div class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_12rem] sm:items-start">
-            <p class="text-sm text-muted-foreground pt-1.5">{t(m.settings_language_description)}</p>
-            <Select.Root value={localeStore.value} onValueChange={(v) => setLocale(v as AppLocale)}>
-              <Select.Trigger
-                class="sm:justify-self-end w-full"
-                aria-label={t(m.settings_heading_language)}
-              >
-                {LOCALE_LABELS[localeStore.value]}
-              </Select.Trigger>
-              <Select.Content>
-                {#each localeStore.supportedLocales as locale}
-                  <Select.Item value={locale}>
-                    {LOCALE_LABELS[locale]}
-                  </Select.Item>
-                {/each}
-              </Select.Content>
-            </Select.Root>
-          </div>
-        </div>
-
         <div>
           <h2 class="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{t(m.settings_heading_explorer)}</h2>
           <p class="mt-1 text-sm text-muted-foreground">{t(m.settings_explorer_description)}</p>
@@ -408,6 +408,67 @@
             onchange={togglePreviewTabs}
           />
         </label>
+      </div>
+    </SurfaceCard>
+
+    <!-- language section -->
+    <SurfaceCard id="settings-language" data-settings-section="language">
+      <SectionHeader>
+        <h2 class="text-lg font-semibold text-foreground">{t(m.settings_section_language)}</h2>
+      </SectionHeader>
+
+      <div class="space-y-6 p-4">
+        <div class="space-y-3">
+          <div>
+            <h3 class="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{t(m.settings_language_display_heading)}</h3>
+            <p class="mt-1 text-sm text-muted-foreground">{t(m.settings_language_description)}</p>
+          </div>
+          <Select.Root value={localeStore.value} onValueChange={(value) => setLocale(value as AppLocale)}>
+            <Select.Trigger class="w-full sm:w-64" aria-label={t(m.settings_language_display_heading)}>
+              {LOCALE_LABELS[localeStore.value]}
+            </Select.Trigger>
+            <Select.Content>
+              {#each localeStore.supportedLocales as locale}
+                <Select.Item value={locale}>{LOCALE_LABELS[locale]}</Select.Item>
+              {/each}
+            </Select.Content>
+          </Select.Root>
+          <Callout variant="info">{t(m.settings_language_independence)}</Callout>
+        </div>
+
+        <div class="space-y-3 border-t border-border pt-5">
+          <div>
+            <h3 class="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{t(m.settings_language_artifact_heading)}</h3>
+            <p class="mt-1 text-sm text-muted-foreground">{t(m.settings_language_artifact_description)}</p>
+          </div>
+          <p class="text-sm text-muted-foreground">{t(m.settings_language_existing_project)}</p>
+          <p class="text-sm text-muted-foreground">{t(m.settings_language_structural_keywords)}</p>
+          <a
+            href={OPENSPEC_MULTI_LANGUAGE_DOCS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-1 text-sm underline hover:text-foreground"
+          >
+            {t(m.settings_language_docs)}
+            <ExternalLink class="h-3.5 w-3.5" />
+          </a>
+        </div>
+
+        <div>
+          <div class="text-xs uppercase tracking-wide text-muted-foreground">{t(m.settings_language_new_project_caption)}</div>
+          <div class="mt-1 flex items-center gap-2 rounded-sm border border-border bg-background px-3 py-2">
+            <code class="min-w-0 flex-1 overflow-x-auto text-xs text-primary">{artifactLanguageCommand}</code>
+            <Button
+              variant="ghost"
+              size="icon"
+              class="size-8 shrink-0 text-muted-foreground hover:text-foreground"
+              aria-label={t(m.settings_language_command_aria)}
+              onclick={() => handleCopyCommand(artifactLanguageCommand, artifactLanguageCommand)}
+            >
+              <Copy class="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       </div>
     </SurfaceCard>
 
@@ -469,7 +530,7 @@
               <div class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center gap-2">
-                    <span class="font-medium text-foreground">{integration.tool}</span>
+                    <span class="font-medium text-foreground">{getIntegrationLabel(integration)}</span>
                     <Badge variant="secondary">{getDeliveryLabel(integration)}</Badge>
                   </div>
                   <div class="mt-1 text-xs text-muted-foreground">

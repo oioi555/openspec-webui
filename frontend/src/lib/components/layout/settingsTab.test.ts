@@ -26,6 +26,8 @@ afterEach(() => {
 /** Render SettingsView under the given locale and return the SSR body. */
 async function renderSettingsUnderLocale(locale: AppLocale): Promise<string> {
   overwriteGetLocale(() => locale);
+  const { localeStore } = await import('../../state/locale.svelte.ts');
+  localeStore.syncFromRuntime();
   const { default: SettingsView } = await import('./SettingsView.svelte');
   return render(SettingsView, { props: { initialSection: 'general' } }).body;
 }
@@ -46,12 +48,17 @@ async function readMessageCatalog(locale: string): Promise<Record<string, string
  */
 const SETTINGS_RENDER_MESSAGE_KEYS = [
   'settings_section_general',
+  'settings_section_language',
   'settings_section_tools',
   'settings_section_commands',
   'settings_section_validation',
   'settings_section_versions',
   'settings_heading_theme',
-  'settings_heading_language',
+  'settings_language_display_heading',
+  'settings_language_artifact_heading',
+  'settings_language_docs',
+  'settings_language_new_project_caption',
+  'settings_language_command_aria',
   'settings_theme_light',
   'settings_theme_dark',
   'settings_theme_system',
@@ -75,9 +82,12 @@ const SETTINGS_RENDER_MESSAGE_KEYS = [
  */
 const ENGLISH_FALLBACK_GUARD_KEYS = [
   'settings_section_general',
+  'settings_section_language',
   'settings_section_commands',
   'settings_heading_theme',
-  'settings_heading_language',
+  'settings_language_display_heading',
+  'settings_language_artifact_heading',
+  'settings_language_docs',
   'settings_theme_light',
   'settings_theme_dark',
   'settings_command_desc_propose',
@@ -151,7 +161,7 @@ test('tabs.svelte.ts includes settings in TabType and defines a regular closeabl
 
   // openSettings is exported via the store
   assert.match(source, /openSettings\s*\(/);
-  assert.match(source, /SettingsSection = 'general' \| 'tools' \| 'commands' \| 'validation' \| 'versions'/);
+  assert.match(source, /SettingsSection = 'general' \| 'language' \| 'tools' \| 'commands' \| 'validation' \| 'versions'/);
 
   // normalizePath maps /settings to home (non-routable) when preserveSettings is not set
   assert.match(source, /!options\?\.preserveSettings\s*&&\s*withLeadingSlash\s*===\s*'\/settings'/);
@@ -166,11 +176,12 @@ test('tabs.svelte.ts keeps browser history handling compatible with non-routable
   assert.match(source, /normalizePath\(tabInput\.path, \{ preserveSettings: tabInput\.type === 'settings' \}\)/);
 });
 
-test('SettingsView.svelte includes five section anchors, IntersectionObserver, smooth scroll, and responsive layout', async () => {
+test('SettingsView.svelte includes six section anchors, IntersectionObserver, smooth scroll, and responsive layout', async () => {
   const source = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
 
-  // Five section ids
+  // Six section ids
   assert.match(source, /id="settings-general"/);
+  assert.match(source, /id="settings-language"/);
   assert.match(source, /id="settings-tools"/);
   assert.match(source, /id="settings-commands"/);
   assert.match(source, /id="settings-validation"/);
@@ -178,6 +189,7 @@ test('SettingsView.svelte includes five section anchors, IntersectionObserver, s
 
   // data-settings-section anchors for IntersectionObserver
   assert.match(source, /data-settings-section="general"/);
+  assert.match(source, /data-settings-section="language"/);
   assert.match(source, /data-settings-section="tools"/);
   assert.match(source, /data-settings-section="commands"/);
   assert.match(source, /data-settings-section="validation"/);
@@ -283,7 +295,65 @@ test('MainViewer.svelte renders SettingsView for settings tabs inside the same m
   assert.equal(settingsBlock.includes('max-w-7xl'), true,
     'settings branch should wrap SettingsView in max-w-7xl, same as Dashboard');
   assert.match(settingsBlock, /<SettingsView/);
-  assert.match(source, /initialSection\?: 'general' \| 'tools' \| 'commands' \| 'validation' \| 'versions'/);
+  assert.match(source, /initialSection\?: 'general' \| 'language' \| 'tools' \| 'commands' \| 'validation' \| 'versions'/);
+});
+
+test('SettingsView renders an independent Language section with guidance before the new-project command', async () => {
+  const source = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
+  const generalStart = source.indexOf('id="settings-general"');
+  const languageStart = source.indexOf('id="settings-language"');
+  const toolsStart = source.indexOf('id="settings-tools"');
+  const generalBlock = source.slice(generalStart, languageStart);
+  const languageBlock = source.slice(languageStart, toolsStart);
+
+  assert.ok(generalStart > 0 && languageStart > generalStart && toolsStart > languageStart);
+  assert.equal(generalBlock.includes('<Select.Root'), false, 'General must not contain the locale selector');
+  assert.match(languageBlock, /<Select\.Root value=\{localeStore\.value\}/);
+  assert.match(languageBlock, /OPENSPEC_MULTI_LANGUAGE_DOCS_URL/);
+  assert.match(languageBlock, /settings_language_existing_project/);
+  assert.match(languageBlock, /settings_language_structural_keywords/);
+
+  const display = languageBlock.indexOf('settings_language_display_heading');
+  const artifact = languageBlock.indexOf('settings_language_artifact_heading');
+  const docs = languageBlock.indexOf('settings_language_docs');
+  const command = languageBlock.indexOf('settings_language_new_project_caption');
+  assert.ok(display < artifact && artifact < docs && docs < command);
+});
+
+test('Language command is locale-derived and copy-only', async () => {
+  const source = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
+  const languageStart = source.indexOf('id="settings-language"');
+  const toolsStart = source.indexOf('id="settings-tools"');
+  const languageBlock = source.slice(languageStart, toolsStart);
+
+  assert.match(source, /artifactLanguageCommand = \$derived\(buildArtifactLanguageInitCommand\(localeStore\.value\)\)/);
+  assert.match(languageBlock, /handleCopyCommand\(artifactLanguageCommand, artifactLanguageCommand\)/);
+  assert.equal(languageBlock.includes('fetch('), false);
+  assert.equal(languageBlock.includes('exec'), false);
+  assert.equal(languageBlock.includes('openspec/config.yaml'), false, 'the path comes from localized read-only copy');
+});
+
+test('Japanese Language section renders complete guidance and the Japanese CLI example', async () => {
+  const body = await renderSettingsUnderLocale('ja');
+  const catalog = await readMessageCatalog('ja');
+  const keys = [
+    'settings_section_language',
+    'settings_language_display_heading',
+    'settings_language_independence',
+    'settings_language_artifact_heading',
+    'settings_language_artifact_description',
+    'settings_language_existing_project',
+    'settings_language_structural_keywords',
+    'settings_language_docs',
+    'settings_language_new_project_caption',
+    'settings_language_command_aria',
+  ] as const;
+
+  for (const key of keys) {
+    assert.ok(body.includes(catalog[key]), `ja render should contain ${key}`);
+  }
+  assert.ok(body.includes('openspec init --language'));
+  assert.ok(body.includes('Japanese'));
 });
 
 test('TabBar.svelte includes a settings icon mapping in its TAB_ICONS record', async () => {
@@ -531,6 +601,17 @@ test('SettingsView.svelte has Tools section with read-only content and refresh',
 
   // No "installed tools" wording
   assert.equal(source.toLowerCase().includes('installed tools'), false, 'Must not use "installed tools"');
+});
+
+test('SettingsView.svelte distinguishes every shared target without executable-install wording', async () => {
+  const source = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
+
+  assert.match(source, /case 'zed':\s*return t\(m\.settings_tools_shared_target_zed\)/);
+  assert.match(source, /case 'agents':\s*return t\(m\.settings_tools_shared_target_agents\)/);
+  assert.match(source, /case 'codex':\s*return t\(m\.settings_tools_shared_target_codex\)/);
+  assert.match(source, /case 'legacy':\s*return t\(m\.settings_tools_shared_target_legacy\)/);
+  assert.match(source, /getIntegrationLabel\(integration\)/);
+  assert.equal(source.toLowerCase().includes('installed executable'), false);
 });
 
 test('SettingsView.svelte Tools section shows active repository and copyable openspec init command', async () => {

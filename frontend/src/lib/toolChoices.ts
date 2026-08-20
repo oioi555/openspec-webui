@@ -13,9 +13,8 @@
  *    id, its command form is used.
  * 2. Otherwise the tool's Skills inventory is consulted and the skill form is
  *    used only when it contains the workflow's canonical OpenSpec skill name.
- * 3. The shared `.agents` root stays ambiguous: a matching skill there produces
- *    one candidate per documented invocation form (`form` + `alternateForms`),
- *    labeled with the two documented target names.
+ * 3. Shared `.agents` target metadata selects Zed slash, generic agents slash,
+ *    Codex-led compatible forms, or the legacy ambiguous fallback.
  *
  * Effective candidates are grouped by their final command text; each group
  * carries every associated tool name in stable detector order, deduplicated.
@@ -47,11 +46,8 @@ export interface ToolChoice {
 export const AGENTS_TOOL_NAME = 'Shared .agents / Codex';
 
 /**
- * The shared `.agents` root is documented to be consumed by two targets that
- * share the same artifact tree — Shared `.agents` (`skill-slash`) and Codex
- * (`skill-dollar`). A matching skill is surfaced under both explicit labels so
- * the UI shows the two documented interpretations instead of asserting a
- * single executable.
+ * Labels for the shared slash and Codex dollar interpretations. Valid Zed and
+ * agents markers override these labels before final-command grouping.
  */
 const AGENTS_SPLIT_LABELS: Partial<Record<InvocationFormId, string>> = {
   'skill-slash': 'Shared .agents',
@@ -60,9 +56,26 @@ const AGENTS_SPLIT_LABELS: Partial<Record<InvocationFormId, string>> = {
 
 function toolLabelFor(integration: DetectedIntegration, form: InvocationFormId): string {
   if (integration.tool === AGENTS_TOOL_NAME) {
+    if (integration.sharedSkillTarget === 'zed') {
+      return 'Zed';
+    }
+    if (integration.sharedSkillTarget === 'agents') {
+      return 'Shared .agents';
+    }
     return AGENTS_SPLIT_LABELS[form] ?? integration.tool;
   }
   return integration.tool;
+}
+
+function skillFormsFor(integration: DetectedIntegration): InvocationFormId[] {
+  const skills = integration.skills!;
+  if (integration.tool !== AGENTS_TOOL_NAME) {
+    return [skills.form, ...(skills.alternateForms ?? [])];
+  }
+
+  return integration.sharedSkillTarget === 'zed' || integration.sharedSkillTarget === 'agents'
+    ? ['skill-slash']
+    : ['skill-slash', 'skill-dollar'];
 }
 
 /** Generate the final command text for one invocation form and workflow. */
@@ -122,7 +135,7 @@ export function buildGroupedToolChoices(
     // Otherwise fall back to a matching skill for this workflow only.
     const skills = integration.skills;
     if (skills && skills.items.some((item) => item.skillName === skillName)) {
-      for (const form of [skills.form, ...(skills.alternateForms ?? [])]) {
+      for (const form of skillFormsFor(integration)) {
         addToolToGroup(
           groups,
           generateText(form, workflow, changeName),

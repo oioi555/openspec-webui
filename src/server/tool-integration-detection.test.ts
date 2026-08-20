@@ -270,8 +270,63 @@ test('maps the shared .agents root to a non-committal integration with both form
         alternateForms: ['skill-dollar'],
         items: [{ skillName: 'openspec-propose', source: '.agents/skills/openspec-propose/SKILL.md' }],
       },
+      sharedSkillTarget: 'legacy',
     },
   ]);
+});
+
+test('resolves every valid shared target and trims marker whitespace', async () => {
+  const cases = [
+    { marker: ' agents\n', target: 'agents', alternateForms: undefined },
+    { marker: '\tcodex  ', target: 'codex', alternateForms: ['skill-dollar'] },
+    { marker: '\nzed\n', target: 'zed', alternateForms: undefined },
+  ] as const;
+
+  for (const { marker, target, alternateForms } of cases) {
+    const root = await makeProjectRoot();
+    await write(root, '.agents/skills/openspec-propose/SKILL.md', '# openspec-propose');
+    await write(root, '.agents/skills/.openspec-target', marker);
+
+    const integration = (await detectToolIntegrations(root))[0];
+    assert.equal(integration?.sharedSkillTarget, target);
+    assert.deepEqual(integration?.skills?.alternateForms, alternateForms);
+  }
+});
+
+test('invalid shared target preserves the legacy ambiguous fallback', async () => {
+  const root = await makeProjectRoot();
+  await write(root, '.agents/skills/openspec-propose/SKILL.md', '# openspec-propose');
+  await write(root, '.agents/skills/.openspec-target', 'unknown');
+
+  const integration = (await detectToolIntegrations(root))[0];
+  assert.equal(integration?.sharedSkillTarget, 'legacy');
+  assert.deepEqual(integration?.skills?.alternateForms, ['skill-dollar']);
+});
+
+test('ignores a shared target marker when no matching skill exists', async () => {
+  const root = await makeProjectRoot();
+  await write(root, '.agents/skills/.openspec-target', 'zed');
+
+  assert.deepEqual(await detectToolIntegrations(root), []);
+});
+
+test('unreadable shared target marker preserves the legacy fallback', async () => {
+  const root = await makeProjectRoot();
+  await write(root, '.agents/skills/openspec-propose/SKILL.md', '# openspec-propose');
+  await write(root, '.agents/skills/.openspec-target', 'zed');
+  const marker = join(root, '.agents', 'skills', '.openspec-target');
+
+  let requestedPath: string | null = null;
+  const integration = (await detectToolIntegrations(root, {
+    readTargetMarker: async (path) => {
+      requestedPath = path;
+      throw Object.assign(new Error('permission denied'), { code: 'EACCES' });
+    },
+  }))[0];
+
+  assert.equal(requestedPath, marker);
+  assert.equal(integration?.sharedSkillTarget, 'legacy');
+  assert.deepEqual(integration?.skills?.alternateForms, ['skill-dollar']);
 });
 
 test('agents-only detection yields both candidate forms so the frontend opens a menu', async () => {

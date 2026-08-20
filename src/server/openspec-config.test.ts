@@ -254,6 +254,41 @@ test('inspectCommandAvailability exposes workflow-specific inventories alongside
   assert.equal(opencode?.skills, null);
 });
 
+test('inspectCommandAvailability exposes Zed shared-target metadata with skill evidence', async () => {
+  const cwd = await makeCwd();
+  await mkdir(join(cwd, '.agents', 'skills', 'openspec-propose'), { recursive: true });
+  await writeFile(
+    join(cwd, '.agents', 'skills', 'openspec-propose', 'SKILL.md'),
+    '# openspec-propose',
+    'utf8'
+  );
+  await writeFile(join(cwd, '.agents', 'skills', '.openspec-target'), 'zed\n', 'utf8');
+
+  const availability = await inspectCommandAvailability(cwd, createReader({}));
+  const shared = availability.integrations.find((integration) => integration.tool === 'Shared .agents / Codex');
+
+  assert.equal(shared?.sharedSkillTarget, 'zed');
+  assert.deepEqual(shared?.skills?.alternateForms, undefined);
+  assert.deepEqual(availability.forms, ['skill-slash']);
+});
+
+test('inspectCommandAvailability reports legacy ambiguity for markerless shared skills', async () => {
+  const cwd = await makeCwd();
+  await mkdir(join(cwd, '.agents', 'skills', 'openspec-propose'), { recursive: true });
+  await writeFile(
+    join(cwd, '.agents', 'skills', 'openspec-propose', 'SKILL.md'),
+    '# openspec-propose',
+    'utf8'
+  );
+
+  const availability = await inspectCommandAvailability(cwd, createReader({}));
+  const shared = availability.integrations.find((integration) => integration.tool === 'Shared .agents / Codex');
+
+  assert.equal(shared?.sharedSkillTarget, 'legacy');
+  assert.deepEqual(shared?.skills?.alternateForms, ['skill-dollar']);
+  assert.deepEqual(availability.forms, ['skill-slash', 'skill-dollar']);
+});
+
 test('inspectCommandAvailability keeps legacy fields present with zero detection', async () => {
   const cwd = await makeCwd();
   const availability = await inspectCommandAvailability(cwd, createReader({}));

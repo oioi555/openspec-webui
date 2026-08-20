@@ -16,6 +16,7 @@ test('normalizeCommandAvailability passes through a full additive payload', () =
         form: 'opsx-colon',
         example: '/opsx:propose',
         source: '.claude/commands/opsx/propose.md',
+        sharedSkillTarget: 'zed',
       },
     ],
     forms: ['opsx-colon', 'skill-slash'],
@@ -41,6 +42,7 @@ test('normalizeCommandAvailability passes through a full additive payload', () =
         source: '.claude/commands/opsx/propose.md',
         commands: null,
         skills: null,
+        sharedSkillTarget: 'zed',
       },
     ],
     forms: ['opsx-colon', 'skill-slash'],
@@ -66,6 +68,23 @@ test('normalizeCommandAvailability defaults additive fields when the server pred
   assert.deepEqual(normalized.integrations, []);
   assert.deepEqual(normalized.forms, []);
   assert.deepEqual(normalized.toolOptions, []);
+});
+
+test('normalizeCommandAvailability retains legacy shared-target metadata', () => {
+  const normalized = normalizeCommandAvailability({
+    status: 'ready',
+    workflows: ['propose'],
+    integrations: [{
+      tool: 'Shared .agents / Codex',
+      delivery: 'skills',
+      form: 'skill-slash',
+      example: '/openspec-propose or $openspec-propose',
+      source: '.agents/skills/openspec-propose/SKILL.md',
+      sharedSkillTarget: 'legacy',
+    }],
+  });
+
+  assert.equal(normalized.integrations[0]?.sharedSkillTarget, 'legacy');
 });
 
 test('normalizeCommandAvailability ignores the retired availableExpandedCommands field', () => {

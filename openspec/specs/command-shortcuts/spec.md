@@ -137,7 +137,7 @@ The system SHALL internally generate copyable command text from the official Ope
 
 For each workflow, the system SHALL build candidates exclusively from matching OpenSpec artifacts detected in the active repository. For a tool that has matching Commands and Skills artifacts for the same workflow, the system SHALL use the Commands form; when only one matching delivery exists, it SHALL use that delivery. The system SHALL group effective tool candidates by their final generated command text, SHALL show every corresponding tool name on the grouped choice, and SHALL collapse duplicate evidence for the same tool and command text.
 
-As the sole ambiguity exception, a matching skill under the shared `.agents/skills` root SHALL produce both documented candidate interpretations—Shared `.agents` using `/openspec-<skill>` and Codex using `$openspec-<skill>`—because those targets use the same repository artifact tree and cannot be distinguished by filesystem evidence alone. These candidates SHALL otherwise follow the same command-text grouping and selection rules.
+For a matching skill under `.agents/skills`, the system SHALL use valid `.openspec-target` metadata to resolve the shared tree before applying any fallback. A `zed` target SHALL produce the Zed `/openspec-<skill>` candidate, an `agents` target SHALL produce the Shared `.agents` `/openspec-<skill>` candidate, and a `codex` target SHALL produce the Codex `$openspec-<skill>` candidate together with the slash-compatible interpretation documented by the Codex-led shared tree. When the target metadata is absent, unreadable, or invalid, the system SHALL preserve the legacy ambiguity by producing both Shared `.agents` slash and Codex dollar candidates. No shared target interpretation SHALL add unrelated supported-but-undetected tools.
 
 When exactly one distinct command string remains, activating the copy control SHALL copy it directly even when multiple detected tools share it. When two or more distinct command strings remain, activating the control SHALL open a menu with one entry per command string and SHALL copy only after the operator selects an entry. When no matching installed artifact is detected for a workflow, the system SHALL hide that workflow's command shortcut on that surface. The selector SHALL NOT offer supported-but-undetected tools, an `Other tool…` entry, or custom command input. The system SHALL NOT auto-copy a previously selected candidate and SHALL NOT persist a tool or form selection globally, per repository, or per command.
 
@@ -170,8 +170,23 @@ When exactly one distinct command string remains, activating the copy control SH
 - **THEN** each menu preview omits the appended change name to preserve space for tool names
 - **AND** selecting an entry copies the complete command including the change name
 
+#### Scenario: Zed marker selects the slash form
+- **WHEN** `.agents/skills` contains a matching OpenSpec skill and its valid target is `zed`
+- **THEN** the candidates include `/openspec-<skill>` attributed to Zed
+- **AND** do not include the Codex dollar form solely because the physical path is shared
+
+#### Scenario: Agents marker selects the shared slash form
+- **WHEN** `.agents/skills` contains a matching OpenSpec skill and its valid target is `agents`
+- **THEN** the candidates include `/openspec-<skill>` attributed to Shared `.agents`
+- **AND** do not include the Codex dollar form solely because the physical path is shared
+
+#### Scenario: Codex marker preserves its compatible forms
+- **WHEN** `.agents/skills` contains a matching OpenSpec skill and its valid target is `codex`
+- **THEN** the candidates include the Codex `$openspec-<skill>` form
+- **AND** include the slash-compatible interpretation supported by the Codex-led tree
+
 #### Scenario: Shared agents evidence preserves both documented forms
-- **WHEN** `.agents/skills` contains the matching OpenSpec skill artifact for a workflow
+- **WHEN** `.agents/skills` contains the matching OpenSpec skill artifact and has no valid readable target marker
 - **THEN** the candidates include the Shared `.agents` slash form and the Codex dollar form
 - **AND** no other supported-but-undetected tool is added
 

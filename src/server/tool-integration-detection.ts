@@ -1,4 +1,4 @@
-import { readdir } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
 /**
@@ -23,6 +23,12 @@ export const INVOCATION_FORM_IDS = [
 export type InvocationFormId = (typeof INVOCATION_FORM_IDS)[number];
 
 export type ToolDelivery = 'commands' | 'skills' | 'both';
+
+export type SharedSkillTarget = 'agents' | 'codex' | 'zed' | 'legacy';
+
+export interface ToolIntegrationDetectionDependencies {
+  readTargetMarker?: (path: string) => Promise<string>;
+}
 
 /**
  * One detected OpenSpec command artifact, normalized to a workflow id and its
@@ -62,10 +68,9 @@ export interface SkillInventoryItem {
  * primary invocation form for those skill files.
  *
  * `alternateForms` carries additional documented invocation forms that consume
- * the exact same artifact tree. It is only set for the shared `.agents` root,
- * which both Shared `.agents` (`skill-slash`) and Codex (`skill-dollar`) use;
- * detection asserts neither target, so candidate resolution SHALL generate one
- * candidate per form in `[form, ...alternateForms]`.
+ * the exact same artifact tree. It is set for legacy-ambiguous and Codex-led
+ * shared `.agents` roots, whose generated handoffs support both slash and
+ * dollar forms.
  */
 export interface SkillInventory {
   form: InvocationFormId;
@@ -94,6 +99,8 @@ export interface DetectedIntegration {
   commands: CommandInventory | null;
   /** Authoritative Skills evidence, or null when no skill artifact matched. */
   skills: SkillInventory | null;
+  /** Resolved v1.10 target for the shared `.agents/skills` tree. */
+  sharedSkillTarget?: SharedSkillTarget;
 }
 
 export interface ToolInvocationOption {
@@ -104,22 +111,26 @@ export interface ToolInvocationOption {
 type CommandShape = 'folder' | 'filename';
 
 /**
- * Display name for the shared `.agents/skills` root. The official docs use the
- * same `openspec-*` SKILL.md tree for the Codex target (`$openspec-<skill>`)
- * and the vendor-neutral Shared `.agents` target (`/openspec-<skill>`); a
- * filesystem scan alone cannot tell them apart. The display name therefore
- * names both targets and never asserts Codex-only configuration.
+ * Compatibility display name for the shared `.agents/skills` root. The
+ * additive `sharedSkillTarget` field carries the authoritative v1.10 identity;
+ * this legacy field remains non-committal for existing API consumers.
  */
 export const AGENTS_SHARED_TOOL = 'Shared .agents / Codex';
 
 /** Example for the shared root showing both candidate invocations. */
 const AGENTS_SHARED_EXAMPLE = '/openspec-propose or $openspec-propose';
 
-/**
- * Candidate forms for the shared `.agents` root. Both are surfaced so the
- * copy-time selector opens an explicit menu instead of a direct copy.
- */
-const AGENTS_SHARED_FORMS: readonly InvocationFormId[] = ['skill-slash', 'skill-dollar'];
+async function resolveSharedSkillTarget(
+  projectRoot: string,
+  readTargetMarker: (path: string) => Promise<string>
+): Promise<SharedSkillTarget> {
+  try {
+    const target = (await readTargetMarker(join(projectRoot, '.agents/skills/.openspec-target'))).trim();
+    return target === 'agents' || target === 'codex' || target === 'zed' ? target : 'legacy';
+  } catch {
+    return 'legacy';
+  }
+}
 
 
 /**
@@ -189,8 +200,7 @@ const TOOL_SIGNATURES: readonly ToolSpec[] = [
   ['Hermes Agent', [], [['.hermes/skills', 'skill-slash']]],
   ['Mistral Vibe', [], [['.vibe/skills', 'skill-slash']]],
   ['Kimi Code', [], [['.kimi-code/skills', 'skill-colon']]],
-  // --- shared `.agents` root (Codex target or vendor-neutral Shared `.agents`;
-  // indistinguishable from artifacts alone, surfaced as both candidate forms) ---
+  // --- shared `.agents` root (target marker narrows these default forms) ---
   [AGENTS_SHARED_TOOL, [], [['.agents/skills', 'skill-slash', ['skill-dollar']]]],
 ];
 
@@ -331,8 +341,13 @@ async function findSkillFiles(
  * ignored, and scan failures degrade to an empty list rather than an
  * application error.
  */
-export async function detectToolIntegrations(projectRoot: string): Promise<DetectedIntegration[]> {
+export async function detectToolIntegrations(
+  projectRoot: string,
+  dependencies: ToolIntegrationDetectionDependencies = {}
+): Promise<DetectedIntegration[]> {
   const integrations: DetectedIntegration[] = [];
+  const readTargetMarker = dependencies.readTargetMarker
+    ?? ((path: string) => readFile(path, 'utf8'));
 
   for (const [tool, commandSpecs, skillSpecs] of TOOL_SIGNATURES) {
     let commandInventory: CommandInventory | null = null;
@@ -372,11 +387,21 @@ export async function detectToolIntegrations(projectRoot: string): Promise<Detec
     const form = commandInventory?.form ?? skillInventory!.form;
     const source =
       commandInventory?.items[0]!.source ?? skillInventory!.items[0]!.source;
-    // The shared `.agents` root is ambiguous between the Codex target and the
-    // vendor-neutral target, so its example names both candidate invocations
-    // rather than asserting one.
+    // Markerless/invalid trees retain the legacy dual-form example; valid
+    // agents and Zed markers narrow it to the slash form.
     const isAgentsShared = tool === AGENTS_SHARED_TOOL;
-    const example = isAgentsShared ? AGENTS_SHARED_EXAMPLE : exampleForForm(form);
+    const sharedSkillTarget = isAgentsShared
+      ? await resolveSharedSkillTarget(projectRoot, readTargetMarker)
+      : undefined;
+    if (isAgentsShared && sharedSkillTarget !== 'legacy' && sharedSkillTarget !== 'codex') {
+      skillInventory = {
+        form: skillInventory!.form,
+        items: skillInventory!.items,
+      };
+    }
+    const example = isAgentsShared && skillInventory?.alternateForms
+      ? AGENTS_SHARED_EXAMPLE
+      : exampleForForm(form);
 
     integrations.push({
       tool,
@@ -386,6 +411,7 @@ export async function detectToolIntegrations(projectRoot: string): Promise<Detec
       source,
       commands: commandInventory,
       skills: skillInventory,
+      ...(sharedSkillTarget ? { sharedSkillTarget } : {}),
     });
   }
 
@@ -401,9 +427,10 @@ export function deriveDistinctForms(integrations: readonly DetectedIntegration[]
 
   for (const integration of integrations) {
     if (integration.tool === AGENTS_SHARED_TOOL) {
-      // The shared `.agents` root is ambiguous: surface both candidate forms so
-      // the frontend opens an explicit selection menu instead of a direct copy.
-      for (const form of AGENTS_SHARED_FORMS) {
+      for (const form of [
+        integration.skills?.form ?? integration.form,
+        ...(integration.skills?.alternateForms ?? []),
+      ]) {
         present.add(form);
       }
     } else {

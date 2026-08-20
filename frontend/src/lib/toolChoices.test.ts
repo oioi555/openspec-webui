@@ -52,6 +52,7 @@ function skillsIntegration(
   skillNames: string[],
   dir = '.tool/',
   alternateForms?: InvocationFormId[],
+  sharedSkillTarget?: DetectedIntegration['sharedSkillTarget'],
 ): DetectedIntegration {
   return {
     tool,
@@ -68,6 +69,7 @@ function skillsIntegration(
         source: `${dir}skills/${skillName}/SKILL.md`,
       })),
     },
+    ...(sharedSkillTarget ? { sharedSkillTarget } : {}),
   };
 }
 
@@ -301,6 +303,61 @@ test('shared .agents evidence yields both documented candidate forms', () => {
   assert.deepEqual(choices, [
     { key: '/openspec-propose', text: '/openspec-propose', tools: ['Shared .agents'] },
     { key: '$openspec-propose', text: '$openspec-propose', tools: ['Codex'] },
+  ]);
+});
+
+test('shared target metadata selects Zed, agents, Codex-led, and legacy mappings', () => {
+  const cases = [
+    {
+      target: 'zed',
+      expected: [{ key: '/openspec-propose', text: '/openspec-propose', tools: ['Zed'] }],
+    },
+    {
+      target: 'agents',
+      expected: [{ key: '/openspec-propose', text: '/openspec-propose', tools: ['Shared .agents'] }],
+    },
+    {
+      target: 'codex',
+      expected: [
+        { key: '/openspec-propose', text: '/openspec-propose', tools: ['Shared .agents'] },
+        { key: '$openspec-propose', text: '$openspec-propose', tools: ['Codex'] },
+      ],
+    },
+    {
+      target: 'legacy',
+      expected: [
+        { key: '/openspec-propose', text: '/openspec-propose', tools: ['Shared .agents'] },
+        { key: '$openspec-propose', text: '$openspec-propose', tools: ['Codex'] },
+      ],
+    },
+  ] as const;
+
+  for (const { target, expected } of cases) {
+    const integration = skillsIntegration(
+      AGENTS_TOOL_NAME,
+      'skill-slash',
+      ['openspec-propose'],
+      '.agents/',
+      ['skill-dollar'],
+      target,
+    );
+    assert.deepEqual(buildGroupedToolChoices([integration], 'propose'), expected);
+  }
+});
+
+test('Zed slash choice groups by final command text with another slash integration', () => {
+  const zed = skillsIntegration(
+    AGENTS_TOOL_NAME,
+    'skill-slash',
+    ['openspec-propose'],
+    '.agents/',
+    ['skill-dollar'],
+    'zed',
+  );
+  const forge = skillsIntegration('ForgeCode', 'skill-slash', ['openspec-propose'], '.forge/');
+
+  assert.deepEqual(buildGroupedToolChoices([forge, zed], 'propose'), [
+    { key: '/openspec-propose', text: '/openspec-propose', tools: ['ForgeCode', 'Zed'] },
   ]);
 });
 

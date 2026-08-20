@@ -259,6 +259,10 @@ function isInvocationFormId(value: unknown): value is InvocationFormId {
   return INVOCATION_FORM_IDS.includes(value as InvocationFormId);
 }
 
+function isSharedSkillTarget(value: unknown): value is NonNullable<DetectedIntegration['sharedSkillTarget']> {
+  return value === 'agents' || value === 'codex' || value === 'zed' || value === 'legacy';
+}
+
 function isCommandInventoryItem(value: unknown): value is CommandInventoryItem {
   if (!value || typeof value !== 'object') {
     return false;
@@ -354,6 +358,9 @@ function normalizeDetectedIntegration(value: unknown): DetectedIntegration | nul
     source: candidate.source,
     commands: normalizeCommandInventory(candidate.commands),
     skills: normalizeSkillInventory(candidate.skills),
+    ...(isSharedSkillTarget(candidate.sharedSkillTarget)
+      ? { sharedSkillTarget: candidate.sharedSkillTarget }
+      : {}),
   };
 }
 

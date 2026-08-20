@@ -247,6 +247,7 @@ export interface SearchResult {
 }
 
 export type CommandDelivery = 'commands' | 'skills' | 'both' | null;
+export type SharedSkillTarget = 'agents' | 'codex' | 'zed' | 'legacy';
 
 /** One detected OpenSpec command artifact: the workflow id and its repo-relative source path. */
 export interface CommandInventoryItem {
@@ -275,8 +276,7 @@ export interface SkillInventoryItem {
 /**
  * The complete Skills inventory for one detected tool. `form` is the primary
  * invocation form; `alternateForms` carries additional documented invocation
- * forms that consume the same artifact tree (only the shared `.agents` root,
- * which is used by both Shared `.agents` and Codex).
+ * forms for legacy-ambiguous and Codex-led shared `.agents` trees.
  */
 export interface SkillInventory {
   form: InvocationFormId;
@@ -305,6 +305,8 @@ export interface DetectedIntegration {
   commands: CommandInventory | null;
   /** Authoritative Skills evidence, or null when no skill artifact matched. */
   skills: SkillInventory | null;
+  /** Resolved v1.10 target for the shared `.agents/skills` tree. */
+  sharedSkillTarget?: SharedSkillTarget;
 }
 
 export interface ToolInvocationOption {

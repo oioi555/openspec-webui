@@ -15,6 +15,20 @@ export const LOCALE_LABELS: Record<AppLocale, string> = {
   de: 'Deutsch',
 };
 
+export const CLI_LANGUAGE_BY_LOCALE: Record<AppLocale, string> = {
+  en: 'English',
+  ja: 'Japanese',
+  de: 'German',
+  es: 'Spanish',
+  fr: 'French',
+  'pt-BR': 'Portuguese (pt-BR)',
+  'zh-CN': 'Chinese (Simplified)',
+};
+
+export function buildArtifactLanguageInitCommand(locale: AppLocale): string {
+  return `openspec init --language "${CLI_LANGUAGE_BY_LOCALE[locale]}"`;
+}
+
 export function isAppLocale(value: unknown): value is AppLocale {
   return typeof value === 'string' && SUPPORTED_LOCALES.includes(value as AppLocale);
 }

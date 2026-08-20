@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import {
   OPENSPEC_INIT_DOCS_URL,
   OPENSPEC_INSTALL_DOCS_URL,
+  OPENSPEC_MULTI_LANGUAGE_DOCS_URL,
   OPENSPEC_STORES_GUIDE_URL,
   OPENSPEC_STORE_CLI_REFERENCE_URL,
 } from './openspecDocs';
@@ -30,5 +31,12 @@ test('OPENSPEC_INIT_DOCS_URL points to the official CLI openspec init section', 
   assert.equal(
     OPENSPEC_INIT_DOCS_URL,
     'https://github.com/Fission-AI/OpenSpec/blob/main/docs/cli.md#openspec-init',
+  );
+});
+
+test('OPENSPEC_MULTI_LANGUAGE_DOCS_URL points to the official multi-language guide', () => {
+  assert.equal(
+    OPENSPEC_MULTI_LANGUAGE_DOCS_URL,
+    'https://github.com/Fission-AI/OpenSpec/blob/main/docs/multi-language.md',
   );
 });

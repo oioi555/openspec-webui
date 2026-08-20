@@ -10,7 +10,7 @@ The system SHALL detect OpenSpec-generated tool-specific Commands and Skills art
 
 The system SHALL continue to report detected integrations in Settings as repository-local configuration rather than claiming that an AI tool executable is installed. Repository-local artifact evidence SHALL nevertheless be authoritative for command-shortcut candidate eligibility: a workflow without a matching detected artifact SHALL not receive a candidate.
 
-The shared `.agents/skills` root SHALL remain explicitly ambiguous between the Shared `.agents` and Codex invocation forms because those targets use the same artifact layout; detection SHALL retain that ambiguity rather than asserting that either executable is installed.
+When matching artifacts exist under `.agents/skills`, detection SHALL read `.agents/skills/.openspec-target` as authoritative OpenSpec v1.10 target metadata only when its trimmed value is `agents`, `codex`, or `zed`. The `zed` value SHALL identify the tree as Zed-generated evidence, the `agents` value SHALL identify Shared `.agents` evidence, and the `codex` value SHALL identify Codex-led evidence. An absent, unreadable, or invalid marker SHALL preserve the legacy ambiguity between Shared `.agents` and Codex invocation forms. Marker inspection SHALL NOT be treated as evidence when no matching OpenSpec skill artifact exists and SHALL NOT assert that any corresponding executable is installed.
 
 #### Scenario: Detect workflow-specific command evidence
 - **WHEN** the active repository contains `.opencode/commands/opsx-apply.md` but no `opsx-sync` command file
@@ -41,10 +41,29 @@ The shared `.agents/skills` root SHALL remain explicitly ambiguous between the S
 - **THEN** Settings does not claim that the tool or repository is unsupported
 - **AND** command shortcuts do not offer that tool
 
+#### Scenario: Recognize a Zed target marker
+- **WHEN** matching OpenSpec skills exist under `.agents/skills` and `.openspec-target` contains `zed`
+- **THEN** detection identifies Zed repository integration evidence
+- **AND** associates it with the slash skill invocation form
+
+#### Scenario: Recognize a generic agents target marker
+- **WHEN** matching OpenSpec skills exist under `.agents/skills` and `.openspec-target` contains `agents`
+- **THEN** detection identifies Shared `.agents` repository integration evidence
+- **AND** does not synthesize Codex evidence solely from the shared physical path
+
+#### Scenario: Recognize a Codex target marker
+- **WHEN** matching OpenSpec skills exist under `.agents/skills` and `.openspec-target` contains `codex`
+- **THEN** detection identifies the tree as Codex-led repository integration evidence
+- **AND** preserves the invocation interpretations supported by that generated tree
+
 #### Scenario: Shared agents root remains ambiguous
-- **WHEN** a matching skill artifact is detected under `.agents/skills`
+- **WHEN** a matching skill artifact is detected under `.agents/skills` and no readable valid marker exists
 - **THEN** detection identifies the shared artifact evidence without asserting a single target
-- **AND** exposes both documented invocation-form interpretations for candidate resolution
+- **AND** exposes both legacy documented invocation-form interpretations for candidate resolution
+
+#### Scenario: Marker without skills is not integration evidence
+- **WHEN** `.agents/skills/.openspec-target` exists but no matching `openspec-*` skill artifact exists
+- **THEN** the system does not report a configured integration from the marker alone
 
 ### Requirement: Expose workflow-specific integration evidence via the API
 The system SHALL expose repository-local integration evidence through the command availability API for the active project alongside existing availability fields. For each detected tool, the response SHALL make the detected Commands and Skills forms and their workflow-specific artifact identifiers available so the client can resolve candidates without consulting the supported-but-undetected tool catalog. If legacy aggregate integration or form fields are retained for compatibility, candidate selection SHALL NOT use those fields when they lose workflow-level or dual-delivery evidence.
@@ -148,3 +167,16 @@ The system SHALL recognize repository-local OpenSpec artifacts generated for Com
 - **WHEN** matching Command Code command and skill artifacts are both present
 - **THEN** detection retains both workflow-specific evidence sets for Command Code
 - **AND** existing candidate resolution can apply its Commands-first behavior for each workflow
+
+### Requirement: Expose shared skill target metadata via the API
+The command availability API SHALL expose the resolved `.agents/skills` target state as `agents`, `codex`, `zed`, or legacy ambiguous alongside the existing workflow-specific artifact evidence. The metadata SHALL be additive and SHALL preserve existing integration evidence fields.
+
+#### Scenario: API returns Zed target metadata
+- **WHEN** the active repository contains matching shared skills and a valid `zed` marker
+- **THEN** command availability reports `zed` as the resolved shared skill target
+- **AND** retains the matching workflow-specific skill evidence
+
+#### Scenario: API reports legacy ambiguity
+- **WHEN** matching shared skills exist without a valid marker
+- **THEN** command availability reports the target as legacy ambiguous
+- **AND** retains the existing fallback candidate behavior
