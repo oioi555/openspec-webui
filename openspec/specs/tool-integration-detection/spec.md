@@ -10,7 +10,9 @@ The system SHALL detect OpenSpec-generated tool-specific Commands and Skills art
 
 The system SHALL continue to report detected integrations in Settings as repository-local configuration rather than claiming that an AI tool executable is installed. Repository-local artifact evidence SHALL nevertheless be authoritative for command-shortcut candidate eligibility: a workflow without a matching detected artifact SHALL not receive a candidate.
 
-When matching artifacts exist under `.agents/skills`, detection SHALL read `.agents/skills/.openspec-target` as authoritative OpenSpec v1.10 target metadata only when its trimmed value is `agents`, `codex`, or `zed`. The `zed` value SHALL identify the tree as Zed-generated evidence, the `agents` value SHALL identify Shared `.agents` evidence, and the `codex` value SHALL identify Codex-led evidence. An absent, unreadable, or invalid marker SHALL preserve the legacy ambiguity between Shared `.agents` and Codex invocation forms. Marker inspection SHALL NOT be treated as evidence when no matching OpenSpec skill artifact exists and SHALL NOT assert that any corresponding executable is installed.
+When matching artifacts exist under `.agents/skills`, detection SHALL read `.agents/skills/.openspec-target` as authoritative shared-tree target metadata only when its trimmed value is `agents`, `codex`, `zed`, or `antigravity`. The `zed` value SHALL identify the tree as Zed-generated evidence, the `agents` value SHALL identify Shared `.agents` evidence, the `codex` value SHALL identify Codex-led evidence, and the `antigravity` value SHALL identify Antigravity-owned skill evidence. An absent, unreadable, or invalid marker SHALL preserve the legacy ambiguity between Shared `.agents` and Codex invocation forms. Marker inspection SHALL NOT be treated as evidence when no matching OpenSpec skill artifact exists and SHALL NOT assert that any corresponding executable is installed.
+
+Detection SHALL recognize Antigravity command artifacts under the current `.agents/workflows/opsx-<workflow-id>.*` path and SHALL retain read compatibility for OpenSpec artifacts under legacy `.agent/workflows` and `.agent/skills` paths. The presence of the bare shared `.agents` directory or shared skills without an `antigravity` marker SHALL NOT by itself synthesize Antigravity evidence.
 
 #### Scenario: Detect workflow-specific command evidence
 - **WHEN** the active repository contains `.opencode/commands/opsx-apply.md` but no `opsx-sync` command file
@@ -55,6 +57,21 @@ When matching artifacts exist under `.agents/skills`, detection SHALL read `.age
 - **WHEN** matching OpenSpec skills exist under `.agents/skills` and `.openspec-target` contains `codex`
 - **THEN** detection identifies the tree as Codex-led repository integration evidence
 - **AND** preserves the invocation interpretations supported by that generated tree
+
+#### Scenario: Recognize an Antigravity target marker
+- **WHEN** matching OpenSpec skills exist under `.agents/skills` and `.openspec-target` contains `antigravity`
+- **THEN** detection identifies Antigravity repository integration evidence
+- **AND** associates the skills with the slash invocation form without synthesizing Codex evidence
+
+#### Scenario: Detect current Antigravity workflow evidence
+- **WHEN** the repository contains `.agents/workflows/opsx-apply.md`
+- **THEN** detection reports Antigravity Commands evidence for the `apply` workflow
+- **AND** reports `/opsx-apply` as its command invocation
+
+#### Scenario: Preserve legacy Antigravity detection
+- **WHEN** the repository contains OpenSpec-managed Antigravity artifacts under `.agent/workflows` or `.agent/skills`
+- **THEN** detection reports the corresponding Antigravity evidence
+- **AND** treats those paths as legacy read-compatible evidence
 
 #### Scenario: Shared agents root remains ambiguous
 - **WHEN** a matching skill artifact is detected under `.agents/skills` and no readable valid marker exists
@@ -169,11 +186,16 @@ The system SHALL recognize repository-local OpenSpec artifacts generated for Com
 - **AND** existing candidate resolution can apply its Commands-first behavior for each workflow
 
 ### Requirement: Expose shared skill target metadata via the API
-The command availability API SHALL expose the resolved `.agents/skills` target state as `agents`, `codex`, `zed`, or legacy ambiguous alongside the existing workflow-specific artifact evidence. The metadata SHALL be additive and SHALL preserve existing integration evidence fields.
+The command availability API SHALL expose the resolved `.agents/skills` target state as `agents`, `codex`, `zed`, `antigravity`, or legacy ambiguous alongside the existing workflow-specific artifact evidence. The metadata SHALL be additive and SHALL preserve existing integration evidence fields.
 
 #### Scenario: API returns Zed target metadata
 - **WHEN** the active repository contains matching shared skills and a valid `zed` marker
 - **THEN** command availability reports `zed` as the resolved shared skill target
+- **AND** retains the matching workflow-specific skill evidence
+
+#### Scenario: API returns Antigravity target metadata
+- **WHEN** the active repository contains matching shared skills and a valid `antigravity` marker
+- **THEN** command availability reports `antigravity` as the resolved shared skill target
 - **AND** retains the matching workflow-specific skill evidence
 
 #### Scenario: API reports legacy ambiguity

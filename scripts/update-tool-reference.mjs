@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// Minimal 2-source JOIN updater — no generation/lock/evidence machinery.
-// Input: { targetRelease, checkedAt, openspec: { available, dataset }, vercelSkills: { available, url, revision, candidates } }
-// Output: analysis with diff of client ids.
+// Analyze-first official-source reconciliation + shared-client JOIN updater.
+// Input: { targetRelease, checkedAt, openspec, releaseNotes, vercelSkills }
+// Output: reviewable source status, official conflicts, dataset proposals and hash.
 
 import { createHash } from 'node:crypto';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
@@ -44,60 +44,132 @@ function requireDate(value, field) {
   return value;
 }
 
+function isNonEmptyString(value) {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function isReleaseNotesUrlForTarget(value, targetRelease) {
+  if (!isNonEmptyString(value)) return false;
+  try {
+    const url = new URL(value);
+    return url.origin === 'https://github.com'
+      && url.pathname.replace(/\/$/, '') === `/Fission-AI/OpenSpec/releases/tag/${targetRelease}`;
+  } catch {
+    return false;
+  }
+}
+
+function normalizeOfficialSourceConflicts(conflicts) {
+  if (!Array.isArray(conflicts)) throw new Error('releaseNotes.conflicts must be an array');
+  return conflicts.map((conflict, index) => {
+    if (!conflict || typeof conflict !== 'object') {
+      throw new Error(`releaseNotes.conflicts[${index}] must be an object`);
+    }
+    const toolId = String(conflict.toolId ?? '').trim();
+    const fields = Array.isArray(conflict.fields)
+      ? conflict.fields.map((field) => String(field).trim()).filter(Boolean)
+      : [];
+    const documentation = String(conflict.documentation ?? '').trim();
+    const releaseNotes = String(conflict.releaseNotes ?? '').trim();
+    if (!toolId || fields.length === 0 || !documentation || !releaseNotes) {
+      throw new Error(`releaseNotes.conflicts[${index}] requires toolId, fields, documentation, and releaseNotes`);
+    }
+    const source = String(conflict.resolution?.source ?? '').trim();
+    const summary = String(conflict.resolution?.summary ?? '').trim();
+    return {
+      toolId,
+      fields,
+      documentation,
+      releaseNotes,
+      resolution: source && summary ? { source, summary } : null,
+    };
+  });
+}
+
 export function analyzeToolReferenceUpdate(input, official, previous) {
   if (!input || typeof input !== 'object') throw new Error('Update input must be an object');
-  if (!input.targetRelease || typeof input.targetRelease !== 'string') throw new Error('Caller must supply targetRelease');
+  if (!isNonEmptyString(input.targetRelease)) throw new Error('Caller must supply targetRelease');
+  const targetRelease = input.targetRelease.trim();
   requireDate(input.checkedAt, 'checkedAt');
-  if (!input.openspec || input.openspec.available !== true || !input.openspec.dataset) {
-    throw new Error('The caller-selected OpenSpec release snapshot must be available before external classification');
-  }
-  const proposedOfficial = validateOfficialToolDataset(input.openspec.dataset);
+
+  const documentation = input.openspec;
+  const releaseNotes = input.releaseNotes;
+  const documentationDataset = documentation?.dataset;
+  const documentationAvailable = documentation?.available === true
+    && Boolean(documentationDataset)
+    && isNonEmptyString(documentation.url)
+    && isNonEmptyString(documentation.revision)
+    && documentationDataset?.source?.version === targetRelease
+    && documentation.url === documentationDataset.source.url
+    && documentation.revision === documentationDataset.source.revision;
+  const releaseNotesAvailable = releaseNotes?.available === true
+    && isNonEmptyString(releaseNotes.url)
+    && isNonEmptyString(releaseNotes.revision)
+    && isReleaseNotesUrlForTarget(releaseNotes.url, targetRelease);
+  const proposedOfficial = documentationAvailable
+    ? validateOfficialToolDataset(documentationDataset)
+    : clone(official);
+  const officialSourceConflicts = releaseNotesAvailable
+    ? normalizeOfficialSourceConflicts(releaseNotes.conflicts ?? [])
+    : [];
+  const officialSources = [
+    {
+      id: 'openspec-supported-tools',
+      available: documentationAvailable,
+      url: documentation?.url ?? null,
+      revision: documentation?.revision ?? null,
+    },
+    {
+      id: 'openspec-release-notes',
+      available: releaseNotesAvailable,
+      url: releaseNotes?.url ?? null,
+      revision: releaseNotes?.revision ?? null,
+    },
+  ];
+  const officialAvailable = officialSources.every((source) => source.available);
+  const conflictsResolved = officialSourceConflicts.every((conflict) => conflict.resolution !== null);
+
   const vercel = input.vercelSkills;
-  const available = vercel && vercel.available !== false;
-  const candidates = available ? (vercel.candidates ?? []) : null;
+  const vercelAvailable = vercel?.available !== false && Boolean(vercel);
+  const candidates = vercelAvailable ? (vercel.candidates ?? []) : [];
 
-  // Build lookup for official ids to map openSpecToolId
-  const officialIds = new Set(proposedOfficial.tools.map((t) => t.id));
-  const previousById = new Map(previous.clients.map((c) => [c.id, c]));
-
-  let proposedResearch;
-  let report = {
+  const officialIds = new Set(proposedOfficial.tools.map((tool) => tool.id));
+  const previousById = new Map(previous.clients.map((client) => [client.id, client]));
+  const report = {
     hasChanges: false,
-    writeAllowed: available,
-    unavailableSources: [],
+    writeAllowed: officialAvailable && vercelAvailable && conflictsResolved,
+    unavailableSources: officialSources.filter((source) => !source.available).map((source) => source.id),
+    officialSources,
+    officialSourceConflicts,
     researchQueue: [],
     added: [],
     missing: [],
   };
 
-  if (!available) {
-    report.unavailableSources = ['vercel-skills'];
-    // keep previous unchanged, but not writable
+  let proposedResearch;
+  if (!officialAvailable || !vercelAvailable) {
+    if (!vercelAvailable) report.unavailableSources.push('vercel-skills');
     proposedResearch = clone(previous);
-    // keep source revision/date as previous
   } else {
     const newById = new Map();
-    for (const cand of candidates) {
-      const id = String(cand.id).trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    for (const candidate of candidates) {
+      const id = String(candidate.id).trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
       if (!id) continue;
-      const name = String(cand.name ?? cand.id).trim();
+      const name = String(candidate.name ?? candidate.id).trim();
       const openSpecToolId = officialIds.has(id) ? id : undefined;
-      const prev = previousById.get(id);
+      const prior = previousById.get(id);
       newById.set(id, {
         id,
         name,
         ...(openSpecToolId ? { openSpecToolId } : {}),
-        ...(prev?.note ? { note: prev.note } : {}),
+        ...(prior?.note ? { note: prior.note } : {}),
       });
     }
-    // preserve notes for hermes/forgecode/loaf etc if they already existed but candidate missing? Keep previous clients that are not in new list? For minimal, we keep only candidates.
-    // But to detect missing, compare previous ids vs new ids
-    const prevIds = new Set(previous.clients.map((c) => c.id));
-    const newIds = new Set(newById.keys());
-    report.added = [...newIds].filter((id) => !prevIds.has(id));
-    report.missing = [...prevIds].filter((id) => !newIds.has(id));
-    report.hasChanges = report.added.length > 0 || report.missing.length > 0;
-    // also detect explicit refresh/broken evidence as queue
+
+    const previousIds = new Set(previous.clients.map((client) => client.id));
+    const nextIds = new Set(newById.keys());
+    report.added = [...nextIds].filter((id) => !previousIds.has(id));
+    report.missing = [...previousIds].filter((id) => !nextIds.has(id));
     const explicit = [...(input.refresh?.clients ?? []), ...(input.brokenEvidenceClientIds ?? [])];
     report.researchQueue = [...new Set([...report.added, ...explicit])];
 
@@ -110,19 +182,23 @@ export function analyzeToolReferenceUpdate(input, official, previous) {
         revision: vercel.revision ?? 'unknown',
         updatedAt,
       },
-      clients: [...newById.values()].sort((a, b) => a.id.localeCompare(b.id)),
+      clients: [...newById.values()].sort((left, right) => left.id.localeCompare(right.id)),
     };
     validateResearchDataset(proposedResearch, proposedOfficial);
   }
 
+  const researchSourceChanged = officialAvailable && vercelAvailable && (
+    proposedResearch.source.url !== previous.source.url
+    || proposedResearch.source.revision !== previous.source.revision
+  );
+  report.hasChanges = canonicalJson(proposedOfficial) !== canonicalJson(official)
+    || report.added.length > 0
+    || report.missing.length > 0
+    || researchSourceChanged
+    || officialSourceConflicts.length > 0;
   const reviewHash = sha256({ input, proposedOfficial, proposedResearch });
 
-  return {
-    proposedOfficial,
-    proposedResearch,
-    report,
-    reviewHash,
-  };
+  return { proposedOfficial, proposedResearch, report, reviewHash };
 }
 
 export async function writeDatasetsAtomically({ officialPath, researchPath, official, research, failAfterOfficial = false }) {
@@ -155,7 +231,7 @@ export async function runCli(args) {
   const analysis = analyzeToolReferenceUpdate(input, official, previous);
   const wantWrite = args.includes('--write');
   if (!wantWrite) {
-    console.log(JSON.stringify(analysis.report, null, 2));
+    console.log(JSON.stringify({ report: analysis.report, reviewHash: analysis.reviewHash }, null, 2));
     return analysis;
   }
   const reviewHash = getArg('--review-hash');

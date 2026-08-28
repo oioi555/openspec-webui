@@ -1,16 +1,22 @@
 {
-  "schemaVersion": 1,
-  "updatedAt": "2026-08-21",
-  "source": {
-    "url": "https://github.com/vercel-labs/skills",
-    "revision": "435076e78988e1e6ec40d00b0b1d76bdbbc5419a",
-    "updatedAt": "2026-08-21"
-  },
   "clients": [
+    {
+      "id": "agents",
+      "name": "Shared .agents skills",
+      "openSpecToolId": "agents"
+    },
+    {
+      "id": "amp",
+      "name": "Amp"
+    },
     {
       "id": "antigravity",
       "name": "Antigravity",
       "openSpecToolId": "antigravity"
+    },
+    {
+      "id": "antigravity-cli",
+      "name": "Antigravity CLI"
     },
     {
       "id": "auggie",
@@ -18,25 +24,14 @@
       "openSpecToolId": "auggie"
     },
     {
-      "id": "command-code",
-      "name": "Command Code",
-      "openSpecToolId": "command-code"
-    },
-    {
       "id": "codex",
       "name": "Codex",
       "openSpecToolId": "codex"
     },
     {
-      "id": "devin",
-      "name": "Devin Desktop, formerly Windsurf",
-      "openSpecToolId": "devin"
-    },
-    {
-      "id": "forgecode",
-      "name": "ForgeCode",
-      "openSpecToolId": "forgecode",
-      "note": "Global ~/.agents/skills only (project uses .forge/skills)"
+      "id": "command-code",
+      "name": "Command Code",
+      "openSpecToolId": "command-code"
     },
     {
       "id": "crush",
@@ -49,9 +44,32 @@
       "openSpecToolId": "cursor"
     },
     {
+      "id": "deep-agents",
+      "name": "Deep Agents"
+    },
+    {
+      "id": "devin",
+      "name": "Devin Desktop, formerly Windsurf",
+      "openSpecToolId": "devin"
+    },
+    {
+      "id": "dexto",
+      "name": "Dexto"
+    },
+    {
       "id": "factory",
       "name": "Factory Droid",
       "openSpecToolId": "factory"
+    },
+    {
+      "id": "firebender",
+      "name": "Firebender"
+    },
+    {
+      "id": "forgecode",
+      "name": "ForgeCode",
+      "note": "Global ~/.agents/skills only (project uses .forge/skills)",
+      "openSpecToolId": "forgecode"
     },
     {
       "id": "gemini",
@@ -61,14 +79,18 @@
     {
       "id": "github-copilot",
       "name": "GitHub Copilot",
-      "openSpecToolId": "github-copilot",
-      "note": "Global behavior varies in some reports"
+      "note": "Global behavior varies in some reports",
+      "openSpecToolId": "github-copilot"
+    },
+    {
+      "id": "grok-build",
+      "name": "Grok Build"
     },
     {
       "id": "hermes",
       "name": "Hermes Agent",
-      "openSpecToolId": "hermes",
-      "note": "Global shared path requires config (skills.external_dirs)"
+      "note": "Global shared path requires config (skills.external_dirs)",
+      "openSpecToolId": "hermes"
     },
     {
       "id": "kilocode",
@@ -81,9 +103,9 @@
       "openSpecToolId": "kimi"
     },
     {
-      "id": "vibe",
-      "name": "Mistral Vibe",
-      "openSpecToolId": "vibe"
+      "id": "loaf",
+      "name": "Loaf",
+      "note": "Agent Skills format only (shared path not verified)"
     },
     {
       "id": "opencode",
@@ -96,14 +118,17 @@
       "openSpecToolId": "pi"
     },
     {
+      "id": "promptscript",
+      "name": "PromptScript"
+    },
+    {
       "id": "qoder",
       "name": "Qoder",
       "openSpecToolId": "qoder"
     },
     {
-      "id": "rovodev",
-      "name": "Rovo Dev CLI",
-      "openSpecToolId": "rovodev"
+      "id": "replit",
+      "name": "Replit"
     },
     {
       "id": "roocode",
@@ -111,55 +136,30 @@
       "openSpecToolId": "roocode"
     },
     {
-      "id": "zed",
-      "name": "Zed Agent",
-      "openSpecToolId": "zed"
+      "id": "rovodev",
+      "name": "Rovo Dev CLI",
+      "openSpecToolId": "rovodev"
     },
     {
-      "id": "agents",
-      "name": "Shared .agents skills",
-      "openSpecToolId": "agents"
-    },
-    {
-      "id": "grok-build",
-      "name": "Grok Build"
-    },
-    {
-      "id": "amp",
-      "name": "Amp"
-    },
-    {
-      "id": "replit",
-      "name": "Replit"
-    },
-    {
-      "id": "antigravity-cli",
-      "name": "Antigravity CLI"
-    },
-    {
-      "id": "dexto",
-      "name": "Dexto"
-    },
-    {
-      "id": "deep-agents",
-      "name": "Deep Agents"
-    },
-    {
-      "id": "firebender",
-      "name": "Firebender"
+      "id": "vibe",
+      "name": "Mistral Vibe",
+      "openSpecToolId": "vibe"
     },
     {
       "id": "warp",
       "name": "Warp"
     },
     {
-      "id": "loaf",
-      "name": "Loaf",
-      "note": "Agent Skills format only (shared path not verified)"
-    },
-    {
-      "id": "promptscript",
-      "name": "PromptScript"
+      "id": "zed",
+      "name": "Zed Agent",
+      "openSpecToolId": "zed"
     }
-  ]
+  ],
+  "schemaVersion": 1,
+  "source": {
+    "revision": "dd3ca3c85581e593434546a4016fb3a7e7b7f937",
+    "updatedAt": "2026-08-28",
+    "url": "https://github.com/vercel-labs/skills"
+  },
+  "updatedAt": "2026-08-28"
 }

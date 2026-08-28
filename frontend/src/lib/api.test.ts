@@ -98,6 +98,23 @@ test('normalizeCommandAvailability retains legacy shared-target metadata', () =>
   assert.equal(normalized.integrations[0]?.sharedSkillTarget, 'legacy');
 });
 
+test('normalizeCommandAvailability retains Antigravity shared-target metadata', () => {
+  const normalized = normalizeCommandAvailability({
+    status: 'ready',
+    workflows: ['propose'],
+    integrations: [{
+      tool: 'Antigravity',
+      delivery: 'skills',
+      form: 'skill-slash',
+      example: '/openspec-propose',
+      source: '.agents/skills/openspec-propose/SKILL.md',
+      sharedSkillTarget: 'antigravity',
+    }],
+  });
+
+  assert.equal(normalized.integrations[0]?.sharedSkillTarget, 'antigravity');
+});
+
 test('normalizeCommandAvailability ignores the retired availableExpandedCommands field', () => {
   const normalized = normalizeCommandAvailability({
     status: 'ready',

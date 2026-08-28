@@ -13,8 +13,8 @@
  *    id, its command form is used.
  * 2. Otherwise the tool's Skills inventory is consulted and the skill form is
  *    used only when it contains the workflow's canonical OpenSpec skill name.
- * 3. Shared `.agents` target metadata selects Zed slash, generic agents slash,
- *    Codex-led compatible forms, or the legacy ambiguous fallback.
+ * 3. Shared `.agents` target metadata selects Zed, Antigravity, or generic
+ *    agents slash forms, Codex-led compatible forms, or the legacy fallback.
  *
  * Effective candidates are grouped by their final command text; each group
  * carries every associated tool name in stable detector order, deduplicated.
@@ -62,6 +62,9 @@ function toolLabelFor(integration: DetectedIntegration, form: InvocationFormId):
     if (integration.sharedSkillTarget === 'agents') {
       return 'Shared .agents';
     }
+    if (integration.sharedSkillTarget === 'antigravity') {
+      return 'Antigravity';
+    }
     return AGENTS_SPLIT_LABELS[form] ?? integration.tool;
   }
   return integration.tool;
@@ -73,7 +76,9 @@ function skillFormsFor(integration: DetectedIntegration): InvocationFormId[] {
     return [skills.form, ...(skills.alternateForms ?? [])];
   }
 
-  return integration.sharedSkillTarget === 'zed' || integration.sharedSkillTarget === 'agents'
+  return integration.sharedSkillTarget === 'zed'
+    || integration.sharedSkillTarget === 'agents'
+    || integration.sharedSkillTarget === 'antigravity'
     ? ['skill-slash']
     : ['skill-slash', 'skill-dollar'];
 }

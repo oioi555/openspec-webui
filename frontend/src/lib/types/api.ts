@@ -256,7 +256,7 @@ export interface SearchResult {
 }
 
 export type CommandDelivery = 'commands' | 'skills' | 'both' | null;
-export type SharedSkillTarget = 'agents' | 'codex' | 'zed' | 'legacy';
+export type SharedSkillTarget = 'agents' | 'antigravity' | 'codex' | 'zed' | 'legacy';
 
 /** One detected OpenSpec command artifact: the workflow id and its repo-relative source path. */
 export interface CommandInventoryItem {
@@ -314,7 +314,7 @@ export interface DetectedIntegration {
   commands: CommandInventory | null;
   /** Authoritative Skills evidence, or null when no skill artifact matched. */
   skills: SkillInventory | null;
-  /** Resolved v1.10 target for the shared `.agents/skills` tree. */
+  /** Resolved target for the shared `.agents/skills` tree. */
   sharedSkillTarget?: SharedSkillTarget;
 }
 

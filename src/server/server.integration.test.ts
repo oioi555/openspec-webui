@@ -1758,7 +1758,7 @@ test('GET /api/tool-reference returns static reference data without an active pr
   try {
     const result = await apiJson(runtime.baseUrl, '/api/tool-reference');
     assert.equal(result.response.status, 200);
-    assert.equal(result.body.officialSource.version, 'v1.10.0');
+    assert.equal(result.body.officialSource.version, 'v1.11.0');
     assert.equal(result.body.officialDefinitions.length, 39);
     assert.ok(result.body.sharedCompatibility.some((record: { clientId: string }) => record.clientId === 'grok-build'));
   } finally {
@@ -2165,6 +2165,41 @@ test('availability route surfaces both skill-slash and skill-dollar for a shared
     // Two distinct forms: the frontend must open an explicit candidate menu
     // rather than performing a single-direct copy for `.agents` evidence.
     assert.deepEqual(result.body.availability.forms, ['skill-slash', 'skill-dollar']);
+  } finally {
+    await runtime.close();
+  }
+});
+
+test('availability route exposes one merged Antigravity integration for an owned shared tree', async () => {
+  const configHome = await createTempDir('openspec-webui-server-config-');
+  process.env.XDG_CONFIG_HOME = configHome;
+  const projectRoot = await createProjectFixture('antigravity-v1-11-project');
+  await mkdir(join(projectRoot, '.agents', 'skills', 'openspec-propose'), { recursive: true });
+  await mkdir(join(projectRoot, '.agents', 'workflows'), { recursive: true });
+  await writeFile(
+    join(projectRoot, '.agents', 'skills', 'openspec-propose', 'SKILL.md'),
+    '# openspec-propose',
+    'utf8'
+  );
+  await writeFile(join(projectRoot, '.agents', 'skills', '.openspec-target'), 'antigravity\n', 'utf8');
+  await writeFile(join(projectRoot, '.agents', 'workflows', 'opsx-propose.md'), '# propose', 'utf8');
+  await installFakeOpenSpecCommand({ readyProjectRoots: new Set([projectRoot]) });
+
+  const runtime = await startServer();
+  try {
+    await apiJson(runtime.baseUrl, '/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: projectRoot }),
+    });
+    const result = await apiJson(runtime.baseUrl, '/api/commands/availability');
+    assert.equal(result.response.status, 200);
+    const integrations = result.body.availability.integrations as Array<Record<string, unknown>>;
+    const antigravity = integrations.find((integration) => integration.tool === 'Antigravity');
+    assert.ok(antigravity);
+    assert.equal(antigravity.sharedSkillTarget, 'antigravity');
+    assert.equal(antigravity.delivery, 'both');
+    assert.equal(integrations.some((integration) => integration.tool === 'Shared .agents / Codex'), false);
   } finally {
     await runtime.close();
   }

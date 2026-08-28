@@ -25,7 +25,7 @@ export type InvocationFormId = (typeof INVOCATION_FORM_IDS)[number];
 
 export type ToolDelivery = 'commands' | 'skills' | 'both';
 
-export type SharedSkillTarget = 'agents' | 'codex' | 'zed' | 'legacy';
+export type SharedSkillTarget = 'agents' | 'antigravity' | 'codex' | 'zed' | 'legacy';
 
 export interface ToolIntegrationDetectionDependencies {
   readTargetMarker?: (path: string) => Promise<string>;
@@ -100,7 +100,7 @@ export interface DetectedIntegration {
   commands: CommandInventory | null;
   /** Authoritative Skills evidence, or null when no skill artifact matched. */
   skills: SkillInventory | null;
-  /** Resolved v1.10 target for the shared `.agents/skills` tree. */
+  /** Resolved target for the shared `.agents/skills` tree. */
   sharedSkillTarget?: SharedSkillTarget;
 }
 
@@ -113,7 +113,7 @@ type CommandShape = 'folder' | 'filename';
 
 /**
  * Compatibility display name for the shared `.agents/skills` root. The
- * additive `sharedSkillTarget` field carries the authoritative v1.10 identity;
+ * additive `sharedSkillTarget` field carries the authoritative target identity;
  * this legacy field remains non-committal for existing API consumers.
  */
 export const AGENTS_SHARED_TOOL = 'Shared .agents / Codex';
@@ -127,7 +127,9 @@ async function resolveSharedSkillTarget(
 ): Promise<SharedSkillTarget> {
   try {
     const target = (await readTargetMarker(join(projectRoot, '.agents/skills/.openspec-target'))).trim();
-    return target === 'agents' || target === 'codex' || target === 'zed' ? target : 'legacy';
+    return target === 'agents' || target === 'antigravity' || target === 'codex' || target === 'zed'
+      ? target
+      : 'legacy';
   } catch {
     return 'legacy';
   }
@@ -213,6 +215,15 @@ const TOOL_SIGNATURES: readonly ToolSpec[] = [
       : null;
     if (definition.commands && !command) throw new Error(`Unsupported command signature for detected tool ${id}`);
     if (definition.skills && !skill) throw new Error(`Unsupported skill signature for detected tool ${id}`);
+    if (id === 'antigravity') {
+      return [
+        definition.name,
+        command
+          ? [command, ['.agent/workflows', 'filename', 'opsx-dash']]
+          : [['.agent/workflows', 'filename', 'opsx-dash']],
+        [['.agent/skills', 'skill-slash']],
+      ];
+    }
     return [
       DETECTION_DISPLAY_NAMES[id] ?? definition.name,
       command ? [command] : [],
@@ -374,20 +385,28 @@ export async function detectToolIntegrations(
     for (const [dir, shape, form] of commandSpecs) {
       const items = await findCommandFiles(projectRoot, dir, shape);
       if (items && items.length > 0) {
-        commandInventory = { form, items };
-        break;
+        if (!commandInventory) {
+          commandInventory = { form, items };
+        } else {
+          const seen = new Set(commandInventory.items.map((item) => item.workflowId));
+          commandInventory.items.push(...items.filter((item) => !seen.has(item.workflowId)));
+        }
       }
     }
 
     for (const [dir, form, alternateForms] of skillSpecs) {
       const items = await findSkillFiles(projectRoot, dir);
       if (items && items.length > 0) {
-        skillInventory = {
-          form,
-          ...(alternateForms && alternateForms.length > 0 ? { alternateForms: [...alternateForms] } : {}),
-          items,
-        };
-        break;
+        if (!skillInventory) {
+          skillInventory = {
+            form,
+            ...(alternateForms && alternateForms.length > 0 ? { alternateForms: [...alternateForms] } : {}),
+            items,
+          };
+        } else {
+          const seen = new Set(skillInventory.items.map((item) => item.skillName));
+          skillInventory.items.push(...items.filter((item) => !seen.has(item.skillName)));
+        }
       }
     }
 
@@ -406,7 +425,7 @@ export async function detectToolIntegrations(
     const source =
       commandInventory?.items[0]!.source ?? skillInventory!.items[0]!.source;
     // Markerless/invalid trees retain the legacy dual-form example; valid
-    // agents and Zed markers narrow it to the slash form.
+    // slash-style targets narrow it to the slash form.
     const isAgentsShared = tool === AGENTS_SHARED_TOOL;
     const sharedSkillTarget = isAgentsShared
       ? await resolveSharedSkillTarget(projectRoot, readTargetMarker)
@@ -431,6 +450,41 @@ export async function detectToolIntegrations(
       skills: skillInventory,
       ...(sharedSkillTarget ? { sharedSkillTarget } : {}),
     });
+  }
+
+  const sharedIndex = integrations.findIndex(
+    (integration) => integration.tool === AGENTS_SHARED_TOOL
+      && integration.sharedSkillTarget === 'antigravity'
+  );
+  if (sharedIndex >= 0) {
+    const shared = integrations[sharedIndex]!;
+    const antigravity = integrations.find((integration) => integration.tool === 'Antigravity');
+    const currentItems = shared.skills?.items ?? [];
+    const legacyItems = antigravity?.skills?.items ?? [];
+    const seenSkills = new Set(currentItems.map((item) => item.skillName));
+    const mergedSkills: SkillInventory = {
+      form: 'skill-slash',
+      items: [
+        ...currentItems,
+        ...legacyItems.filter((item) => !seenSkills.has(item.skillName)),
+      ],
+    };
+
+    if (antigravity) {
+      antigravity.skills = mergedSkills;
+      antigravity.sharedSkillTarget = 'antigravity';
+      antigravity.delivery = antigravity.commands ? 'both' : 'skills';
+      antigravity.form = antigravity.commands?.form ?? mergedSkills.form;
+      antigravity.source = antigravity.commands?.items[0]?.source ?? mergedSkills.items[0]!.source;
+      antigravity.example = exampleForForm(antigravity.form);
+      integrations.splice(sharedIndex, 1);
+    } else {
+      shared.tool = 'Antigravity';
+      shared.skills = mergedSkills;
+      shared.sharedSkillTarget = 'antigravity';
+      shared.form = mergedSkills.form;
+      shared.example = exampleForForm(mergedSkills.form);
+    }
   }
 
   return integrations;

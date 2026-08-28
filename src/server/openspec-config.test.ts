@@ -272,6 +272,31 @@ test('inspectCommandAvailability exposes Zed shared-target metadata with skill e
   assert.deepEqual(availability.forms, ['skill-slash']);
 });
 
+test('inspectCommandAvailability exposes Antigravity shared-target metadata and inventories', async () => {
+  const cwd = await makeCwd();
+  await mkdir(join(cwd, '.agents', 'skills', 'openspec-propose'), { recursive: true });
+  await mkdir(join(cwd, '.agents', 'workflows'), { recursive: true });
+  await writeFile(
+    join(cwd, '.agents', 'skills', 'openspec-propose', 'SKILL.md'),
+    '# openspec-propose',
+    'utf8'
+  );
+  await writeFile(join(cwd, '.agents', 'skills', '.openspec-target'), 'antigravity\n', 'utf8');
+  await writeFile(join(cwd, '.agents', 'workflows', 'opsx-propose.md'), '# propose', 'utf8');
+
+  const availability = await inspectCommandAvailability(cwd, createReader({}));
+  const antigravity = availability.integrations.find((integration) => integration.tool === 'Antigravity');
+
+  assert.equal(antigravity?.sharedSkillTarget, 'antigravity');
+  assert.equal(antigravity?.delivery, 'both');
+  assert.deepEqual(antigravity?.commands?.items, [
+    { workflowId: 'propose', source: '.agents/workflows/opsx-propose.md' },
+  ]);
+  assert.deepEqual(antigravity?.skills?.items, [
+    { skillName: 'openspec-propose', source: '.agents/skills/openspec-propose/SKILL.md' },
+  ]);
+});
+
 test('inspectCommandAvailability reports legacy ambiguity for markerless shared skills', async () => {
   const cwd = await makeCwd();
   await mkdir(join(cwd, '.agents', 'skills', 'openspec-propose'), { recursive: true });

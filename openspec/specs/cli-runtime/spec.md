@@ -1,7 +1,7 @@
 # cli-runtime Specification
 
 ## Purpose
-TBD - created by archiving change capture-baseline-specs. Update Purpose after archive.
+Define the Web UI CLI runtime contract for startup, host and port configuration, initial project resolution, and packaged execution.
 ## Requirements
 ### Requirement: Start a local workspace session
 The system SHALL start the WebUI without requiring a positional workspace path argument, SHALL default the port to `3001`, SHALL default the host to `127.0.0.1`, SHALL bind to the host specified by `--host <address>` when provided, SHALL bootstrap the current working directory when it points to a valid OpenSpec project root (or its `openspec/` directory). If the current working directory is not a valid OpenSpec project, the system SHALL still start normally and leave project selection to the UI. The user-facing `package.json` scripts surface SHALL be limited to the essential development commands: `dev`, `build`, `test`, and `typecheck`. npm lifecycle hooks such as `prepublishOnly` MAY remain. The CLI version displayed by `openspec-webui --version` SHALL match the current published package version defined by the package metadata source of truth.

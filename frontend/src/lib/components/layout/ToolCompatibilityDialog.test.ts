@@ -40,6 +40,9 @@ test('reference presentation is simplified to sharedSource and responsive rows',
   assert.match(source, /tool_reference_shared_disclaimer/);
   assert.match(source, />\/openspec-\*</);
   assert.match(source, />\$openspec-\*</);
+  assert.match(source, />antigravity</);
+  assert.match(source, /\.agents\/workflows\/opsx-\*\.md/);
+  assert.match(source, /legacy: \.agent\/workflows\/opsx-\*\.md/);
   assert.doesNotMatch(source, /reportedProjectClients|tool_reference_native_consumers/);
   assert.match(source, /tool_reference_not_defined/);
   assert.match(source, /tool_reference_external_client/);

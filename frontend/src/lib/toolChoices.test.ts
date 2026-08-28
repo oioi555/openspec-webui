@@ -306,7 +306,7 @@ test('shared .agents evidence yields both documented candidate forms', () => {
   ]);
 });
 
-test('shared target metadata selects Zed, agents, Codex-led, and legacy mappings', () => {
+test('shared target metadata selects Zed, agents, Antigravity, Codex-led, and legacy mappings', () => {
   const cases = [
     {
       target: 'zed',
@@ -315,6 +315,10 @@ test('shared target metadata selects Zed, agents, Codex-led, and legacy mappings
     {
       target: 'agents',
       expected: [{ key: '/openspec-propose', text: '/openspec-propose', tools: ['Shared .agents'] }],
+    },
+    {
+      target: 'antigravity',
+      expected: [{ key: '/openspec-propose', text: '/openspec-propose', tools: ['Antigravity'] }],
     },
     {
       target: 'codex',
@@ -343,6 +347,35 @@ test('shared target metadata selects Zed, agents, Codex-led, and legacy mappings
     );
     assert.deepEqual(buildGroupedToolChoices([integration], 'propose'), expected);
   }
+});
+
+test('Antigravity commands win per workflow while another workflow falls back to its shared skill', () => {
+  const antigravity: DetectedIntegration = {
+    tool: 'Antigravity',
+    delivery: 'both',
+    form: 'opsx-dash',
+    example: '/opsx-propose',
+    source: '.agents/workflows/opsx-propose.md',
+    commands: {
+      form: 'opsx-dash',
+      items: [{ workflowId: 'propose', source: '.agents/workflows/opsx-propose.md' }],
+    },
+    skills: {
+      form: 'skill-slash',
+      items: [
+        { skillName: 'openspec-propose', source: '.agents/skills/openspec-propose/SKILL.md' },
+        { skillName: 'openspec-apply-change', source: '.agents/skills/openspec-apply-change/SKILL.md' },
+      ],
+    },
+    sharedSkillTarget: 'antigravity',
+  };
+
+  assert.deepEqual(buildGroupedToolChoices([antigravity], 'propose'), [
+    { key: '/opsx-propose', text: '/opsx-propose', tools: ['Antigravity'] },
+  ]);
+  assert.deepEqual(buildGroupedToolChoices([antigravity], 'apply'), [
+    { key: '/openspec-apply-change', text: '/openspec-apply-change', tools: ['Antigravity'] },
+  ]);
 });
 
 test('Zed slash choice groups by final command text with another slash integration', () => {

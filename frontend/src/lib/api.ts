@@ -262,7 +262,11 @@ function isInvocationFormId(value: unknown): value is InvocationFormId {
 }
 
 function isSharedSkillTarget(value: unknown): value is NonNullable<DetectedIntegration['sharedSkillTarget']> {
-  return value === 'agents' || value === 'codex' || value === 'zed' || value === 'legacy';
+  return value === 'agents'
+    || value === 'antigravity'
+    || value === 'codex'
+    || value === 'zed'
+    || value === 'legacy';
 }
 
 function isCommandInventoryItem(value: unknown): value is CommandInventoryItem {

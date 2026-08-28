@@ -278,6 +278,7 @@ test('maps the shared .agents root to a non-committal integration with both form
 test('resolves every valid shared target and trims marker whitespace', async () => {
   const cases = [
     { marker: ' agents\n', target: 'agents', alternateForms: undefined },
+    { marker: ' antigravity\n', target: 'antigravity', alternateForms: undefined },
     { marker: '\tcodex  ', target: 'codex', alternateForms: ['skill-dollar'] },
     { marker: '\nzed\n', target: 'zed', alternateForms: undefined },
   ] as const;
@@ -291,6 +292,82 @@ test('resolves every valid shared target and trims marker whitespace', async () 
     assert.equal(integration?.sharedSkillTarget, target);
     assert.deepEqual(integration?.skills?.alternateForms, alternateForms);
   }
+});
+
+test('merges current Antigravity commands and owned shared skills into one integration', async () => {
+  const root = await makeProjectRoot();
+  await write(root, '.agents/workflows/opsx-propose.md');
+  await write(root, '.agents/skills/openspec-propose/SKILL.md', '# openspec-propose');
+  await write(root, '.agents/skills/openspec-apply-change/SKILL.md', '# openspec-apply-change');
+  await write(root, '.agents/skills/.openspec-target', 'antigravity\n');
+
+  const integrations = await detectToolIntegrations(root);
+  assert.equal(integrations.length, 1);
+  assert.deepEqual(integrations[0], {
+    tool: 'Antigravity',
+    delivery: 'both',
+    form: 'opsx-dash',
+    example: '/opsx-propose',
+    source: '.agents/workflows/opsx-propose.md',
+    commands: {
+      form: 'opsx-dash',
+      items: [{ workflowId: 'propose', source: '.agents/workflows/opsx-propose.md' }],
+    },
+    skills: {
+      form: 'skill-slash',
+      items: [
+        { skillName: 'openspec-apply-change', source: '.agents/skills/openspec-apply-change/SKILL.md' },
+        { skillName: 'openspec-propose', source: '.agents/skills/openspec-propose/SKILL.md' },
+      ],
+    },
+    sharedSkillTarget: 'antigravity',
+  });
+});
+
+test('detects current Antigravity skills without workflows when its marker owns the shared tree', async () => {
+  const root = await makeProjectRoot();
+  await write(root, '.agents/skills/openspec-propose/SKILL.md', '# openspec-propose');
+  await write(root, '.agents/skills/.openspec-target', 'antigravity');
+
+  assert.deepEqual(await detectToolIntegrations(root), [{
+    tool: 'Antigravity',
+    delivery: 'skills',
+    form: 'skill-slash',
+    example: '/openspec-propose',
+    source: '.agents/skills/openspec-propose/SKILL.md',
+    commands: null,
+    skills: {
+      form: 'skill-slash',
+      items: [{ skillName: 'openspec-propose', source: '.agents/skills/openspec-propose/SKILL.md' }],
+    },
+    sharedSkillTarget: 'antigravity',
+  }]);
+});
+
+test('keeps legacy Antigravity workflows while preferring current duplicate evidence', async () => {
+  const root = await makeProjectRoot();
+  await write(root, '.agents/workflows/opsx-propose.md');
+  await write(root, '.agent/workflows/opsx-propose.md');
+  await write(root, '.agent/workflows/opsx-sync.md');
+
+  const antigravity = (await detectToolIntegrations(root)).find((integration) => integration.tool === 'Antigravity');
+  assert.deepEqual(antigravity?.commands, {
+    form: 'opsx-dash',
+    items: [
+      { workflowId: 'propose', source: '.agents/workflows/opsx-propose.md' },
+      { workflowId: 'sync', source: '.agent/workflows/opsx-sync.md' },
+    ],
+  });
+});
+
+test('does not claim markerless shared skills as Antigravity when only current workflows exist', async () => {
+  const root = await makeProjectRoot();
+  await write(root, '.agents/workflows/opsx-propose.md');
+  await write(root, '.agents/skills/openspec-propose/SKILL.md', '# openspec-propose');
+
+  const integrations = await detectToolIntegrations(root);
+  assert.equal(integrations.some((integration) => integration.tool === 'Antigravity' && integration.skills), false);
+  assert.equal(integrations.some((integration) => integration.tool === AGENTS_SHARED_TOOL), true);
 });
 
 test('invalid shared target preserves the legacy ambiguous fallback', async () => {

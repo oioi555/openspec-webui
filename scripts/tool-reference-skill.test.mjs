@@ -12,6 +12,10 @@ test('update skill requires caller-owned release scope and official-first classi
   assert.match(source, /Do not poll GitHub, detect releases, schedule a future run, or start automation/);
   const sourceOrder = source.slice(source.indexOf('## Source order'));
   assert.ok(sourceOrder.indexOf('Fetch `docs/supported-tools.md`') < sourceOrder.indexOf('vercel-labs/skills'));
+  assert.ok(sourceOrder.indexOf('official GitHub release notes') < sourceOrder.indexOf('vercel-labs/skills'));
+  assert.match(source, /Release notes are formal OpenSpec release data/);
+  assert.match(source, /If either official source is unavailable, stop without writing/);
+  assert.match(source, /an unresolved conflict is never writable/);
   assert.match(source, /vercel-labs\/skills/);
 });
 
@@ -33,5 +37,7 @@ test('skill evaluations cover the required release and refresh cases', async () 
     'v1.11.0 was released',
     'automatically when it arrives',
     'same release and unchanged',
+    'release notes move Antigravity',
+    'release page for the selected OpenSpec tag is unavailable',
   ]) assert.match(prompts, new RegExp(phrase));
 });

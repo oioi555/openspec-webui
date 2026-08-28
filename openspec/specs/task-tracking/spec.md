@@ -1,7 +1,7 @@
 # task-tracking Specification
 
 ## Purpose
-TBD - created by archiving change capture-baseline-specs. Update Purpose after archive.
+Define how tasks.md checkbox hierarchies are parsed to calculate progress for individual changes and the workspace as a whole.
 ## Requirements
 ### Requirement: Parse markdown checkbox tasks
 The system SHALL parse markdown checklist items written as `- [ ]` or `- [x]`, SHALL build nested task trees from indentation, SHALL retain the source line number for each parsed task, and SHALL ignore non-checkbox content.

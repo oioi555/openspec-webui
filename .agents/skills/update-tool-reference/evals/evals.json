@@ -6,6 +6,8 @@
     { "id": 3, "prompt": "Vercel's Supported Agents list added NovaAgent. Prepare the update.", "expected_output": "Reports NovaAgent as added, creates a flat {id, name} entry with optional openSpecToolId, and includes it in the review hash.", "files": [] },
     { "id": 4, "prompt": "A previously listed tool disappeared from the new supported-tools source.", "expected_output": "Reports it as missing and reflects the current union in the proposed dataset without silently deleting history before review.", "files": [] },
     { "id": 5, "prompt": "Recheck only Gemini CLI against the currently pinned OpenSpec release, even though its entry is recent.", "expected_output": "Uses an explicit targeted refresh without applying an age threshold; adds it to the research queue.", "files": [] },
-    { "id": 6, "prompt": "Run the reference updater again for the same release and unchanged source revisions.", "expected_output": "Reports no changes and does not rewrite either dataset.", "files": [] }
+    { "id": 6, "prompt": "Run the reference updater again for the same release and unchanged source revisions.", "expected_output": "Reports no changes and does not rewrite either dataset.", "files": [] },
+    { "id": 7, "prompt": "The v1.11 release notes move Antigravity to .agents, but the tagged supported-tools page still says .agent. Prepare the update.", "expected_output": "Treats both as official sources, reports the exact path conflict, corroborates the released .agents behavior, and requires explicit reviewed approval before writing.", "files": [] },
+    { "id": 8, "prompt": "The release page for the selected OpenSpec tag is unavailable. Continue from supported-tools.md alone.", "expected_output": "Fails closed for official-definition writes and does not interpret incomplete release data as a removal.", "files": [] }
   ]
 }

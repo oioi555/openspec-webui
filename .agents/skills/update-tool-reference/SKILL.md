@@ -1,12 +1,12 @@
 ---
 name: update-tool-reference
-description: Update pinned OpenSpec tool definitions and the .agents/skills mapping from vercel-labs/skills Supported Agents. Use for OpenSpec releases and reference refreshes. Never detect releases or schedule itself.
+description: Update pinned OpenSpec tool definitions and the .agents/skills mapping from official release data and vercel-labs/skills. Use for OpenSpec releases and reference refreshes. Never detect releases or schedule itself.
 compatibility: Requires network for official sources, Node.js 20+, and this repository's scripts/update-tool-reference.mjs.
 ---
 
 # Update Tool Reference
 
-Join two sources to update the reference data. Primary source is `vercel-labs/skills`, official definitions are OpenSpec.
+Reconcile OpenSpec's tagged documentation with its official GitHub release notes, then join the reviewed definitions with `vercel-labs/skills` candidates.
 
 ## Preconditions
 
@@ -16,9 +16,11 @@ Join two sources to update the reference data. Primary source is `vercel-labs/sk
 
 ## Source order
 
-1. Fetch `docs/supported-tools.md` from the exact caller-selected OpenSpec release/tag. Build the official definition snapshot first.
-2. Read the `vercel-labs/skills` Supported Agents source (e.g. `src/agents.ts` with `skillsDir === '.agents/skills'`) only to discover candidates. See https://github.com/vercel-labs/skills
-3. Union with previous records so missing clients can be reported instead of silently deleted.
+1. Fetch `docs/supported-tools.md` from the exact caller-selected OpenSpec release/tag.
+2. Fetch the matching official GitHub release notes from `https://github.com/Fission-AI/OpenSpec/releases/tag/<tag>`. Release notes are formal OpenSpec release data, not an exception or an external candidate source.
+3. Reconcile those two official sources before constructing the proposed definition snapshot. Report exact tool/field conflicts; use shipped tagged config or adapter files only as corroboration for a reviewable resolution.
+4. Read the `vercel-labs/skills` Supported Agents source (e.g. `src/agents.ts` with `skillsDir === '.agents/skills'`) only to discover candidates. See https://github.com/vercel-labs/skills
+5. Union with previous records so missing clients can be reported instead of silently deleted.
 
 Vercel membership proves only that a client is a candidate for `.agents/skills`. No exhaustive per-client vendor-doc sweep is required for this reference. Keep a short note only for exceptions (e.g. Hermes global requires config).
 
@@ -30,7 +32,18 @@ Create a temporary JSON input outside the repository with:
 {
   "targetRelease": "vX.Y.Z",
   "checkedAt": "YYYY-MM-DD",
-  "openspec": { "available": true, "dataset": {} },
+  "openspec": {
+    "available": true,
+    "url": "https://github.com/Fission-AI/OpenSpec/blob/vX.Y.Z/docs/supported-tools.md",
+    "revision": "immutable-tag-or-commit",
+    "dataset": {}
+  },
+  "releaseNotes": {
+    "available": true,
+    "url": "https://github.com/Fission-AI/OpenSpec/releases/tag/vX.Y.Z",
+    "revision": "immutable-tag-or-commit",
+    "conflicts": []
+  },
   "vercelSkills": {
     "available": true,
     "url": "https://github.com/vercel-labs/skills",
@@ -48,7 +61,9 @@ Run:
 node --import tsx scripts/update-tool-reference.mjs --input <temporary-input.json> --json
 ```
 
-Present the target release, source revisions, unavailable sources, added/missing clients, and review hash. A no-change run stops here without rewriting files.
+Present the target release, both official source revisions, any official-source conflicts and proposed resolutions, unavailable sources, added/missing clients, and review hash. A no-change run stops here without rewriting files.
+
+If either official source is unavailable, stop without writing. If the sources disagree, include a structured conflict with the affected tool, fields, both claims, and a non-empty resolution source and summary. The reviewed hash is the caller's explicit approval of that resolution; an unresolved conflict is never writable.
 
 ## Write only after approval
 
@@ -78,4 +93,4 @@ Confirm `dist/server/data/tool-reference/` contains both JSON files.
 
 ## Report
 
-Report what changed, source failures, and whether a write occurred. Never describe absence from the list as proven non-support. Primary provenance for the shared list is `vercel-labs/skills`.
+Report what changed, which official release documents were checked, source conflicts or failures, and whether a write occurred. Never describe absence from the list as proven non-support. Primary provenance for the shared list is `vercel-labs/skills`.

@@ -27,9 +27,9 @@ test('external datasets project the current public reference without semantic ch
     {
       officialDefinitions: OPEN_SPEC_TOOL_DEFINITIONS,
       officialSource: {
-        version: 'v1.10.0',
-        url: 'https://github.com/Fission-AI/OpenSpec/blob/v1.10.0/docs/supported-tools.md',
-        verifiedAt: '2026-08-20',
+        version: 'v1.11.0',
+        url: 'https://github.com/Fission-AI/OpenSpec/blob/v1.11.0/docs/supported-tools.md',
+        verifiedAt: '2026-08-28',
       },
       sharedSource: SHARED_AGENTS_RESEARCH_DATASET.source,
       sharedCompatibility: SHARED_SKILLS_COMPATIBILITY,

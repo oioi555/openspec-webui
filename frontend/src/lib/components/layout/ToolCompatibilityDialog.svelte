@@ -183,9 +183,17 @@
                   <div>{t(m.tool_reference_invocation_style)}</div>
                 </div>
                 <div class="grid gap-2 border-b border-border px-4 py-3 md:grid-cols-[minmax(7rem,0.7fr)_minmax(9rem,1fr)_minmax(8rem,1fr)] md:items-center md:gap-3">
-                  <div class="flex flex-wrap gap-1"><Badge variant="secondary">agents</Badge><Badge variant="secondary">zed</Badge></div>
+                  <div class="flex flex-wrap gap-1"><Badge variant="secondary">agents</Badge><Badge variant="secondary">zed</Badge><Badge variant="secondary">antigravity</Badge></div>
                   <code class="break-all text-sm text-primary">.agents/skills</code>
                   <code class="text-sm text-foreground">/openspec-*</code>
+                </div>
+                <div class="grid gap-2 border-b border-border px-4 py-3 md:grid-cols-[minmax(7rem,0.7fr)_minmax(9rem,1fr)_minmax(8rem,1fr)] md:items-center md:gap-3">
+                  <div><Badge variant="secondary">antigravity</Badge></div>
+                  <div class="space-y-1">
+                    <code class="block break-all text-sm text-primary">.agents/workflows/opsx-*.md</code>
+                    <code class="block break-all text-xs text-muted-foreground">legacy: .agent/workflows/opsx-*.md · .agent/skills/openspec-*/SKILL.md</code>
+                  </div>
+                  <code class="text-sm text-foreground">/opsx-* · /openspec-*</code>
                 </div>
                 <div class="grid gap-2 px-4 py-3 md:grid-cols-[minmax(7rem,0.7fr)_minmax(9rem,1fr)_minmax(8rem,1fr)] md:items-center md:gap-3">
                   <div><Badge variant="outline">codex</Badge></div>
