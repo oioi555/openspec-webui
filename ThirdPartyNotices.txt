@@ -547,8 +547,8 @@ THE SOFTWARE.
 
 The following npm packages may be included in this product:
 
- - fast-uri@3.1.5
- - fast-uri@4.1.2
+ - fast-uri@3.1.7
+ - fast-uri@4.1.4
 
 These packages each contain the following license:
 
@@ -1076,7 +1076,7 @@ SOFTWARE.
 
 The following npm package may be included in this product:
 
- - fastify@5.12.1
+ - fastify@5.12.3
 
 This package contains the following license:
 
@@ -1644,15 +1644,15 @@ The following npm packages may be included in this product:
 
  - bundle-name@4.1.0
  - default-browser-id@5.0.1
- - default-browser@5.5.0
+ - default-browser@5.5.1
  - define-lazy-prop@3.0.0
  - is-docker@3.0.0
  - is-in-ssh@1.0.0
  - is-inside-container@1.0.0
  - is-wsl@3.1.1
- - open@11.0.1
+ - open@11.0.2
  - powershell-utils@0.1.0
- - powershell-utils@0.2.0
+ - powershell-utils@0.2.1
  - run-applescript@7.1.0
  - wsl-utils@1.0.0
 
