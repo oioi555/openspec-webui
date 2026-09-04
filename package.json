@@ -1,11 +1,11 @@
 {
   "name": "openspec-webui",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Local-first browser UI for exploring OpenSpec projects",
   "type": "module",
   "packageManager": "npm@11.19.0",
   "bin": {
-    "openspec-webui": "./bin/openspec-webui.js"
+    "openspec-webui": "bin/openspec-webui.js"
   },
   "main": "./dist/cli/index.js",
   "scripts": {

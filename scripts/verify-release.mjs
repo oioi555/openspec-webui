@@ -11,9 +11,19 @@ const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const packedBinName = process.platform === 'win32' ? 'openspec-webui.cmd' : 'openspec-webui';
 
 function run(command, args, options = {}) {
+  const env = { ...process.env };
+  if (command === npmCommand) {
+    // npm lifecycle scripts re-export config as environment variables. Keep
+    // parent publish policy from changing the verifier's nested npm commands.
+    delete env.npm_config_allow_scripts;
+    delete env.NPM_CONFIG_ALLOW_SCRIPTS;
+    delete env.npm_config_dry_run;
+    delete env.NPM_CONFIG_DRY_RUN;
+  }
+
   const result = spawnSync(command, args, {
     cwd: repoRoot,
-    env: process.env,
+    env,
     encoding: 'utf8',
     stdio: options.capture ? ['ignore', 'pipe', 'pipe'] : 'inherit',
   });
