@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 
 // ---------------------------------------------------------------------------
-// Source-assertion tests for command types: update/core grouping, six official
+// Source-assertion tests for command types: update/core grouping, official
 // invocation forms, onboard exclusion, and format-preference retirement.
 // ---------------------------------------------------------------------------
 
@@ -66,10 +66,10 @@ test('onboard is not referenced in workflowMetadata', async () => {
 });
 
 // ---------------------------------------------------------------------------
-// 3. Six official invocation forms are declared
+// 3. Official invocation forms are declared
 // ---------------------------------------------------------------------------
 
-test('INVOCATION_FORM_IDS declares exactly the six official forms', async () => {
+test('INVOCATION_FORM_IDS declares the official forms', async () => {
   const source = await commandTypesSource;
   assert.match(source, /INVOCATION_FORM_IDS/);
   assert.match(source, /'opsx-colon'/);
@@ -78,9 +78,10 @@ test('INVOCATION_FORM_IDS declares exactly the six official forms', async () => 
   assert.match(source, /'skill-slash'/);
   assert.match(source, /'skill-colon'/);
   assert.match(source, /'skill-dollar'/);
+  assert.match(source, /'skill-prompt'/);
 });
 
-test('INVOCATION_FORMS defines the six official prefixes', async () => {
+test('INVOCATION_FORMS defines the official prefixes', async () => {
   const source = await commandShortcutsSource;
   assert.match(source, /prefix: '\/opsx:'/);
   assert.match(source, /prefix: '\/opsx-'/);
@@ -88,6 +89,7 @@ test('INVOCATION_FORMS defines the six official prefixes', async () => {
   assert.match(source, /prefix: '\/openspec-'/);
   assert.match(source, /prefix: '\/skill:openspec-'/);
   assert.match(source, /prefix: '\$openspec-'/);
+  assert.match(source, /prefix: 'use the openspec-'/);
 });
 
 // ---------------------------------------------------------------------------

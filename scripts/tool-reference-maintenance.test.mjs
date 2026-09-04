@@ -136,11 +136,8 @@ test('official sources for a different target release fail closed', () => {
   assert.deepEqual(result.report.missing, []);
 });
 
-test('resolved v1.11 Antigravity conflict is reviewable and writable only with its reviewed hash', () => {
+test('resolved Antigravity conflict is reviewable and writable only with its reviewed hash', () => {
   const next = input();
-  next.targetRelease = 'v1.11.0';
-  next.releaseNotes.revision = 'v1.11.0';
-  next.releaseNotes.url = 'https://github.com/Fission-AI/OpenSpec/releases/tag/v1.11.0';
   const antigravity = next.openspec.dataset.tools.find((tool) => tool.id === 'antigravity');
   antigravity.commands.path = '.agents/workflows/opsx-<id>.md';
   antigravity.skills.path = '.agents/skills/openspec-*/SKILL.md';
@@ -150,7 +147,7 @@ test('resolved v1.11 Antigravity conflict is reviewable and writable only with i
     documentation: '.agent paths',
     releaseNotes: 'Antigravity uses the shared .agents root',
     resolution: {
-      source: 'v1.11.0 release notes and shipped Antigravity adapter',
+      source: 'release notes and shipped Antigravity adapter',
       summary: 'Use .agents as current; retain .agent as runtime legacy input.',
     },
   }];
@@ -166,8 +163,8 @@ test('unresolved official-source conflict and unavailable release notes fail clo
   const unresolved = input({
     releaseNotes: {
       available: true,
-      url: 'https://github.com/Fission-AI/OpenSpec/releases/tag/v1.11.0',
-      revision: 'v1.11.0',
+      url: `https://github.com/Fission-AI/OpenSpec/releases/tag/${OFFICIAL_TOOL_DATASET.source.version}`,
+      revision: OFFICIAL_TOOL_DATASET.source.revision,
       conflicts: [{
         toolId: 'antigravity',
         fields: ['commands.path'],

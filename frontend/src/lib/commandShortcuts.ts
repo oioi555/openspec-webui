@@ -31,19 +31,25 @@ export interface InvocationForm {
    *   skill-slash   -> '/openspec-'
    *   skill-colon   -> '/skill:openspec-'
    *   skill-dollar  -> '$openspec-'
+   *   skill-prompt  -> 'use the openspec-' (with a trailing ' skill')
    */
   prefix: string;
   /** Whether the form interpolates the workflow id or the workflow's skill name. */
   interpolates: 'id' | 'skill';
+  /** Literal text written after the interpolated token. */
+  suffix: string;
+  /** Connector used before a change name for change-scoped workflows. */
+  changeConnector: string;
 }
 
 export const INVOCATION_FORMS: readonly InvocationForm[] = [
-  { id: 'opsx-colon', prefix: '/opsx:', interpolates: 'id' },
-  { id: 'opsx-dash', prefix: '/opsx-', interpolates: 'id' },
-  { id: 'opsx-at', prefix: '@opsx-', interpolates: 'id' },
-  { id: 'skill-slash', prefix: '/openspec-', interpolates: 'skill' },
-  { id: 'skill-colon', prefix: '/skill:openspec-', interpolates: 'skill' },
-  { id: 'skill-dollar', prefix: '$openspec-', interpolates: 'skill' },
+  { id: 'opsx-colon', prefix: '/opsx:', interpolates: 'id', suffix: '', changeConnector: ' ' },
+  { id: 'opsx-dash', prefix: '/opsx-', interpolates: 'id', suffix: '', changeConnector: ' ' },
+  { id: 'opsx-at', prefix: '@opsx-', interpolates: 'id', suffix: '', changeConnector: ' ' },
+  { id: 'skill-slash', prefix: '/openspec-', interpolates: 'skill', suffix: '', changeConnector: ' ' },
+  { id: 'skill-colon', prefix: '/skill:openspec-', interpolates: 'skill', suffix: '', changeConnector: ' ' },
+  { id: 'skill-dollar', prefix: '$openspec-', interpolates: 'skill', suffix: '', changeConnector: ' ' },
+  { id: 'skill-prompt', prefix: 'use the openspec-', interpolates: 'skill', suffix: ' skill', changeConnector: ' for ' },
 ];
 
 export function getInvocationFormById(id: InvocationFormId): InvocationForm | undefined {
@@ -88,7 +94,7 @@ export function dedupeCommandCandidates(candidates: readonly CommandCandidate[])
 }
 
 /**
- * Table-driven command-string generation over the six official invocation
+ * Table-driven command-string generation over the seven official invocation
  * forms. Workspace-scoped workflows never receive a positional argument;
  * change-scoped workflows append the known change name when one is supplied.
  * Candidates are deduplicated by their output string.
@@ -99,7 +105,6 @@ export function generateCommandCandidates(
 ): CommandCandidate[] {
   const { changeName } = options;
   const metadata = getWorkflowMetadata(workflow);
-  const argument = metadata.scope === 'change' && changeName ? ` ${changeName}` : '';
   const formIds = options.forms ?? INVOCATION_FORM_IDS;
   const candidates: CommandCandidate[] = [];
 
@@ -112,7 +117,9 @@ export function generateCommandCandidates(
 
     candidates.push({
       form: id,
-      text: `${form.prefix}${resolveFormToken(form, workflow)}${argument}`,
+      text: `${form.prefix}${resolveFormToken(form, workflow)}${form.suffix}${
+        metadata.scope === 'change' && changeName ? `${form.changeConnector}${changeName}` : ''
+      }`,
     });
   }
 

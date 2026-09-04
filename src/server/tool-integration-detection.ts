@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { OPEN_SPEC_TOOL_DEFINITIONS } from './tool-compatibility-reference.js';
 
 /**
- * The six official OpenSpec invocation forms (docs/supported-tools.md).
+ * The seven official OpenSpec invocation forms (docs/supported-tools.md).
  * Stable ids shared with the frontend `InvocationFormId` contract:
  *   opsx-colon     /opsx:<id>           folder-namespaced opsx/<id> command files
  *   opsx-dash      /opsx-<id>           opsx-<id> filename command files
@@ -11,6 +11,7 @@ import { OPEN_SPEC_TOOL_DEFINITIONS } from './tool-compatibility-reference.js';
  *   skill-slash    /openspec-<skill>    ordinary repo-local skill-only tools
  *   skill-colon    /skill:openspec-<skill>  Kimi Code
  *   skill-dollar   $openspec-<skill>    Codex CLI / shared `.agents` root
+ *   skill-prompt   use the openspec-<skill> skill  SourceCraft Code Assistant
  */
 export const INVOCATION_FORM_IDS = [
   'opsx-colon',
@@ -19,6 +20,7 @@ export const INVOCATION_FORM_IDS = [
   'skill-slash',
   'skill-colon',
   'skill-dollar',
+  'skill-prompt',
 ] as const;
 
 export type InvocationFormId = (typeof INVOCATION_FORM_IDS)[number];
@@ -154,7 +156,7 @@ const DETECTED_TOOL_IDS = [
   'oh-my-pi', 'opencode', 'qwen', 'roocode', 'trae',
   'antigravity', 'cline', 'devin', 'kilocode',
   'continue', 'github-copilot', 'kiro', 'pi', 'costrict', 'amazon-q',
-  'codeartsagent', 'forgecode', 'hermes', 'vibe', 'kimi',
+  'codeartsagent', 'forgecode', 'hermes', 'vibe', 'kimi', 'codeassistant',
 ] as const;
 
 const DETECTION_DISPLAY_NAMES: Partial<Record<(typeof DETECTED_TOOL_IDS)[number], string>> = {
@@ -170,6 +172,7 @@ function invocationForm(invocation: string | null): InvocationFormId | null {
   if (invocation.startsWith('/skill:')) return 'skill-colon';
   if (invocation.startsWith('$openspec-')) return 'skill-dollar';
   if (invocation.startsWith('/openspec-')) return 'skill-slash';
+  if (invocation === 'use the openspec-<skill> skill') return 'skill-prompt';
   return null;
 }
 
@@ -248,6 +251,8 @@ function exampleForForm(form: InvocationFormId): string {
       return '/skill:openspec-propose';
     case 'skill-dollar':
       return '$openspec-propose';
+    case 'skill-prompt':
+      return 'use the openspec-propose skill';
   }
 }
 
@@ -438,7 +443,9 @@ export async function detectToolIntegrations(
     }
     const example = isAgentsShared && skillInventory?.alternateForms
       ? AGENTS_SHARED_EXAMPLE
-      : exampleForForm(form);
+      : form === 'skill-prompt' && !commandInventory
+        ? `use the ${skillInventory!.items[0]!.skillName} skill`
+        : exampleForForm(form);
 
     integrations.push({
       tool,

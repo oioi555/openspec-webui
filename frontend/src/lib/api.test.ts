@@ -139,14 +139,14 @@ test('normalizeCommandAvailability filters malformed integrations and form ids',
       { tool: 'broken', delivery: 'bogus', form: 'nope', example: 42, source: 'b' },
       'not-an-object',
     ],
-    forms: ['opsx-colon', 'unknown-form', 'skill-dollar', 7],
+    forms: ['opsx-colon', 'unknown-form', 'skill-dollar', 'skill-prompt', 7],
     error: null,
   });
 
   assert.deepEqual(normalized.integrations, [
     { tool: 'claude', delivery: 'commands', form: 'opsx-colon', example: '/opsx:propose', source: 'a', commands: null, skills: null },
   ]);
-  assert.deepEqual(normalized.forms, ['opsx-colon', 'skill-dollar']);
+  assert.deepEqual(normalized.forms, ['opsx-colon', 'skill-dollar', 'skill-prompt']);
 });
 
 test('normalizeCommandAvailability filters malformed tool options and unknown forms', () => {
@@ -156,6 +156,7 @@ test('normalizeCommandAvailability filters malformed tool options and unknown fo
     workflows: [],
     toolOptions: [
       { tool: 'Claude Code', form: 'opsx-colon' },
+      { tool: 'SourceCraft Code Assistant for VS Code', form: 'skill-prompt' },
       { tool: 'Broken', form: 'not-a-form' },
       { tool: 42, form: 'skill-slash' },
       'not-an-object',
@@ -163,7 +164,10 @@ test('normalizeCommandAvailability filters malformed tool options and unknown fo
     error: null,
   });
 
-  assert.deepEqual(normalized.toolOptions, [{ tool: 'Claude Code', form: 'opsx-colon' }]);
+  assert.deepEqual(normalized.toolOptions, [
+    { tool: 'Claude Code', form: 'opsx-colon' },
+    { tool: 'SourceCraft Code Assistant for VS Code', form: 'skill-prompt' },
+  ]);
 });
 
 test('normalizeCommandAvailability degrades malformed payloads to unavailable', () => {

@@ -1758,8 +1758,8 @@ test('GET /api/tool-reference returns static reference data without an active pr
   try {
     const result = await apiJson(runtime.baseUrl, '/api/tool-reference');
     assert.equal(result.response.status, 200);
-    assert.equal(result.body.officialSource.version, 'v1.11.0');
-    assert.equal(result.body.officialDefinitions.length, 39);
+    assert.equal(result.body.officialSource.version, 'v1.12.0');
+    assert.equal(result.body.officialDefinitions.length, 40);
     assert.ok(result.body.sharedCompatibility.some((record: { clientId: string }) => record.clientId === 'grok-build'));
   } finally {
     await runtime.close();
@@ -1956,6 +1956,14 @@ test('availability route reports detected tool integrations and distinct forms',
     '# openspec-propose',
     'utf8'
   );
+  await mkdir(join(projectRoot, '.codeassistant', 'commands'), { recursive: true });
+  await writeFile(join(projectRoot, '.codeassistant', 'commands', 'opsx-apply.md'), 'apply', 'utf8');
+  await mkdir(join(projectRoot, '.codeassistant', 'skills', 'openspec-propose'), { recursive: true });
+  await writeFile(
+    join(projectRoot, '.codeassistant', 'skills', 'openspec-propose', 'SKILL.md'),
+    '# openspec-propose',
+    'utf8'
+  );
 
   await installFakeOpenSpecCommand({ readyProjectRoots: new Set([projectRoot]) });
 
@@ -2016,6 +2024,21 @@ test('availability route reports detected tool integrations and distinct forms',
         items: [{ skillName: 'openspec-propose', source: '.kimi-code/skills/openspec-propose/SKILL.md' }],
       },
     });
+    assert.deepEqual(byTool.get('SourceCraft Code Assistant for VS Code'), {
+      tool: 'SourceCraft Code Assistant for VS Code',
+      delivery: 'both',
+      form: 'opsx-dash',
+      example: '/opsx-propose',
+      source: '.codeassistant/commands/opsx-apply.md',
+      commands: {
+        form: 'opsx-dash',
+        items: [{ workflowId: 'apply', source: '.codeassistant/commands/opsx-apply.md' }],
+      },
+      skills: {
+        form: 'skill-prompt',
+        items: [{ skillName: 'openspec-propose', source: '.codeassistant/skills/openspec-propose/SKILL.md' }],
+      },
+    });
 
     assert.deepEqual(result.body.availability.forms, ['opsx-colon', 'opsx-dash', 'skill-colon']);
     // Static tool catalog is always present alongside detection.
@@ -2023,6 +2046,7 @@ test('availability route reports detected tool integrations and distinct forms',
     assert.ok(toolOptions.some((o) => o.tool === 'Claude Code' && o.form === 'opsx-colon'));
     assert.ok(toolOptions.some((o) => o.tool === 'Cursor' && o.form === 'opsx-dash'));
     assert.ok(toolOptions.some((o) => o.tool === 'Kimi Code' && o.form === 'skill-colon'));
+    assert.ok(toolOptions.some((o) => o.tool === 'SourceCraft Code Assistant for VS Code' && o.form === 'opsx-dash'));
     assert.ok(toolOptions.some((o) => o.tool === 'Shared .agents' && o.form === 'skill-slash'));
     assert.ok(toolOptions.some((o) => o.tool === 'Codex' && o.form === 'skill-dollar'));
     // Existing transition field remains present.

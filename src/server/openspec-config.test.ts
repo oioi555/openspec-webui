@@ -106,6 +106,26 @@ test('inspectCommandAvailability returns ready with parsed delivery when all con
   assert.ok(Array.isArray(availability.toolOptions) && availability.toolOptions.length > 0);
 });
 
+test('inspectCommandAvailability exposes SourceCraft inventories and preferred command option', async () => {
+  const cwd = await makeCwd();
+  await mkdir(join(cwd, '.codeassistant/commands'), { recursive: true });
+  await mkdir(join(cwd, '.codeassistant/skills/openspec-apply-change'), { recursive: true });
+  await writeFile(join(cwd, '.codeassistant/commands/opsx-propose.md'), '', 'utf8');
+  await writeFile(join(cwd, '.codeassistant/skills/openspec-apply-change/SKILL.md'), '', 'utf8');
+
+  const availability = await inspectCommandAvailability(cwd, createReader({}));
+  const sourceCraft = availability.integrations.find(
+    (integration) => integration.tool === 'SourceCraft Code Assistant for VS Code',
+  );
+
+  assert.equal(sourceCraft?.delivery, 'both');
+  assert.equal(sourceCraft?.commands?.items[0]?.workflowId, 'propose');
+  assert.equal(sourceCraft?.skills?.form, 'skill-prompt');
+  assert.ok(availability.toolOptions.some(
+    (option) => option.tool === 'SourceCraft Code Assistant for VS Code' && option.form === 'opsx-dash',
+  ));
+});
+
 test('inspectCommandAvailability keeps status ready when only delivery is unknown', async () => {
   // `workflows` is the single source of truth; a broken `delivery` config is an
   // additive hint that degrades to null without failing availability.

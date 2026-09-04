@@ -221,6 +221,32 @@ When exactly one distinct command string remains, activating the copy control SH
 - **WHEN** the operator previously selected a grouped candidate and later activates a shortcut that still has multiple distinct command strings
 - **THEN** the system opens the candidate menu again and does not copy the previously selected candidate without confirmation
 
+### Requirement: Generate SourceCraft skill prompt candidates
+The system SHALL represent SourceCraft's documented natural-language skill activation as a stable invocation form and SHALL generate a copyable `use the openspec-<skill> skill` prompt only from matching SourceCraft Skills evidence. The form SHALL interpolate the workflow's canonical OpenSpec skill name. Workspace-scoped prompts SHALL contain no positional argument, while change-scoped prompts SHALL append ` for <change-name>`. Matching SourceCraft Commands evidence SHALL retain the existing Commands-first priority and use `/opsx-<workflow-id>` instead of offering a second SourceCraft Skills choice for the same workflow.
+
+#### Scenario: Generate a SourceCraft workspace skill prompt
+- **WHEN** SourceCraft Skills evidence contains `openspec-propose` and no SourceCraft command exists for `propose`
+- **THEN** the `propose` shortcut candidate is `use the openspec-propose skill`
+- **AND** the candidate is attributed to SourceCraft
+
+#### Scenario: Generate a SourceCraft change-scoped skill prompt
+- **WHEN** SourceCraft Skills evidence contains `openspec-apply-change`, no SourceCraft command exists for `apply`, and the active change is `add-login`
+- **THEN** the `apply` shortcut candidate is `use the openspec-apply-change skill for add-login`
+
+#### Scenario: SourceCraft command evidence wins over skill evidence
+- **WHEN** SourceCraft has matching Commands and Skills evidence for the same workflow
+- **THEN** the candidate uses `/opsx-<workflow-id>`
+- **AND** no natural-language SourceCraft Skills candidate is added for that workflow
+
+#### Scenario: Group an identical SourceCraft prompt candidate
+- **WHEN** multiple detected evidence entries produce the same final SourceCraft prompt text
+- **THEN** the system exposes one grouped copy choice
+- **AND** preserves the associated tool labels without duplication
+
+#### Scenario: Do not synthesize SourceCraft prompts
+- **WHEN** no matching SourceCraft command or skill artifact exists for a workflow
+- **THEN** SourceCraft contributes no candidate for that workflow
+
 ### Requirement: Centralize workflow metadata
 The system SHALL maintain a single source of workflow metadata covering every workflow surfaced in command generation and Tools documentation, providing at minimum for each workflow its id, a user-facing label, a scope of `workspace` or `change`, and the OpenSpec skill name used by skill-based invocation forms (for example `apply` → `openspec-apply-change`, `sync` → `openspec-sync-specs`). The metadata SHALL include `update` with scope `change` and skill name `openspec-update-change`, SHALL NOT include `onboard`, SHALL NOT introduce a per-tool catalog, a generic adapter registry, an arguments schema, or a `multi-change` scope, and SHALL be the single source used to render workflow labels and skill-based invocation text.
 

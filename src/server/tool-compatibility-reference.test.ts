@@ -12,9 +12,9 @@ function cloneReference(): ToolCompatibilityReferenceResponse {
   return structuredClone(TOOL_COMPATIBILITY_REFERENCE);
 }
 
-test('v1.11.0 official definition snapshot contains every upstream tool row', () => {
-  assert.equal(TOOL_COMPATIBILITY_REFERENCE.officialSource.version, 'v1.11.0');
-  assert.equal(OPEN_SPEC_TOOL_DEFINITIONS.length, 39);
+test('v1.12.0 official definition snapshot contains every upstream tool row', () => {
+  assert.equal(TOOL_COMPATIBILITY_REFERENCE.officialSource.version, 'v1.12.0');
+  assert.equal(OPEN_SPEC_TOOL_DEFINITIONS.length, 40);
   assert.deepEqual(
     OPEN_SPEC_TOOL_DEFINITIONS.map((definition) => definition.id),
     [
@@ -23,8 +23,8 @@ test('v1.11.0 official definition snapshot contains every upstream tool row', ()
       'forgecode', 'continue', 'costrict', 'crush', 'cursor', 'factory',
       'gemini', 'github-copilot', 'hermes', 'iflow', 'junie', 'kilocode',
       'kimi', 'kiro', 'lingma', 'minimax-code', 'vibe', 'oh-my-pi',
-      'opencode', 'pi', 'qoder', 'qwen', 'rovodev', 'roocode', 'trae',
-      'zed', 'zcode', 'agents',
+      'opencode', 'pi', 'codeassistant', 'qoder', 'qwen', 'rovodev',
+      'roocode', 'trae', 'zed', 'zcode', 'agents',
     ]
   );
 
@@ -32,6 +32,8 @@ test('v1.11.0 official definition snapshot contains every upstream tool row', ()
   assert.equal(byId.get('claude')?.commands?.invocation, '/opsx:<id>');
   assert.equal(byId.get('antigravity')?.commands?.path, '.agents/workflows/opsx-<id>.md');
   assert.equal(byId.get('antigravity')?.skills?.path, '.agents/skills/openspec-*/SKILL.md');
+  assert.equal(byId.get('codeassistant')?.commands?.path, '.codeassistant/commands/opsx-<id>.md');
+  assert.equal(byId.get('codeassistant')?.skills?.path, '.codeassistant/skills/openspec-*/SKILL.md');
   assert.equal(byId.get('codex')?.commands, null);
   assert.equal(byId.get('codex')?.skills?.path, '.agents/skills/openspec-*/SKILL.md');
   assert.equal(byId.get('rovodev')?.commands, null);
@@ -43,7 +45,7 @@ test('shared compatibility is a minimal reference snapshot', () => {
   const ids = new Set(TOOL_COMPATIBILITY_REFERENCE.sharedCompatibility.map((record) => record.clientId));
   assert.equal(ids.has('amazon-q'), false);
   assert.equal(ids.has('grok-build'), true);
-  assert.equal(TOOL_COMPATIBILITY_REFERENCE.sharedCompatibility.length, 32);
+  assert.equal(TOOL_COMPATIBILITY_REFERENCE.sharedCompatibility.length, 33);
   assert.equal(TOOL_COMPATIBILITY_REFERENCE.sharedSource.url, 'https://github.com/vercel-labs/skills');
 
   const partial = cloneReference();
@@ -78,7 +80,7 @@ test('shared clients retain OpenSpec linkage and minimal notes', () => {
       'grok-build', 'loaf', 'promptscript', 'replit', 'warp',
     ]
   );
-  assert.equal(byId.has('qwen'), false);
+  assert.equal(byId.get('qwen')?.openSpecToolId, 'qwen');
   assert.equal(byId.has('zcode'), false);
   // no per-row evidence fields
   for (const record of TOOL_COMPATIBILITY_REFERENCE.sharedCompatibility) {

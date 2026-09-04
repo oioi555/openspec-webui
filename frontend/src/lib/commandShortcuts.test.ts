@@ -92,10 +92,10 @@ function createChangeContext(done: number, total: number, specDeltaCount = 0): C
 }
 
 // ---------------------------------------------------------------------------
-// Six official invocation forms
+// Seven official invocation forms
 // ---------------------------------------------------------------------------
 
-test('INVOCATION_FORMS declares exactly the six official forms with their prefixes', () => {
+test('INVOCATION_FORMS declares the official forms with their prefixes', () => {
   assert.deepEqual(
     INVOCATION_FORMS.map((form) => [form.id, form.prefix, form.interpolates]),
     [
@@ -105,11 +105,12 @@ test('INVOCATION_FORMS declares exactly the six official forms with their prefix
       ['skill-slash', '/openspec-', 'skill'],
       ['skill-colon', '/skill:openspec-', 'skill'],
       ['skill-dollar', '$openspec-', 'skill'],
+      ['skill-prompt', 'use the openspec-', 'skill'],
     ],
   );
 });
 
-test('generateCommandCandidates renders all six official forms for a workspace workflow', () => {
+test('generateCommandCandidates renders all official forms for a workspace workflow', () => {
   const candidates = generateCommandCandidates('propose');
 
   assert.deepEqual(
@@ -121,6 +122,7 @@ test('generateCommandCandidates renders all six official forms for a workspace w
       '/openspec-propose',
       '/skill:openspec-propose',
       '$openspec-propose',
+      'use the openspec-propose skill',
     ],
   );
   assert.deepEqual(candidates.map((candidate) => candidate.form), [
@@ -130,6 +132,7 @@ test('generateCommandCandidates renders all six official forms for a workspace w
     'skill-slash',
     'skill-colon',
     'skill-dollar',
+    'skill-prompt',
   ]);
 });
 
@@ -145,6 +148,7 @@ test('skill-based forms interpolate the skill-name suffix for sync', () => {
       '/openspec-sync-specs',
       '/skill:openspec-sync-specs',
       '$openspec-sync-specs',
+      'use the openspec-sync-specs skill',
     ],
   );
 });
@@ -158,6 +162,7 @@ test('skill-based forms interpolate the skill-name suffix for apply', () => {
       '/openspec-apply-change',
       '/skill:openspec-apply-change',
       '$openspec-apply-change',
+      'use the openspec-apply-change skill',
     ],
   );
 });
@@ -168,6 +173,21 @@ test('change-scoped candidates append the change name', () => {
   assert.ok(candidates.every((candidate) => candidate.text.endsWith(' my-change')));
   assert.equal(candidates[0].text, '/opsx:apply my-change');
   assert.equal(candidates[3].text, '/openspec-apply-change my-change');
+  assert.equal(candidates[6].text, 'use the openspec-apply-change skill for my-change');
+});
+
+test('SourceCraft skill prompts use their natural-language suffix and connector', () => {
+  assert.deepEqual(
+    generateCommandCandidates('apply', { forms: ['skill-prompt'], changeName: 'add-login' }),
+    [{
+      form: 'skill-prompt',
+      text: 'use the openspec-apply-change skill for add-login',
+    }],
+  );
+  assert.deepEqual(
+    generateCommandCandidates('propose', { forms: ['skill-prompt'], changeName: 'ignored' }),
+    [{ form: 'skill-prompt', text: 'use the openspec-propose skill' }],
+  );
 });
 
 test('workspace-scoped candidates never carry a change-name argument', () => {

@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "source": {
-    "checkedAt": "2026-08-28",
-    "revision": "a0ddb60d040c61f4907436a9d91310934b1dda63",
-    "url": "https://github.com/Fission-AI/OpenSpec/blob/v1.11.0/docs/supported-tools.md",
-    "version": "v1.11.0"
+    "checkedAt": "2026-09-05",
+    "revision": "e062b9572be933564ba3899d059377dfa1393e32",
+    "url": "https://github.com/Fission-AI/OpenSpec/blob/v1.12.0/docs/supported-tools.md",
+    "version": "v1.12.0"
   },
   "tools": [
     {
@@ -356,6 +356,18 @@
       "skills": {
         "invocation": "/openspec-<skill>",
         "path": ".pi/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": {
+        "invocation": "/opsx-<id>",
+        "path": ".codeassistant/commands/opsx-<id>.md"
+      },
+      "id": "codeassistant",
+      "name": "SourceCraft Code Assistant for VS Code",
+      "skills": {
+        "invocation": "use the openspec-<skill> skill",
+        "path": ".codeassistant/skills/openspec-*/SKILL.md"
       }
     },
     {

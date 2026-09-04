@@ -162,6 +162,45 @@ test('Kimi Code uses the skill-colon invocation form', () => {
   ]);
 });
 
+test('SourceCraft skill-only evidence produces a natural-language prompt', () => {
+  const integrations = [skillsIntegration(
+    'SourceCraft Code Assistant for VS Code',
+    'skill-prompt',
+    ['openspec-apply-change'],
+    '.codeassistant/',
+  )];
+
+  assert.deepEqual(buildGroupedToolChoices(integrations, 'apply', { changeName: 'add-login' }), [
+    {
+      key: 'use the openspec-apply-change skill for add-login',
+      text: 'use the openspec-apply-change skill for add-login',
+      tools: ['SourceCraft Code Assistant for VS Code'],
+    },
+  ]);
+});
+
+test('SourceCraft commands take precedence over matching skills', () => {
+  const integrations: DetectedIntegration = {
+    tool: 'SourceCraft Code Assistant for VS Code',
+    delivery: 'both',
+    form: 'opsx-dash',
+    example: '/opsx-propose',
+    source: '.codeassistant/commands/opsx-propose.md',
+    commands: {
+      form: 'opsx-dash',
+      items: [{ workflowId: 'apply', source: '.codeassistant/commands/opsx-apply.md' }],
+    },
+    skills: {
+      form: 'skill-prompt',
+      items: [{ skillName: 'openspec-apply-change', source: '.codeassistant/skills/openspec-apply-change/SKILL.md' }],
+    },
+  };
+
+  assert.deepEqual(buildGroupedToolChoices([integrations], 'apply'), [
+    { key: '/opsx-apply', text: '/opsx-apply', tools: ['SourceCraft Code Assistant for VS Code'] },
+  ]);
+});
+
 test('commands win when both deliveries match the same workflow', () => {
   const claude: DetectedIntegration = {
     tool: 'Claude Code',

@@ -118,6 +118,64 @@ test('detects Command Code commands and skills with their documented forms', asy
   ]);
 });
 
+test('detects SourceCraft commands and skills with Commands-first evidence', async () => {
+  const root = await makeProjectRoot();
+  await write(root, '.codeassistant/commands/opsx-propose.md');
+  await write(root, '.codeassistant/commands/opsx-verify.md');
+  await write(root, '.codeassistant/skills/openspec-apply-change/SKILL.md', '# openspec-apply-change');
+
+  const integrations = await detectToolIntegrations(root);
+  assert.deepEqual(integrations, [{
+    tool: 'SourceCraft Code Assistant for VS Code',
+    delivery: 'both',
+    form: 'opsx-dash',
+    example: '/opsx-propose',
+    source: '.codeassistant/commands/opsx-propose.md',
+    commands: {
+      form: 'opsx-dash',
+      items: [
+        { workflowId: 'propose', source: '.codeassistant/commands/opsx-propose.md' },
+        { workflowId: 'verify', source: '.codeassistant/commands/opsx-verify.md' },
+      ],
+    },
+    skills: {
+      form: 'skill-prompt',
+      items: [{
+        skillName: 'openspec-apply-change',
+        source: '.codeassistant/skills/openspec-apply-change/SKILL.md',
+      }],
+    },
+  }]);
+});
+
+test('detects SourceCraft skill-only repositories and ignores empty directories', async () => {
+  const root = await makeProjectRoot();
+  await mkdir(join(root, '.codeassistant/commands'), { recursive: true });
+  await write(root, '.codeassistant/skills/openspec-apply-change/SKILL.md', '# openspec-apply-change');
+
+  const integrations = await detectToolIntegrations(root);
+  assert.deepEqual(integrations, [{
+    tool: 'SourceCraft Code Assistant for VS Code',
+    delivery: 'skills',
+    form: 'skill-prompt',
+    example: 'use the openspec-apply-change skill',
+    source: '.codeassistant/skills/openspec-apply-change/SKILL.md',
+    commands: null,
+    skills: {
+      form: 'skill-prompt',
+      items: [{
+        skillName: 'openspec-apply-change',
+        source: '.codeassistant/skills/openspec-apply-change/SKILL.md',
+      }],
+    },
+  }]);
+
+  const emptyRoot = await makeProjectRoot();
+  await mkdir(join(emptyRoot, '.codeassistant/commands'), { recursive: true });
+  await mkdir(join(emptyRoot, '.codeassistant/skills/openspec-propose'), { recursive: true });
+  assert.deepEqual(await detectToolIntegrations(emptyRoot), []);
+});
+
 test('detects prompts and workflows directory variants with the dash form', async () => {
   const root = await makeProjectRoot();
   await write(root, '.github/prompts/opsx-propose.md');
@@ -579,6 +637,7 @@ test('getSupportedToolOptions prefers the first command form per tool', () => {
   assert.equal(byTool.get('Claude Code'), 'opsx-colon');
   assert.equal(byTool.get('Cursor'), 'opsx-dash');
   assert.equal(byTool.get('Amazon Q Developer'), 'opsx-at');
+  assert.equal(byTool.get('SourceCraft Code Assistant for VS Code'), 'opsx-dash');
   // Skill-only tools use their skill form.
   assert.equal(byTool.get('ForgeCode'), 'skill-slash');
   assert.equal(byTool.get('Kimi Code'), 'skill-colon');
@@ -649,6 +708,7 @@ test('getSupportedToolOptions catalog includes representative official tools', (
     'Hermes Agent',
     'Mistral Vibe',
     'Kimi Code',
+    'SourceCraft Code Assistant for VS Code',
     'Shared .agents',
     'Codex',
   ]) {

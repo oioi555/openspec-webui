@@ -19,17 +19,17 @@ const cloneResearch = (): SharedAgentsResearchDataset => structuredClone(SHARED_
 test('external datasets project the current public reference without semantic changes', () => {
   assert.equal(OFFICIAL_TOOL_DATASET.schemaVersion, 1);
   assert.equal(SHARED_AGENTS_RESEARCH_DATASET.schemaVersion, 1);
-  assert.equal(OPEN_SPEC_TOOL_DEFINITIONS.length, 39);
-  assert.equal(SHARED_SKILLS_COMPATIBILITY.length, 32);
+  assert.equal(OPEN_SPEC_TOOL_DEFINITIONS.length, 40);
+  assert.equal(SHARED_SKILLS_COMPATIBILITY.length, 33);
   assert.equal(SHARED_AGENTS_RESEARCH_DATASET.source.url, 'https://github.com/vercel-labs/skills');
   assert.deepEqual(
     projectToolCompatibilityReference(OFFICIAL_TOOL_DATASET, SHARED_AGENTS_RESEARCH_DATASET),
     {
       officialDefinitions: OPEN_SPEC_TOOL_DEFINITIONS,
       officialSource: {
-        version: 'v1.11.0',
-        url: 'https://github.com/Fission-AI/OpenSpec/blob/v1.11.0/docs/supported-tools.md',
-        verifiedAt: '2026-08-28',
+        version: 'v1.12.0',
+        url: 'https://github.com/Fission-AI/OpenSpec/blob/v1.12.0/docs/supported-tools.md',
+        verifiedAt: '2026-09-05',
       },
       sharedSource: SHARED_AGENTS_RESEARCH_DATASET.source,
       sharedCompatibility: SHARED_SKILLS_COMPATIBILITY,
