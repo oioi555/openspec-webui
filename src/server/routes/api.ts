@@ -1,5 +1,4 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { execFile } from 'child_process';
 import type { OpenSpecData } from '../../parser/index.js';
 import { parseSpec, parseChangeByName, searchOpenSpec } from '../../parser/index.js';
 import {
@@ -10,6 +9,7 @@ import {
   inspectCommandAvailability,
   type CommandAvailability,
 } from '../openspec-config.js';
+import { execOpenSpec } from '../openspec-cli.js';
 import { getSupportedToolOptions } from '../tool-integration-detection.js';
 import { TOOL_COMPATIBILITY_REFERENCE } from '../tool-compatibility-reference.js';
 import {
@@ -557,8 +557,7 @@ function execValidate(
   args: string[] = ['validate', '--all', '--strict', '--json']
 ): Promise<{ stdout: string; stderr: string; exitCode: number | null }> {
   return new Promise((resolve) => {
-    execFile(
-      'openspec',
+    execOpenSpec(
       args,
       { cwd: projectRoot, timeout: 120_000 },
       (error, stdout, stderr) => {

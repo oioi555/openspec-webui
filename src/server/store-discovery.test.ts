@@ -170,6 +170,7 @@ test('store discovery module structurally uses no filesystem writes or registry 
     'node:child_process',
     'node:os',
     'node:path',
+    './openspec-cli.js',
     '../shared/types.js',
   ]);
   for (const imported of imports) {

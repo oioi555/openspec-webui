@@ -1,6 +1,8 @@
 import { execFile } from 'node:child_process';
 import { homedir } from 'node:os';
 import { resolve } from 'node:path';
+
+import { execOpenSpecFile } from './openspec-cli.js';
 import type {
   StoreDiscoveryDiagnostic,
   StoreDiscoveryResult,
@@ -112,7 +114,7 @@ export function createStoreDiscoveryService(
   options: CreateStoreDiscoveryOptions = {}
 ): StoreDiscoveryService {
   const deps: StoreListDependencies = {
-    exec: options.deps?.exec ?? execFile,
+    exec: options.deps?.exec ?? (execOpenSpecFile as typeof execFile),
     getHomeDir: options.deps?.getHomeDir ?? homedir,
     now: options.deps?.now ?? (() => new Date()),
   };

@@ -1,6 +1,6 @@
-import { execFile } from 'node:child_process';
 import { createRequire } from 'node:module';
 
+import { execOpenSpec } from './openspec-cli.js';
 import { compareVersions, normalizeVersion } from './version-compare.js';
 
 const require = createRequire(import.meta.url);
@@ -149,7 +149,7 @@ async function fetchLatestPackageVersion(packageName: string): Promise<string> {
 
 async function readOpenSpecVersion(): Promise<string> {
   return new Promise((resolve, reject) => {
-    execFile('openspec', ['--version'], { timeout: LOOKUP_TIMEOUT_MS }, (error, stdout) => {
+    execOpenSpec(['--version'], { timeout: LOOKUP_TIMEOUT_MS }, (error, stdout) => {
       if (error) {
         reject(error);
         return;

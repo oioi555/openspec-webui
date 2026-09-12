@@ -1,4 +1,4 @@
-import { execFile } from 'child_process';
+import { execOpenSpec } from './openspec-cli.js';
 import {
   detectToolIntegrations,
   deriveDistinctForms,
@@ -62,7 +62,7 @@ function isExpandedWorkflowCommand(value: string): value is ExpandedWorkflowComm
 
 function readOpenSpecConfigValue(cwd: string, key: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    execFile('openspec', ['config', 'get', key], { cwd }, (error, stdout) => {
+    execOpenSpec(['config', 'get', key], { cwd }, (error, stdout) => {
       if (error) {
         reject(error);
         return;

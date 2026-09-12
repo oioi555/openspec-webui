@@ -14,6 +14,7 @@ const testFiles = [
   'src/server/version-compare.test.ts',
   'src/server/skill-scanner.test.ts',
   'src/server/project-version-status.test.ts',
+  'src/server/openspec-cli.test.ts',
   'src/server/store-discovery.test.ts',
   'src/server/routes/api.test.ts',
   'src/server/openspec-config.test.ts',
