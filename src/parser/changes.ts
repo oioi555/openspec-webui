@@ -1,6 +1,7 @@
 import { readdir, readFile, stat } from 'fs/promises';
 import { join } from 'path';
 import type { Change, ChangeFile, FileGroup, OtherFile, SpecDelta, DeltaOperation, ParseResult } from '../shared/types.js';
+import { discoverCapabilitySpecs } from './capability-walk.js';
 import { parseTasks } from './tasks.js';
 
 const STANDARD_CHANGE_FILES = new Set(['proposal.md', 'design.md', 'tasks.md']);
@@ -423,28 +424,27 @@ async function parseSpecDeltas(specsPath: string): Promise<{ data: SpecDelta[]; 
   const deltas: SpecDelta[] = [];
 
   try {
-    const entries = await readdir(specsPath, { withFileTypes: true });
+    const locations = await discoverCapabilitySpecs(specsPath);
 
-    for (const entry of entries) {
-      if (entry.isDirectory()) {
-        const specPath = join(specsPath, entry.name, 'spec.md');
-        try {
-          const content = await readFile(specPath, 'utf-8');
-          const operations = parseDeltaOperations(content);
+    for (const location of locations) {
+      try {
+        const content = await readFile(location.specPath, 'utf-8');
+        const operations = parseDeltaOperations(content);
 
-          deltas.push({
-            capability: entry.name,
-            content,
-            operations,
-          });
-        } catch (error) {
-          if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-            errors.push(`Failed to read spec delta for ${entry.name}`);
-          }
+        deltas.push({
+          capability: location.name,
+          content,
+          operations,
+        });
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+          errors.push(`Failed to read spec delta for ${location.name}`);
         }
       }
     }
-  } catch (error) {
+
+    deltas.sort((a, b) => a.capability.localeCompare(b.capability));
+  } catch {
     // specs/ subdirectory is optional
   }
 

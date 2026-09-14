@@ -54,6 +54,18 @@ async function setFileMtime(path: string, iso: string) {
   await utimes(path, date, date);
 }
 
+async function writeSpecDelta(
+  changePath: string,
+  capabilityPath: string,
+  content = '## MODIFIED Requirements\n\n### Requirement: Example\n',
+): Promise<string> {
+  const specDeltaDir = join(changePath, 'specs', ...capabilityPath.split('/'));
+  await mkdir(specDeltaDir, { recursive: true });
+  const specPath = join(specDeltaDir, 'spec.md');
+  await writeFile(specPath, content);
+  return specPath;
+}
+
 test('parseChangeByName uses the newest root change file for lastModified', async () => {
   const fixture = await createChangeFixture('root-mtime-change');
 
@@ -175,4 +187,77 @@ test('other file count excludes standard artifacts and spec delta docs', async (
     ['.openspec.yaml', 'revisions.json'],
   );
   assert.equal(result.data!.otherFileCount, 1);
+});
+
+test('parseChangeByName discovers nested spec deltas with relative capability identity', async () => {
+  const fixture = await createChangeFixture('nested-delta-change');
+  await writeSpecDelta(fixture.changePath, 'network/auth');
+
+  const result = await parseChangeByName(fixture.root, 'nested-delta-change');
+
+  assert.equal(result.errors.length, 0);
+  assert.deepEqual(
+    (result.data?.specDeltas ?? []).map((delta) => delta.capability),
+    ['network/auth'],
+  );
+});
+
+test('parseChangeByName mixes top-level and nested spec deltas, skips empty parents, and sorts by capability', async () => {
+  const fixture = await createChangeFixture('mixed-delta-change');
+  await writeSpecDelta(fixture.changePath, 'network/auth');
+  await writeSpecDelta(fixture.changePath, 'explorer-pane');
+
+  const result = await parseChangeByName(fixture.root, 'mixed-delta-change');
+
+  assert.equal(result.errors.length, 0);
+  assert.deepEqual(
+    (result.data?.specDeltas ?? []).map((delta) => delta.capability),
+    ['explorer-pane', 'network/auth'],
+  );
+});
+
+test('parseChangeByName omits deleted retired spec delta files without error', async () => {
+  const fixture = await createChangeFixture('retired-delta-change');
+  await writeSpecDelta(fixture.changePath, 'explorer-pane');
+  const retiredPath = await writeSpecDelta(fixture.changePath, 'retired');
+  await rm(retiredPath, { force: true });
+
+  const result = await parseChangeByName(fixture.root, 'retired-delta-change');
+
+  assert.equal(result.errors.length, 0);
+  assert.deepEqual(
+    (result.data?.specDeltas ?? []).map((delta) => delta.capability),
+    ['explorer-pane'],
+  );
+});
+
+test('parseChangeByName keeps nested spec deltas out of file groups and Other Files', async () => {
+  const fixture = await createRichChangeFixture('nested-delta-other');
+  const notesPath = join(fixture.changePath, 'notes.md');
+  await writeFile(notesPath, '# Work Notes\n');
+  const nestedDeltaPath = await writeSpecDelta(fixture.changePath, 'network/auth');
+
+  await setFileMtime(join(fixture.changePath, 'proposal.md'), '2026-04-10T08:00:00.000Z');
+  await setFileMtime(join(fixture.changePath, 'tasks.md'), '2026-04-11T09:30:00.000Z');
+  await setFileMtime(join(fixture.changePath, 'design.md'), '2026-04-11T10:00:00.000Z');
+  await setFileMtime(notesPath, '2026-04-11T11:00:00.000Z');
+  await setFileMtime(nestedDeltaPath, '2026-04-12T07:45:00.000Z');
+
+  const result = await parseChangeByName(fixture.root, 'nested-delta-other');
+
+  assert.equal(result.errors.length, 0);
+  assert.ok(result.data);
+  assert.deepEqual(
+    result.data.specDeltas.map((delta) => delta.capability),
+    ['network/auth'],
+  );
+  assert.deepEqual(
+    result.data.files.map((file) => file.path).sort(),
+    ['design.md', 'proposal.md', 'tasks.md'],
+  );
+  assert.deepEqual(
+    result.data.otherFiles.map((file) => file.path).sort(),
+    ['notes.md'],
+  );
+  assert.equal(result.data.lastModified, '2026-04-12T07:45:00.000Z');
 });

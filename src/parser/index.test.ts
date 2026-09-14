@@ -68,6 +68,11 @@ function createOpenSpecData(): OpenSpecData {
               content: '## MODIFIED Requirements\n\nThe delta search hit should expand automatically.',
               operations: [],
             },
+            {
+              capability: 'network/auth',
+              content: '## ADDED Requirements\n\nUnique nested delta identity routing phrase for network/auth.',
+              operations: [],
+            },
           ],
           lastModified: null,
           files: [
@@ -292,11 +297,11 @@ test('searchOpenSpec returns a nested spec for path metadata matches', () => {
 
 test('searchOpenSpec returns a nested spec for name metadata matches', () => {
   const results = searchOpenSpec(createOpenSpecData(), 'network/auth');
+  const specResults = results.filter((result) => result.type === 'spec');
 
-  assert.equal(results.length, 1);
-  assert.equal(results[0]?.type, 'spec');
-  assert.equal(results[0]?.name, 'network/auth');
-  assert.equal(results[0]?.matchSource, 'name');
+  assert.equal(specResults.length, 1);
+  assert.equal(specResults[0]?.name, 'network/auth');
+  assert.equal(specResults[0]?.matchSource, 'name');
 });
 
 test('searchOpenSpec does not duplicate a nested spec matching both body and metadata', () => {
@@ -307,4 +312,37 @@ test('searchOpenSpec does not duplicate a nested spec matching both body and met
   const nestedResults = results.filter((result) => result.name === 'network/auth');
   assert.equal(nestedResults.length, 1);
   assert.equal(nestedResults[0]?.matchSource, 'content');
+});
+
+test('searchOpenSpec returns a nested change spec delta for body content matches', () => {
+  const results = searchOpenSpec(createOpenSpecData(), 'nested delta identity routing phrase');
+
+  assert.equal(results.length, 1);
+  assert.equal(results[0]?.type, 'change');
+  assert.equal(results[0]?.name, 'active-search');
+  assert.equal(results[0]?.matchSource, 'content');
+  assert.deepEqual(results[0]?.matchLocation, { specDeltaCapability: 'network/auth' });
+});
+
+test('searchOpenSpec returns a nested change spec delta for path metadata matches', () => {
+  const results = searchOpenSpec(
+    createOpenSpecData(),
+    'openspec/changes/active-search/specs/network/auth/spec.md',
+  );
+
+  assert.equal(results.length, 1);
+  assert.equal(results[0]?.type, 'change');
+  assert.equal(results[0]?.name, 'active-search');
+  assert.equal(results[0]?.matchSource, 'path');
+  assert.equal(results[0]?.excerpt, 'openspec/changes/active-search/specs/network/auth/spec.md');
+});
+
+test('searchOpenSpec does not duplicate a nested change spec delta matching both body and metadata', () => {
+  const results = searchOpenSpec(createOpenSpecData(), 'network/auth');
+  const changeResults = results.filter((result) => result.type === 'change');
+
+  assert.equal(changeResults.length, 1);
+  assert.equal(changeResults[0]?.name, 'active-search');
+  assert.equal(changeResults[0]?.matchSource, 'content');
+  assert.deepEqual(changeResults[0]?.matchLocation, { specDeltaCapability: 'network/auth' });
 });
