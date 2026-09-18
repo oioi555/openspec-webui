@@ -1,6 +1,14 @@
 import type { Task, TaskProgress } from '../shared/types.js';
 
 /**
+ * OpenSpec v1.13.1 task-line pattern with a leading-indent capture for nesting.
+ * List markers: `-` `*` `+` or ordered `1.` / `1)` (up to nine digits).
+ * Only `x`/`X` is done; empty descriptions are allowed; link bullets are rejected.
+ */
+const TASK_LINE_PATTERN =
+  /^(\s*)(?:[-*+]|\d{1,9}[.)])\s*\[(?:\s*([^\]\s]?)\s*\](?![([])|\s+\])\s*(.*)/;
+
+/**
  * Parse markdown task checkboxes from content
  * Handles nested tasks via indentation
  */
@@ -9,15 +17,13 @@ export function parseTasks(content: string): { tasks: Task[]; progress: TaskProg
   const taskStack: { task: Task; indent: number }[] = [];
   const rootTasks: Task[] = [];
 
-  const taskRegex = /^(\s*)-\s*\[([ xX])\]\s*(.+)$/;
-
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    const match = line.match(taskRegex);
+    const match = line.match(TASK_LINE_PATTERN);
 
     if (match) {
       const indent = match[1].length;
-      const completed = match[2].toLowerCase() === 'x';
+      const completed = (match[2] ?? '').toLowerCase() === 'x';
       const text = match[3].trim();
 
       const task: Task = {

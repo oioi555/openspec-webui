@@ -1,8 +1,5 @@
-# task-tracking Specification
+## MODIFIED Requirements
 
-## Purpose
-Define how tasks.md checkbox hierarchies are parsed to calculate progress for individual changes and the workspace as a whole.
-## Requirements
 ### Requirement: Parse markdown checkbox tasks
 The system SHALL parse markdown checklist items that match OpenSpec's v1.13.1 task-line rule: a CommonMark list marker (`-`, `*`, `+`, or an ordered marker of up to nine digits followed by `.` or `)`), then a checkbox whose marker is at most one non-whitespace token, then optional description text. The system SHALL treat only a marker whose trimmed value is `x` or `X` as completed; empty `[]`, whitespace-only `[ ]`, and unrecognized tokens such as `[~]` SHALL count as incomplete, while padded forms such as `[ x]` SHALL count as completed. The system SHALL ignore lines whose closing checkbox bracket is immediately followed by `(` or `[`, except when the checkbox is whitespace-only. The system SHALL allow empty descriptions. The system SHALL build nested task trees from leading indentation, SHALL retain the source line number for each parsed task, and SHALL ignore non-checkbox content.
 

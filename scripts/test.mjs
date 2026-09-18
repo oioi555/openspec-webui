@@ -6,6 +6,7 @@ import { ensureLocalBins, spawnInRepo, waitForExit } from './dev-utils.mjs';
 const testFiles = [
   'src/parser/changes.test.ts',
   'src/parser/index.test.ts',
+  'src/parser/tasks.test.ts',
   'src/parser/project.test.ts',
   'src/parser/specs.test.ts',
   'src/server/project-registry.test.ts',
