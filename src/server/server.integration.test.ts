@@ -1758,7 +1758,7 @@ test('GET /api/tool-reference returns static reference data without an active pr
   try {
     const result = await apiJson(runtime.baseUrl, '/api/tool-reference');
     assert.equal(result.response.status, 200);
-    assert.equal(result.body.officialSource.version, 'v1.12.0');
+    assert.equal(result.body.officialSource.version, 'v1.13.1');
     assert.equal(result.body.officialDefinitions.length, 40);
     assert.ok(result.body.sharedCompatibility.some((record: { clientId: string }) => record.clientId === 'grok-build'));
   } finally {

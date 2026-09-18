@@ -29,6 +29,10 @@ export function canonicalJson(value) {
   return JSON.stringify(stableValue(value));
 }
 
+export function prettyJson(value) {
+  return `${JSON.stringify(stableValue(value), null, 2)}\n`;
+}
+
 export function sha256(value) {
   return createHash('sha256').update(typeof value === 'string' ? value : canonicalJson(value)).digest('hex');
 }
@@ -208,9 +212,9 @@ export async function writeDatasetsAtomically({ officialPath, researchPath, offi
   validateResearchDataset(research, official);
   await mkdir(dirname(officialPath), { recursive: true });
   await mkdir(dirname(researchPath), { recursive: true });
-  await writeFile(officialPath, canonicalJson(official) + '\n');
+  await writeFile(officialPath, prettyJson(official));
   if (failAfterOfficial) throw new Error('Injected failure after official write');
-  await writeFile(researchPath, canonicalJson(research) + '\n');
+  await writeFile(researchPath, prettyJson(research));
 }
 
 export async function runCli(args) {

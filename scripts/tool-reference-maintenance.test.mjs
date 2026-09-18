@@ -13,6 +13,7 @@ import {
 import {
   analyzeToolReferenceUpdate,
   canonicalJson,
+  prettyJson,
   runCli,
 } from './update-tool-reference.mjs';
 
@@ -48,6 +49,12 @@ function input(overrides = {}) {
     ...overrides,
   };
 }
+
+test('prettyJson uses 2-space indent while canonicalJson stays compact for hashing', () => {
+  const sample = { b: 1, a: { z: 2, y: 3 } };
+  assert.equal(canonicalJson(sample), '{"a":{"y":3,"z":2},"b":1}');
+  assert.equal(prettyJson(sample), '{\n  "a": {\n    "y": 3,\n    "z": 2\n  },\n  "b": 1\n}\n');
+});
 
 test('unchanged release analysis is deterministic and does not queue age-based work', () => {
   const first = analyzeToolReferenceUpdate(input(), OFFICIAL_TOOL_DATASET, SHARED_AGENTS_RESEARCH_DATASET);
@@ -218,11 +225,15 @@ test('default analysis does not write and explicit writes require the reviewed h
       /Reviewed input hash does not match/
     );
     await runCli(['--input', inputPath, '--official-path', officialPath, '--research-path', researchPath, '--write', '--review-hash', analysis.reviewHash]);
-    const writtenOfficial = JSON.parse(await readFile(officialPath, 'utf8'));
-    const writtenResearch = JSON.parse(await readFile(researchPath, 'utf8'));
+    const officialText = await readFile(officialPath, 'utf8');
+    const researchText = await readFile(researchPath, 'utf8');
+    const writtenOfficial = JSON.parse(officialText);
+    const writtenResearch = JSON.parse(researchText);
     validateOfficialToolDataset(writtenOfficial);
     validateResearchDataset(writtenResearch, writtenOfficial);
     assert.ok(writtenResearch.clients.some(c => c.id === 'write-agent'));
+    assert.equal(officialText, prettyJson(writtenOfficial));
+    assert.equal(researchText, prettyJson(writtenResearch));
   } finally {
     await rm(root, { recursive: true, force: true });
   }

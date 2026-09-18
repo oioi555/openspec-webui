@@ -12,8 +12,8 @@ function cloneReference(): ToolCompatibilityReferenceResponse {
   return structuredClone(TOOL_COMPATIBILITY_REFERENCE);
 }
 
-test('v1.12.0 official definition snapshot contains every upstream tool row', () => {
-  assert.equal(TOOL_COMPATIBILITY_REFERENCE.officialSource.version, 'v1.12.0');
+test('v1.13.1 official definition snapshot contains every upstream tool row', () => {
+  assert.equal(TOOL_COMPATIBILITY_REFERENCE.officialSource.version, 'v1.13.1');
   assert.equal(OPEN_SPEC_TOOL_DEFINITIONS.length, 40);
   assert.deepEqual(
     OPEN_SPEC_TOOL_DEFINITIONS.map((definition) => definition.id),
