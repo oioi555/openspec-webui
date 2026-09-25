@@ -227,6 +227,15 @@ const TOOL_SIGNATURES: readonly ToolSpec[] = [
         [['.agent/skills', 'skill-slash']],
       ];
     }
+    if (id === 'kilocode') {
+      return [
+        DETECTION_DISPLAY_NAMES[id] ?? definition.name,
+        command
+          ? [command, ['.kilocode/workflows', 'filename', 'opsx-dash']]
+          : [['.kilocode/workflows', 'filename', 'opsx-dash']],
+        skill ? [skill] : [],
+      ];
+    }
     return [
       DETECTION_DISPLAY_NAMES[id] ?? definition.name,
       command ? [command] : [],

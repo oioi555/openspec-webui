@@ -176,6 +176,63 @@ test('detects SourceCraft skill-only repositories and ignores empty directories'
   assert.deepEqual(await detectToolIntegrations(emptyRoot), []);
 });
 
+test('detects current Kilo Code commands and skills with their documented forms', async () => {
+  const root = await makeProjectRoot();
+  await write(root, '.kilo/command/opsx-propose.md');
+  await write(root, '.kilo/command/opsx-verify.md');
+  await write(root, '.kilocode/skills/openspec-apply-change/SKILL.md', '# openspec-apply-change');
+
+  const integrations = await detectToolIntegrations(root);
+  assert.deepEqual(integrations, [{
+    tool: 'Kilo Code',
+    delivery: 'both',
+    form: 'opsx-dash',
+    example: '/opsx-propose',
+    source: '.kilo/command/opsx-propose.md',
+    commands: {
+      form: 'opsx-dash',
+      items: [
+        { workflowId: 'propose', source: '.kilo/command/opsx-propose.md' },
+        { workflowId: 'verify', source: '.kilo/command/opsx-verify.md' },
+      ],
+    },
+    skills: {
+      form: 'skill-slash',
+      items: [{
+        skillName: 'openspec-apply-change',
+        source: '.kilocode/skills/openspec-apply-change/SKILL.md',
+      }],
+    },
+  }]);
+});
+
+test('preserves legacy Kilo Code workflows', async () => {
+  const root = await makeProjectRoot();
+  await write(root, '.kilocode/workflows/opsx-propose.md');
+
+  const kilo = (await detectToolIntegrations(root)).find((integration) => integration.tool === 'Kilo Code');
+  assert.deepEqual(kilo?.commands, {
+    form: 'opsx-dash',
+    items: [{ workflowId: 'propose', source: '.kilocode/workflows/opsx-propose.md' }],
+  });
+});
+
+test('keeps legacy Kilo Code workflows while preferring current duplicate evidence', async () => {
+  const root = await makeProjectRoot();
+  await write(root, '.kilo/command/opsx-propose.md');
+  await write(root, '.kilocode/workflows/opsx-propose.md');
+  await write(root, '.kilocode/workflows/opsx-sync.md');
+
+  const kilo = (await detectToolIntegrations(root)).find((integration) => integration.tool === 'Kilo Code');
+  assert.deepEqual(kilo?.commands, {
+    form: 'opsx-dash',
+    items: [
+      { workflowId: 'propose', source: '.kilo/command/opsx-propose.md' },
+      { workflowId: 'sync', source: '.kilocode/workflows/opsx-sync.md' },
+    ],
+  });
+});
+
 test('detects prompts and workflows directory variants with the dash form', async () => {
   const root = await makeProjectRoot();
   await write(root, '.github/prompts/opsx-propose.md');
