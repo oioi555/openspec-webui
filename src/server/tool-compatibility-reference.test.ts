@@ -12,8 +12,8 @@ function cloneReference(): ToolCompatibilityReferenceResponse {
   return structuredClone(TOOL_COMPATIBILITY_REFERENCE);
 }
 
-test('v1.13.1 official definition snapshot contains every upstream tool row', () => {
-  assert.equal(TOOL_COMPATIBILITY_REFERENCE.officialSource.version, 'v1.13.1');
+test('v1.13.2 official definition snapshot contains every upstream tool row', () => {
+  assert.equal(TOOL_COMPATIBILITY_REFERENCE.officialSource.version, 'v1.13.2');
   assert.equal(OPEN_SPEC_TOOL_DEFINITIONS.length, 40);
   assert.deepEqual(
     OPEN_SPEC_TOOL_DEFINITIONS.map((definition) => definition.id),
@@ -34,6 +34,10 @@ test('v1.13.1 official definition snapshot contains every upstream tool row', ()
   assert.equal(byId.get('antigravity')?.skills?.path, '.agents/skills/openspec-*/SKILL.md');
   assert.equal(byId.get('codeassistant')?.commands?.path, '.codeassistant/commands/opsx-<id>.md');
   assert.equal(byId.get('codeassistant')?.skills?.path, '.codeassistant/skills/openspec-*/SKILL.md');
+  assert.equal(byId.get('kilocode')?.commands?.path, '.kilo/command/opsx-<id>.md');
+  assert.equal(byId.get('kilocode')?.skills?.path, '.kilocode/skills/openspec-*/SKILL.md');
+  assert.equal(byId.get('kilocode')?.commands?.invocation, '/opsx-<id>');
+  assert.equal(byId.get('agents')?.name, 'Shared .agents skills');
   assert.equal(byId.get('codex')?.commands, null);
   assert.equal(byId.get('codex')?.skills?.path, '.agents/skills/openspec-*/SKILL.md');
   assert.equal(byId.get('rovodev')?.commands, null);

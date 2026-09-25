@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "source": {
-    "checkedAt": "2026-09-19",
-    "revision": "634c557bd0470eec37861b46172c3f503d283c1b",
-    "url": "https://github.com/Fission-AI/OpenSpec/blob/v1.13.1/docs/supported-tools.md",
-    "version": "v1.13.1"
+    "checkedAt": "2026-09-26",
+    "revision": "db2309783547a14e150dbcbfc19120e4028446c3",
+    "url": "https://github.com/Fission-AI/OpenSpec/blob/v1.13.2/docs/supported-tools.md",
+    "version": "v1.13.2"
   },
   "tools": [
     {
@@ -262,7 +262,7 @@
     {
       "commands": {
         "invocation": "/opsx-<id>",
-        "path": ".kilocode/workflows/opsx-<id>.md"
+        "path": ".kilo/command/opsx-<id>.md"
       },
       "id": "kilocode",
       "name": "Kilo Code",
