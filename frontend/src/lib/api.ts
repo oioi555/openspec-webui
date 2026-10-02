@@ -266,6 +266,8 @@ function isSharedSkillTarget(value: unknown): value is NonNullable<DetectedInteg
     || value === 'antigravity'
     || value === 'codex'
     || value === 'zed'
+    || value === 'amp'
+    || value === 'gsd'
     || value === 'legacy';
 }
 

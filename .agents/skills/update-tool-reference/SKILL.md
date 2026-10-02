@@ -6,7 +6,7 @@ compatibility: Requires network for official sources, Node.js 20+, and this repo
 
 # Update Tool Reference
 
-Reconcile OpenSpec's tagged documentation with its official GitHub release notes, then join the reviewed definitions with `vercel-labs/skills` candidates.
+Reconcile OpenSpec's tagged documentation with its official GitHub release notes, then join the reviewed definitions with `vercel-labs/skills` candidates. Join on exact client id first, then on the reviewed alias map in `scripts/update-tool-reference.mjs` (`grok-build` → `grok`). Do not invent aliases during a pin.
 
 ## Preconditions
 

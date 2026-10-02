@@ -17,6 +17,17 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const DEFAULT_OFFICIAL_PATH = resolve(repoRoot, 'src/server/data/tool-reference/openspec-tools.json');
 export const DEFAULT_RESEARCH_PATH = resolve(repoRoot, 'src/server/data/tool-reference/shared-agents-research.json');
 
+export const REVIEWED_CLIENT_ALIASES = Object.freeze({
+  'grok-build': 'grok',
+});
+
+export function resolveOpenSpecToolId(clientId, officialIds) {
+  if (officialIds.has(clientId)) return clientId;
+  const alias = REVIEWED_CLIENT_ALIASES[clientId];
+  if (typeof alias === 'string' && officialIds.has(alias)) return alias;
+  return undefined;
+}
+
 function stableValue(value) {
   if (Array.isArray(value)) return value.map(stableValue);
   if (value && typeof value === 'object') {
@@ -160,7 +171,7 @@ export function analyzeToolReferenceUpdate(input, official, previous) {
       const id = String(candidate.id).trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
       if (!id) continue;
       const name = String(candidate.name ?? candidate.id).trim();
-      const openSpecToolId = officialIds.has(id) ? id : undefined;
+      const openSpecToolId = resolveOpenSpecToolId(id, officialIds);
       const prior = previousById.get(id);
       newById.set(id, {
         id,

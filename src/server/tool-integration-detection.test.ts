@@ -388,23 +388,28 @@ test('maps the shared .agents root to a non-committal integration with both form
       sharedSkillTarget: 'legacy',
     },
   ]);
+  assert.equal(integrations.some((integration) => integration.tool === 'Amp'), false);
+  assert.equal(integrations.some((integration) => integration.tool === 'GSD'), false);
 });
 
 test('resolves every valid shared target and trims marker whitespace', async () => {
   const cases = [
-    { marker: ' agents\n', target: 'agents', alternateForms: undefined },
-    { marker: ' antigravity\n', target: 'antigravity', alternateForms: undefined },
-    { marker: '\tcodex  ', target: 'codex', alternateForms: ['skill-dollar'] },
-    { marker: '\nzed\n', target: 'zed', alternateForms: undefined },
+    { marker: ' agents\n', target: 'agents', alternateForms: undefined, tool: AGENTS_SHARED_TOOL },
+    { marker: ' antigravity\n', target: 'antigravity', alternateForms: undefined, tool: 'Antigravity' },
+    { marker: '\tcodex  ', target: 'codex', alternateForms: ['skill-dollar'], tool: AGENTS_SHARED_TOOL },
+    { marker: '\nzed\n', target: 'zed', alternateForms: undefined, tool: AGENTS_SHARED_TOOL },
+    { marker: ' amp\n', target: 'amp', alternateForms: undefined, tool: 'Amp' },
+    { marker: '\ngsd\n', target: 'gsd', alternateForms: undefined, tool: 'GSD' },
   ] as const;
 
-  for (const { marker, target, alternateForms } of cases) {
+  for (const { marker, target, alternateForms, tool } of cases) {
     const root = await makeProjectRoot();
     await write(root, '.agents/skills/openspec-propose/SKILL.md', '# openspec-propose');
     await write(root, '.agents/skills/.openspec-target', marker);
 
     const integration = (await detectToolIntegrations(root))[0];
     assert.equal(integration?.sharedSkillTarget, target);
+    assert.equal(integration?.tool, tool);
     assert.deepEqual(integration?.skills?.alternateForms, alternateForms);
   }
 });
@@ -739,7 +744,7 @@ test('getSupportedToolOptions catalog includes representative official tools', (
     'Lingma',
     'Qoder',
     'Auggie',
-    'Bob Shell',
+    'IBM Bob',
     'Command Code',
     'Cursor',
     'Factory Droid',
@@ -766,11 +771,217 @@ test('getSupportedToolOptions catalog includes representative official tools', (
     'Mistral Vibe',
     'Kimi Code',
     'SourceCraft Code Assistant for VS Code',
+    'AtomCode',
+    'Code Studio',
+    'DeepSeek Harness',
+    'EasyCode',
+    'GigaCode',
+    'Grok Build',
+    'Veai',
+    'Warp',
     'Shared .agents',
     'Codex',
   ]) {
     assert.ok(tools.has(expected), `catalog missing ${expected}`);
   }
+  assert.equal(tools.has('Amp'), false);
+  assert.equal(tools.has('GSD'), false);
+  assert.equal(tools.has('Bob Shell'), false);
+});
+
+test('detects AtomCode filename command evidence', async () => {
+  const root = await makeProjectRoot();
+  await write(root, '.atomcode/commands/opsx-propose.md');
+
+  const atom = (await detectToolIntegrations(root)).find((integration) => integration.tool === 'AtomCode');
+  assert.deepEqual(atom, {
+    tool: 'AtomCode',
+    delivery: 'commands',
+    form: 'opsx-dash',
+    example: '/opsx-propose',
+    source: '.atomcode/commands/opsx-propose.md',
+    commands: {
+      form: 'opsx-dash',
+      items: [{ workflowId: 'propose', source: '.atomcode/commands/opsx-propose.md' }],
+    },
+    skills: null,
+  });
+});
+
+test('preserves both AtomCode command and skill deliveries', async () => {
+  const root = await makeProjectRoot();
+  await write(root, '.atomcode/commands/opsx-propose.md');
+  await write(root, '.atomcode/skills/openspec-propose/SKILL.md', '# openspec-propose');
+
+  const atom = (await detectToolIntegrations(root)).find((integration) => integration.tool === 'AtomCode');
+  assert.equal(atom?.delivery, 'both');
+  assert.deepEqual(atom?.commands, {
+    form: 'opsx-dash',
+    items: [{ workflowId: 'propose', source: '.atomcode/commands/opsx-propose.md' }],
+  });
+  assert.deepEqual(atom?.skills, {
+    form: 'skill-slash',
+    items: [{ skillName: 'openspec-propose', source: '.atomcode/skills/openspec-propose/SKILL.md' }],
+  });
+});
+
+test('detects Code Studio prompt.md command evidence', async () => {
+  const root = await makeProjectRoot();
+  await write(root, '.codestudio/prompts/opsx-propose.prompt.md');
+
+  const studio = (await detectToolIntegrations(root)).find((integration) => integration.tool === 'Code Studio');
+  assert.deepEqual(studio?.commands, {
+    form: 'opsx-dash',
+    items: [{ workflowId: 'propose', source: '.codestudio/prompts/opsx-propose.prompt.md' }],
+  });
+  assert.equal(studio?.example, '/opsx-propose');
+});
+
+test('strips .prompt.md as a single command-file suffix for Copilot and Kiro', async () => {
+  const root = await makeProjectRoot();
+  await write(root, '.github/prompts/opsx-propose.prompt.md');
+  await write(root, '.kiro/prompts/opsx-propose.prompt.md');
+  await write(root, '.cursor/commands/opsx-propose.md');
+
+  const byTool = new Map((await detectToolIntegrations(root)).map((integration) => [integration.tool, integration]));
+  assert.deepEqual(byTool.get('GitHub Copilot')?.commands, {
+    form: 'opsx-dash',
+    items: [{ workflowId: 'propose', source: '.github/prompts/opsx-propose.prompt.md' }],
+  });
+  assert.deepEqual(byTool.get('Kiro')?.commands, {
+    form: 'opsx-dash',
+    items: [{ workflowId: 'propose', source: '.kiro/prompts/opsx-propose.prompt.md' }],
+  });
+  assert.deepEqual(byTool.get('Cursor')?.commands, {
+    form: 'opsx-dash',
+    items: [{ workflowId: 'propose', source: '.cursor/commands/opsx-propose.md' }],
+  });
+});
+
+test('detects EasyCode folder-namespaced TOML commands', async () => {
+  const root = await makeProjectRoot();
+  await write(root, '.easycode/commands/opsx/propose.toml');
+
+  const easycode = (await detectToolIntegrations(root)).find((integration) => integration.tool === 'EasyCode');
+  assert.deepEqual(easycode, {
+    tool: 'EasyCode',
+    delivery: 'commands',
+    form: 'opsx-colon',
+    example: '/opsx:propose',
+    source: '.easycode/commands/opsx/propose.toml',
+    commands: {
+      form: 'opsx-colon',
+      items: [{ workflowId: 'propose', source: '.easycode/commands/opsx/propose.toml' }],
+    },
+    skills: null,
+  });
+});
+
+test('detects GigaCode filename command evidence', async () => {
+  const root = await makeProjectRoot();
+  await write(root, '.gigacode/commands/opsx-propose.md');
+
+  const giga = (await detectToolIntegrations(root)).find((integration) => integration.tool === 'GigaCode');
+  assert.deepEqual(giga?.commands, {
+    form: 'opsx-dash',
+    items: [{ workflowId: 'propose', source: '.gigacode/commands/opsx-propose.md' }],
+  });
+  assert.equal(giga?.example, '/opsx-propose');
+});
+
+test('detects unique-path v1.14.0 skill-only tools', async () => {
+  const cases = [
+    { path: '.dsh/skills/openspec-apply-change/SKILL.md', tool: 'DeepSeek Harness' },
+    { path: '.grok/skills/openspec-apply-change/SKILL.md', tool: 'Grok Build' },
+    { path: '.veai/skills/openspec-apply-change/SKILL.md', tool: 'Veai' },
+    { path: '.warp/skills/openspec-apply-change/SKILL.md', tool: 'Warp' },
+  ] as const;
+
+  for (const { path, tool } of cases) {
+    const root = await makeProjectRoot();
+    await write(root, path, '# openspec-apply-change');
+    const integration = (await detectToolIntegrations(root)).find((candidate) => candidate.tool === tool);
+    assert.deepEqual(integration, {
+      tool,
+      delivery: 'skills',
+      form: 'skill-slash',
+      example: '/openspec-propose',
+      source: path,
+      commands: null,
+      skills: {
+        form: 'skill-slash',
+        items: [{ skillName: 'openspec-apply-change', source: path }],
+      },
+    });
+  }
+});
+
+test('does not detect empty unique-path v1.14.0 directories', async () => {
+  const root = await makeProjectRoot();
+  await mkdir(join(root, '.atomcode/commands'), { recursive: true });
+  await mkdir(join(root, '.warp/skills'), { recursive: true });
+  await mkdir(join(root, '.dsh/skills'), { recursive: true });
+
+  assert.deepEqual(await detectToolIntegrations(root), []);
+});
+
+test('does not treat a bare WARP.md as Warp integration evidence', async () => {
+  const root = await makeProjectRoot();
+  await write(root, 'WARP.md', '# Warp');
+
+  assert.deepEqual(await detectToolIntegrations(root), []);
+});
+
+test('reports IBM Bob using the official catalog name', async () => {
+  const root = await makeProjectRoot();
+  await write(root, '.bob/commands/opsx-propose.md');
+
+  const bob = (await detectToolIntegrations(root)).find((integration) => integration.tool === 'IBM Bob');
+  assert.equal(bob?.tool, 'IBM Bob');
+  assert.deepEqual(bob?.commands, {
+    form: 'opsx-dash',
+    items: [{ workflowId: 'propose', source: '.bob/commands/opsx-propose.md' }],
+  });
+});
+
+test('renames shared skills to Amp when its marker owns the tree', async () => {
+  const root = await makeProjectRoot();
+  await write(root, '.agents/skills/openspec-propose/SKILL.md', '# openspec-propose');
+  await write(root, '.agents/skills/.openspec-target', 'amp');
+
+  assert.deepEqual(await detectToolIntegrations(root), [{
+    tool: 'Amp',
+    delivery: 'skills',
+    form: 'skill-slash',
+    example: '/openspec-propose',
+    source: '.agents/skills/openspec-propose/SKILL.md',
+    commands: null,
+    skills: {
+      form: 'skill-slash',
+      items: [{ skillName: 'openspec-propose', source: '.agents/skills/openspec-propose/SKILL.md' }],
+    },
+    sharedSkillTarget: 'amp',
+  }]);
+});
+
+test('renames shared skills to GSD when its marker owns the tree', async () => {
+  const root = await makeProjectRoot();
+  await write(root, '.agents/skills/openspec-propose/SKILL.md', '# openspec-propose');
+  await write(root, '.agents/skills/.openspec-target', 'gsd');
+
+  assert.deepEqual(await detectToolIntegrations(root), [{
+    tool: 'GSD',
+    delivery: 'skills',
+    form: 'skill-slash',
+    example: '/openspec-propose',
+    source: '.agents/skills/openspec-propose/SKILL.md',
+    commands: null,
+    skills: {
+      form: 'skill-slash',
+      items: [{ skillName: 'openspec-propose', source: '.agents/skills/openspec-propose/SKILL.md' }],
+    },
+    sharedSkillTarget: 'gsd',
+  }]);
 });
 
 // Cleanup temp dirs after all tests.

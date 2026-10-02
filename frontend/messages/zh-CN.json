@@ -124,6 +124,7 @@
   "tool_reference_open_spec_targets": "OpenSpec 目标",
   "tool_reference_shared_path": "共享路径",
   "tool_reference_invocation_style": "调用方式",
+  "tool_reference_shared_installers_intro": "通过这些官方目标中的任意一个安装技能，会写入共享 `.agents/skills`。下方列表中的 `.agents` 客户端即可使用。Codex 无法用 `/` 调用，因此只有调用形式是例外。",
   "tool_reference_shared_disclaimer": "这是非穷尽的调研快照，并非兼容性测试。未列出的工具不代表任何结论，列出的内容也未必由 WebUI 维护者逐一复现。",
   "tool_reference_external_client": "不在 OpenSpec 表中",
   "settings_profile_unknown": "未知",

@@ -38,11 +38,12 @@ test('reference presentation is simplified to sharedSource and responsive rows',
   assert.match(source, /max-w-6xl/);
   assert.match(source, /break-all/);
   assert.match(source, /tool_reference_shared_disclaimer/);
-  assert.match(source, />\/openspec-\*</);
-  assert.match(source, />\$openspec-\*</);
-  assert.match(source, />antigravity</);
-  assert.match(source, /\.agents\/workflows\/opsx-\*\.md/);
-  assert.match(source, /legacy: \.agent\/workflows\/opsx-\*\.md/);
+  assert.match(source, /groupSharedAgentsSkillInstallers\(reference\?\.officialDefinitions/);
+  assert.match(source, /tool_reference_shared_installers_intro/);
+  assert.match(source, /group\.invocation/);
+  assert.match(source, /group\.style === 'slash' \? 'secondary' : 'outline'/);
+  assert.doesNotMatch(source, /\.agents\/workflows\/opsx-\*\.md/);
+  assert.doesNotMatch(source, /legacy: \.agent/);
   assert.doesNotMatch(source, /reportedProjectClients|tool_reference_native_consumers/);
   assert.match(source, /tool_reference_not_defined/);
   assert.match(source, /tool_reference_external_client/);

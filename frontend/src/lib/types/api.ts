@@ -256,7 +256,7 @@ export interface SearchResult {
 }
 
 export type CommandDelivery = 'commands' | 'skills' | 'both' | null;
-export type SharedSkillTarget = 'agents' | 'antigravity' | 'codex' | 'zed' | 'legacy';
+export type SharedSkillTarget = 'agents' | 'antigravity' | 'codex' | 'zed' | 'amp' | 'gsd' | 'legacy';
 
 /** One detected OpenSpec command artifact: the workflow id and its repo-relative source path. */
 export interface CommandInventoryItem {

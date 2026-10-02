@@ -9,6 +9,7 @@
   import {
     filterOfficialToolDefinitions,
     filterSharedSkillsCompatibility,
+    groupSharedAgentsSkillInstallers,
   } from '$lib/toolCompatibilityReference';
   import type {
     OpenSpecToolDeliveryDefinition,
@@ -43,6 +44,9 @@
   );
   let compatibilityRecords = $derived(
     filterSharedSkillsCompatibility(reference?.sharedCompatibility ?? [], query)
+  );
+  let sharedAgentsInstallers = $derived(
+    groupSharedAgentsSkillInstallers(reference?.officialDefinitions ?? [])
   );
 </script>
 
@@ -176,31 +180,28 @@
                 <span class="ml-2">{t(m.tool_reference_shared_updated)} {reference.sharedSource.updatedAt}</span>
               </div>
 
-              <div class="overflow-hidden rounded-lg border border-border bg-card">
-                <div class="hidden grid-cols-[minmax(7rem,0.7fr)_minmax(9rem,1fr)_minmax(8rem,1fr)] gap-3 border-b border-border bg-muted/40 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground md:grid">
-                  <div>{t(m.tool_reference_open_spec_targets)}</div>
-                  <div>{t(m.tool_reference_shared_path)}</div>
-                  <div>{t(m.tool_reference_invocation_style)}</div>
-                </div>
-                <div class="grid gap-2 border-b border-border px-4 py-3 md:grid-cols-[minmax(7rem,0.7fr)_minmax(9rem,1fr)_minmax(8rem,1fr)] md:items-center md:gap-3">
-                  <div class="flex flex-wrap gap-1"><Badge variant="secondary">agents</Badge><Badge variant="secondary">zed</Badge><Badge variant="secondary">antigravity</Badge></div>
-                  <code class="break-all text-sm text-primary">.agents/skills</code>
-                  <code class="text-sm text-foreground">/openspec-*</code>
-                </div>
-                <div class="grid gap-2 border-b border-border px-4 py-3 md:grid-cols-[minmax(7rem,0.7fr)_minmax(9rem,1fr)_minmax(8rem,1fr)] md:items-center md:gap-3">
-                  <div><Badge variant="secondary">antigravity</Badge></div>
-                  <div class="space-y-1">
-                    <code class="block break-all text-sm text-primary">.agents/workflows/opsx-*.md</code>
-                    <code class="block break-all text-xs text-muted-foreground">legacy: .agent/workflows/opsx-*.md · .agent/skills/openspec-*/SKILL.md</code>
+              <p class="text-sm text-muted-foreground">{t(m.tool_reference_shared_installers_intro)}</p>
+
+              {#if sharedAgentsInstallers.length > 0}
+                <div class="overflow-hidden rounded-lg border border-border bg-card">
+                  <div class="hidden grid-cols-[minmax(7rem,0.7fr)_minmax(9rem,1fr)_minmax(8rem,1fr)] gap-3 border-b border-border bg-muted/40 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground md:grid">
+                    <div>{t(m.tool_reference_open_spec_targets)}</div>
+                    <div>{t(m.tool_reference_shared_path)}</div>
+                    <div>{t(m.tool_reference_invocation_style)}</div>
                   </div>
-                  <code class="text-sm text-foreground">/opsx-* · /openspec-*</code>
+                  {#each sharedAgentsInstallers as group, index (group.style)}
+                    <div class="grid gap-2 px-4 py-3 md:grid-cols-[minmax(7rem,0.7fr)_minmax(9rem,1fr)_minmax(8rem,1fr)] md:items-center md:gap-3 {index < sharedAgentsInstallers.length - 1 ? 'border-b border-border' : ''}">
+                      <div class="flex flex-wrap gap-1">
+                        {#each group.ids as id (id)}
+                          <Badge variant={group.style === 'slash' ? 'secondary' : 'outline'}>{id}</Badge>
+                        {/each}
+                      </div>
+                      <code class="break-all text-sm text-primary">{group.path}</code>
+                      <code class="text-sm text-foreground">{group.invocation}</code>
+                    </div>
+                  {/each}
                 </div>
-                <div class="grid gap-2 px-4 py-3 md:grid-cols-[minmax(7rem,0.7fr)_minmax(9rem,1fr)_minmax(8rem,1fr)] md:items-center md:gap-3">
-                  <div><Badge variant="outline">codex</Badge></div>
-                  <code class="break-all text-sm text-primary">.agents/skills</code>
-                  <code class="text-sm text-foreground">$openspec-*</code>
-                </div>
-              </div>
+              {/if}
 
               {#if compatibilityRecords.length === 0}
                 <p class="py-12 text-center text-sm text-muted-foreground">{t(m.tool_reference_no_results)}</p>

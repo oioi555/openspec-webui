@@ -124,6 +124,7 @@
   "tool_reference_open_spec_targets": "Cibles OpenSpec",
   "tool_reference_shared_path": "Chemin partagé",
   "tool_reference_invocation_style": "Invocation",
+  "tool_reference_shared_installers_intro": "Installer des skills via l'une de ces cibles officielles les écrit dans `.agents/skills`. Les clients `.agents` de la liste ci-dessous peuvent alors les utiliser. Codex ne peut pas les invoquer avec `/`, seule sa forme d'invocation est l'exception.",
   "tool_reference_shared_disclaimer": "Cette recherche n'est pas exhaustive et ne constitue pas un test de compatibilité. Une absence ne permet aucune conclusion et toutes les entrées n'ont pas été reproduites par WebUI.",
   "tool_reference_external_client": "Hors tableau OpenSpec",
   "settings_profile_unknown": "inconnu",

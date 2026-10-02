@@ -317,6 +317,70 @@ test('inspectCommandAvailability exposes Antigravity shared-target metadata and 
   ]);
 });
 
+test('inspectCommandAvailability exposes Amp shared-target metadata with slash-only skills', async () => {
+  const cwd = await makeCwd();
+  await mkdir(join(cwd, '.agents', 'skills', 'openspec-propose'), { recursive: true });
+  await writeFile(
+    join(cwd, '.agents', 'skills', 'openspec-propose', 'SKILL.md'),
+    '# openspec-propose',
+    'utf8'
+  );
+  await writeFile(join(cwd, '.agents', 'skills', '.openspec-target'), 'amp\n', 'utf8');
+
+  const availability = await inspectCommandAvailability(cwd, createReader({}));
+  const amp = availability.integrations.find((integration) => integration.tool === 'Amp');
+
+  assert.equal(amp?.sharedSkillTarget, 'amp');
+  assert.deepEqual(amp?.skills?.alternateForms, undefined);
+  assert.equal(availability.integrations.some((integration) => integration.tool === 'Shared .agents / Codex'), false);
+  assert.deepEqual(availability.forms, ['skill-slash']);
+});
+
+test('inspectCommandAvailability exposes GSD shared-target metadata with slash-only skills', async () => {
+  const cwd = await makeCwd();
+  await mkdir(join(cwd, '.agents', 'skills', 'openspec-propose'), { recursive: true });
+  await writeFile(
+    join(cwd, '.agents', 'skills', 'openspec-propose', 'SKILL.md'),
+    '# openspec-propose',
+    'utf8'
+  );
+  await writeFile(join(cwd, '.agents', 'skills', '.openspec-target'), 'gsd\n', 'utf8');
+
+  const availability = await inspectCommandAvailability(cwd, createReader({}));
+  const gsd = availability.integrations.find((integration) => integration.tool === 'GSD');
+
+  assert.equal(gsd?.sharedSkillTarget, 'gsd');
+  assert.deepEqual(gsd?.skills?.alternateForms, undefined);
+  assert.equal(availability.integrations.some((integration) => integration.tool === 'Shared .agents / Codex'), false);
+  assert.deepEqual(availability.forms, ['skill-slash']);
+});
+
+test('inspectCommandAvailability includes unique-path Warp and EasyCode inventories', async () => {
+  const cwd = await makeCwd();
+  await mkdir(join(cwd, '.warp', 'skills', 'openspec-apply-change'), { recursive: true });
+  await mkdir(join(cwd, '.easycode', 'commands', 'opsx'), { recursive: true });
+  await writeFile(
+    join(cwd, '.warp', 'skills', 'openspec-apply-change', 'SKILL.md'),
+    '# openspec-apply-change',
+    'utf8'
+  );
+  await writeFile(join(cwd, '.easycode', 'commands', 'opsx', 'propose.toml'), '# propose', 'utf8');
+
+  const availability = await inspectCommandAvailability(cwd, createReader({}));
+  const warp = availability.integrations.find((integration) => integration.tool === 'Warp');
+  const easycode = availability.integrations.find((integration) => integration.tool === 'EasyCode');
+
+  assert.deepEqual(warp?.skills?.items, [
+    { skillName: 'openspec-apply-change', source: '.warp/skills/openspec-apply-change/SKILL.md' },
+  ]);
+  assert.deepEqual(easycode?.commands?.items, [
+    { workflowId: 'propose', source: '.easycode/commands/opsx/propose.toml' },
+  ]);
+  assert.equal(easycode?.form, 'opsx-colon');
+  assert.ok(availability.toolOptions.some((option) => option.tool === 'Warp'));
+  assert.ok(availability.toolOptions.some((option) => option.tool === 'EasyCode'));
+});
+
 test('inspectCommandAvailability reports legacy ambiguity for markerless shared skills', async () => {
   const cwd = await makeCwd();
   await mkdir(join(cwd, '.agents', 'skills', 'openspec-propose'), { recursive: true });

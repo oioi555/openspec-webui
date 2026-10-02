@@ -11,6 +11,7 @@ import {
   validateResearchDataset,
 } from '../src/server/tool-compatibility-reference.ts';
 import {
+  REVIEWED_CLIENT_ALIASES,
   analyzeToolReferenceUpdate,
   canonicalJson,
   prettyJson,
@@ -74,6 +75,51 @@ test('Vercel candidate addition is detected as added', () => {
   assert.ok(result.report.researchQueue.includes('new-agent'));
   const candidate = result.proposedResearch.clients.find((client) => client.id === 'new-agent');
   assert.equal(candidate.name, 'New Agent');
+});
+
+test('reviewed alias joins grok-build to official grok and leaves unaliased ids unlinked', () => {
+  assert.equal(REVIEWED_CLIENT_ALIASES['grok-build'], 'grok');
+  const result = analyzeToolReferenceUpdate(input(), OFFICIAL_TOOL_DATASET, SHARED_AGENTS_RESEARCH_DATASET);
+  const grokBuild = result.proposedResearch.clients.find((client) => client.id === 'grok-build');
+  assert.equal(grokBuild?.openSpecToolId, 'grok');
+  const replit = result.proposedResearch.clients.find((client) => client.id === 'replit');
+  assert.equal(replit?.openSpecToolId, undefined);
+});
+
+test('reviewed alias stays unlinked when the official target is missing', () => {
+  const official = clone(OFFICIAL_TOOL_DATASET);
+  official.tools = official.tools.filter((tool) => tool.id !== 'grok');
+  const nextInput = input({
+    openspec: {
+      available: true,
+      url: official.source.url,
+      revision: official.source.revision,
+      dataset: official,
+    },
+  });
+  const result = analyzeToolReferenceUpdate(nextInput, official, SHARED_AGENTS_RESEARCH_DATASET);
+  const grokBuild = result.proposedResearch.clients.find((client) => client.id === 'grok-build');
+  assert.equal(grokBuild?.openSpecToolId, undefined);
+});
+
+test('exact official id wins over a reviewed alias', () => {
+  const official = clone(OFFICIAL_TOOL_DATASET);
+  const grok = official.tools.find((tool) => tool.id === 'grok');
+  official.tools = [
+    ...official.tools,
+    { ...clone(grok), id: 'grok-build', name: 'Grok Build Research Id' },
+  ];
+  const nextInput = input({
+    openspec: {
+      available: true,
+      url: official.source.url,
+      revision: official.source.revision,
+      dataset: official,
+    },
+  });
+  const result = analyzeToolReferenceUpdate(nextInput, official, SHARED_AGENTS_RESEARCH_DATASET);
+  const grokBuild = result.proposedResearch.clients.find((client) => client.id === 'grok-build');
+  assert.equal(grokBuild?.openSpecToolId, 'grok-build');
 });
 
 test('source failure fails closed and cannot produce removals', () => {

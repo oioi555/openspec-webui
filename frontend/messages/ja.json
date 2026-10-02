@@ -124,6 +124,7 @@
   "tool_reference_open_spec_targets": "OpenSpec ターゲット",
   "tool_reference_shared_path": "共有パス",
   "tool_reference_invocation_style": "呼び出し形式",
+  "tool_reference_shared_installers_intro": "これらの公式ターゲットでスキルを入れると、共有 `.agents/skills` にインストールされます。下の一覧の `.agents` 対応クライアントから利用できます。Codex は `/` で呼べないため、呼び出し形式だけ例外です。",
   "tool_reference_shared_disclaimer": "参考情報（非網羅）。未掲載は非対応を意味しません。",
   "tool_reference_external_client": "OpenSpec 表の対象外",
   "settings_profile_unknown": "不明",

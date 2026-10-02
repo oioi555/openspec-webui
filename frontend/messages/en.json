@@ -124,6 +124,7 @@
   "tool_reference_open_spec_targets": "OpenSpec targets",
   "tool_reference_shared_path": "Shared path",
   "tool_reference_invocation_style": "Invocation",
+  "tool_reference_shared_installers_intro": "Installing skills through any of these official targets writes them into shared `.agents/skills`. The `.agents` clients in the list below can then use them. Codex cannot invoke with `/`, so only its invocation form is the exception.",
   "tool_reference_shared_disclaimer": "Reference only (non-exhaustive). Absence does not mean incompatibility.",
   "tool_reference_external_client": "Outside OpenSpec table",
   "settings_profile_unknown": "unknown",

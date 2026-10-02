@@ -76,6 +76,7 @@ const TOOL_REFERENCE_KEYS = [
   'tool_reference_open_spec_targets',
   'tool_reference_shared_path',
   'tool_reference_invocation_style',
+  'tool_reference_shared_installers_intro',
   'tool_reference_shared_disclaimer',
   'tool_reference_external_client',
   'tool_reference_shared_source',

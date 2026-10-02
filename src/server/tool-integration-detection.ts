@@ -27,7 +27,7 @@ export type InvocationFormId = (typeof INVOCATION_FORM_IDS)[number];
 
 export type ToolDelivery = 'commands' | 'skills' | 'both';
 
-export type SharedSkillTarget = 'agents' | 'antigravity' | 'codex' | 'zed' | 'legacy';
+export type SharedSkillTarget = 'agents' | 'antigravity' | 'codex' | 'zed' | 'amp' | 'gsd' | 'legacy';
 
 export interface ToolIntegrationDetectionDependencies {
   readTargetMarker?: (path: string) => Promise<string>;
@@ -129,7 +129,12 @@ async function resolveSharedSkillTarget(
 ): Promise<SharedSkillTarget> {
   try {
     const target = (await readTargetMarker(join(projectRoot, '.agents/skills/.openspec-target'))).trim();
-    return target === 'agents' || target === 'antigravity' || target === 'codex' || target === 'zed'
+    return target === 'agents'
+      || target === 'antigravity'
+      || target === 'codex'
+      || target === 'zed'
+      || target === 'amp'
+      || target === 'gsd'
       ? target
       : 'legacy';
   } catch {
@@ -157,10 +162,10 @@ const DETECTED_TOOL_IDS = [
   'antigravity', 'cline', 'devin', 'kilocode',
   'continue', 'github-copilot', 'kiro', 'pi', 'costrict', 'amazon-q',
   'codeartsagent', 'forgecode', 'hermes', 'vibe', 'kimi', 'codeassistant',
+  'atomcode', 'codestudio', 'dsh', 'easycode', 'gigacode', 'grok', 'veai', 'warp',
 ] as const;
 
 const DETECTION_DISPLAY_NAMES: Partial<Record<(typeof DETECTED_TOOL_IDS)[number], string>> = {
-  bob: 'Bob Shell',
   devin: 'Devin',
 };
 
@@ -293,8 +298,15 @@ function toPosixPath(value: string): string {
   return value.split('\\').join('/');
 }
 
-/** Strip the last extension from a filename (`opsx-propose.md` -> `opsx-propose`). */
+/**
+ * Strip a command-file suffix. Treat `.prompt.md` as a single compound suffix
+ * (`opsx-propose.prompt.md` -> `opsx-propose`) before falling back to the last
+ * extension (`opsx-propose.md` -> `opsx-propose`).
+ */
 function stripExtension(name: string): string {
+  if (name.endsWith('.prompt.md')) {
+    return name.slice(0, -'.prompt.md'.length);
+  }
   const dot = name.lastIndexOf('.');
   return dot > 0 ? name.slice(0, dot) : name;
 }
@@ -500,6 +512,25 @@ export async function detectToolIntegrations(
       shared.sharedSkillTarget = 'antigravity';
       shared.form = mergedSkills.form;
       shared.example = exampleForForm(mergedSkills.form);
+    }
+  }
+
+  for (const [target, name] of [
+    ['amp', 'Amp'],
+    ['gsd', 'GSD'],
+  ] as const) {
+    const shared = integrations.find(
+      (integration) =>
+        integration.tool === AGENTS_SHARED_TOOL && integration.sharedSkillTarget === target
+    );
+    if (!shared) {
+      continue;
+    }
+    shared.tool = name;
+    shared.form = 'skill-slash';
+    shared.example = exampleForForm('skill-slash');
+    if (shared.skills) {
+      shared.skills = { form: 'skill-slash', items: shared.skills.items };
     }
   }
 

@@ -10,9 +10,9 @@ The system SHALL detect OpenSpec-generated tool-specific Commands and Skills art
 
 The system SHALL continue to report detected integrations in Settings as repository-local configuration rather than claiming that an AI tool executable is installed. Repository-local artifact evidence SHALL nevertheless be authoritative for command-shortcut candidate eligibility: a workflow without a matching detected artifact SHALL not receive a candidate.
 
-When matching artifacts exist under `.agents/skills`, detection SHALL read `.agents/skills/.openspec-target` as authoritative shared-tree target metadata only when its trimmed value is `agents`, `codex`, `zed`, or `antigravity`. The `zed` value SHALL identify the tree as Zed-generated evidence, the `agents` value SHALL identify Shared `.agents` evidence, the `codex` value SHALL identify Codex-led evidence, and the `antigravity` value SHALL identify Antigravity-owned skill evidence. An absent, unreadable, or invalid marker SHALL preserve the legacy ambiguity between Shared `.agents` and Codex invocation forms. Marker inspection SHALL NOT be treated as evidence when no matching OpenSpec skill artifact exists and SHALL NOT assert that any corresponding executable is installed.
+When matching artifacts exist under `.agents/skills`, detection SHALL read `.agents/skills/.openspec-target` as authoritative shared-tree target metadata only when its trimmed value is `agents`, `codex`, `zed`, `antigravity`, `amp`, or `gsd`. The `zed` value SHALL identify the tree as Zed-generated evidence, the `agents` value SHALL identify Shared `.agents` evidence, the `codex` value SHALL identify Codex-led evidence, the `antigravity` value SHALL identify Antigravity-owned skill evidence, the `amp` value SHALL identify Amp-owned skill evidence, and the `gsd` value SHALL identify GSD-owned skill evidence. An absent, unreadable, or invalid marker SHALL preserve the legacy ambiguity between Shared `.agents` and Codex invocation forms. Marker inspection SHALL NOT be treated as evidence when no matching OpenSpec skill artifact exists and SHALL NOT assert that any corresponding executable is installed.
 
-Detection SHALL recognize Antigravity command artifacts under the current `.agents/workflows/opsx-<workflow-id>.*` path and SHALL retain read compatibility for OpenSpec artifacts under legacy `.agent/workflows` and `.agent/skills` paths. The presence of the bare shared `.agents` directory or shared skills without an `antigravity` marker SHALL NOT by itself synthesize Antigravity evidence.
+Detection SHALL recognize Antigravity command artifacts under the current `.agents/workflows/opsx-<workflow-id>.*` path and SHALL retain read compatibility for OpenSpec artifacts under legacy `.agent/workflows` and `.agent/skills` paths. The presence of the bare shared `.agents` directory or shared skills without an `antigravity` marker SHALL NOT by itself synthesize Antigravity evidence. Shared skills without an `amp` or `gsd` marker SHALL NOT synthesize Amp or GSD evidence.
 
 #### Scenario: Detect workflow-specific command evidence
 - **WHEN** the active repository contains `.opencode/commands/opsx-apply.md` but no `opsx-sync` command file
@@ -63,6 +63,18 @@ Detection SHALL recognize Antigravity command artifacts under the current `.agen
 - **THEN** detection identifies Antigravity repository integration evidence
 - **AND** associates the skills with the slash invocation form without synthesizing Codex evidence
 
+#### Scenario: Recognize an Amp target marker
+- **WHEN** matching OpenSpec skills exist under `.agents/skills` and `.openspec-target` contains `amp`
+- **THEN** detection identifies Amp repository integration evidence
+- **AND** associates the skills with the slash invocation form without synthesizing Codex evidence
+- **AND** does not report a separate Shared `.agents` / Codex integration for the same tree
+
+#### Scenario: Recognize a GSD target marker
+- **WHEN** matching OpenSpec skills exist under `.agents/skills` and `.openspec-target` contains `gsd`
+- **THEN** detection identifies GSD repository integration evidence
+- **AND** associates the skills with the slash invocation form without synthesizing Codex evidence
+- **AND** does not report a separate Shared `.agents` / Codex integration for the same tree
+
 #### Scenario: Detect current Antigravity workflow evidence
 - **WHEN** the repository contains `.agents/workflows/opsx-apply.md`
 - **THEN** detection reports Antigravity Commands evidence for the `apply` workflow
@@ -81,6 +93,11 @@ Detection SHALL recognize Antigravity command artifacts under the current `.agen
 #### Scenario: Marker without skills is not integration evidence
 - **WHEN** `.agents/skills/.openspec-target` exists but no matching `openspec-*` skill artifact exists
 - **THEN** the system does not report a configured integration from the marker alone
+
+#### Scenario: Markerless shared skills do not claim Amp or GSD
+- **WHEN** matching OpenSpec skills exist under `.agents/skills` and no readable valid marker exists
+- **THEN** detection does not report Amp integration evidence
+- **AND** does not report GSD integration evidence
 
 ### Requirement: Expose workflow-specific integration evidence via the API
 The system SHALL expose repository-local integration evidence through the command availability API for the active project alongside existing availability fields. For each detected tool, the response SHALL make the detected Commands and Skills forms and their workflow-specific artifact identifiers available so the client can resolve candidates without consulting the supported-but-undetected tool catalog. If legacy aggregate integration or form fields are retained for compatibility, candidate selection SHALL NOT use those fields when they lose workflow-level or dual-delivery evidence.
@@ -242,7 +259,7 @@ The system SHALL recognize repository-local OpenSpec artifacts generated for Kil
 - **AND** reports the integration delivery as `both`
 
 ### Requirement: Expose shared skill target metadata via the API
-The command availability API SHALL expose the resolved `.agents/skills` target state as `agents`, `codex`, `zed`, `antigravity`, or legacy ambiguous alongside the existing workflow-specific artifact evidence. The metadata SHALL be additive and SHALL preserve existing integration evidence fields.
+The command availability API SHALL expose the resolved `.agents/skills` target state as `agents`, `codex`, `zed`, `antigravity`, `amp`, `gsd`, or legacy ambiguous alongside the existing workflow-specific artifact evidence. The metadata SHALL be additive and SHALL preserve existing integration evidence fields.
 
 #### Scenario: API returns Zed target metadata
 - **WHEN** the active repository contains matching shared skills and a valid `zed` marker
@@ -254,7 +271,103 @@ The command availability API SHALL expose the resolved `.agents/skills` target s
 - **THEN** command availability reports `antigravity` as the resolved shared skill target
 - **AND** retains the matching workflow-specific skill evidence
 
+#### Scenario: API returns Amp target metadata
+- **WHEN** the active repository contains matching shared skills and a valid `amp` marker
+- **THEN** command availability reports `amp` as the resolved shared skill target
+- **AND** retains the matching workflow-specific skill evidence
+
+#### Scenario: API returns GSD target metadata
+- **WHEN** the active repository contains matching shared skills and a valid `gsd` marker
+- **THEN** command availability reports `gsd` as the resolved shared skill target
+- **AND** retains the matching workflow-specific skill evidence
+
 #### Scenario: API reports legacy ambiguity
 - **WHEN** matching shared skills exist without a valid marker
 - **THEN** command availability reports the target as legacy ambiguous
 - **AND** retains the existing fallback candidate behavior
+
+### Requirement: Recognize unique-path OpenSpec v1.14.0 integration artifacts
+The system SHALL recognize repository-local OpenSpec artifacts generated for AtomCode, Code Studio, DeepSeek Harness, EasyCode, GigaCode, Grok Build, Veai, and Warp. Command files under `.atomcode/commands` and `.gigacode/commands` named `opsx-<workflow-id>.*` SHALL be reported as Commands evidence using the `/opsx-<workflow-id>` invocation form. Command files under `.codestudio/prompts` named `opsx-<workflow-id>.prompt.md` SHALL be reported as Code Studio Commands evidence using the `/opsx-<workflow-id>` invocation form. Command files under `.easycode/commands/opsx` named `<workflow-id>.*` SHALL be reported as EasyCode Commands evidence using the `/opsx:<workflow-id>` invocation form. Skill files under `.atomcode/skills`, `.codestudio/skills`, `.dsh/skills`, `.easycode/skills`, `.gigacode/skills`, `.grok/skills`, `.veai/skills`, and `.warp/skills` in `openspec-*/SKILL.md` directories SHALL be reported as Skills evidence using the `/openspec-*` invocation form. Detection SHALL retain both evidence sets when both deliveries exist, SHALL expose them through command availability, and SHALL NOT report a tool from empty directories, a bare `WARP.md` file, or any other non-OpenSpec marker file.
+
+#### Scenario: Detect AtomCode command evidence
+- **WHEN** the active repository contains `.atomcode/commands/opsx-propose.md`
+- **THEN** detection reports AtomCode Commands evidence for the `propose` workflow
+- **AND** reports `/opsx-propose` as the example invocation
+
+#### Scenario: Detect Code Studio prompt command evidence
+- **WHEN** the active repository contains `.codestudio/prompts/opsx-propose.prompt.md`
+- **THEN** detection reports Code Studio Commands evidence for the `propose` workflow
+- **AND** reports `/opsx-propose` as the example invocation
+- **AND** reports `.codestudio/prompts/opsx-propose.prompt.md` as the source path
+
+#### Scenario: Detect EasyCode TOML command evidence
+- **WHEN** the active repository contains `.easycode/commands/opsx/propose.toml`
+- **THEN** detection reports EasyCode Commands evidence for the `propose` workflow
+- **AND** reports `/opsx:propose` as the example invocation
+
+#### Scenario: Detect GigaCode command evidence
+- **WHEN** the active repository contains `.gigacode/commands/opsx-propose.md`
+- **THEN** detection reports GigaCode Commands evidence for the `propose` workflow
+- **AND** reports `/opsx-propose` as the example invocation
+
+#### Scenario: Detect DeepSeek Harness skill evidence
+- **WHEN** the active repository contains `.dsh/skills/openspec-apply-change/SKILL.md`
+- **THEN** detection reports DeepSeek Harness Skills evidence for the `openspec-apply-change` skill
+- **AND** reports `/openspec-propose` as the representative skill invocation
+
+#### Scenario: Detect Grok Build skill evidence
+- **WHEN** the active repository contains `.grok/skills/openspec-apply-change/SKILL.md`
+- **THEN** detection reports Grok Build Skills evidence for the `openspec-apply-change` skill
+- **AND** reports `/openspec-propose` as the representative skill invocation
+
+#### Scenario: Detect Veai skill evidence
+- **WHEN** the active repository contains `.veai/skills/openspec-apply-change/SKILL.md`
+- **THEN** detection reports Veai Skills evidence for the `openspec-apply-change` skill
+- **AND** reports `/openspec-propose` as the representative skill invocation
+
+#### Scenario: Detect Warp skill evidence
+- **WHEN** the active repository contains `.warp/skills/openspec-apply-change/SKILL.md`
+- **THEN** detection reports Warp Skills evidence for the `openspec-apply-change` skill
+- **AND** reports `/openspec-propose` as the representative skill invocation
+
+#### Scenario: Ignore an empty unique-path integration directory
+- **WHEN** `.atomcode/commands`, `.warp/skills`, or another unique v1.14.0 integration directory exists without matching OpenSpec artifacts
+- **THEN** detection does not report that tool as integration evidence
+
+#### Scenario: Ignore a bare Warp marker file
+- **WHEN** the repository contains `WARP.md` and no matching OpenSpec skill under `.warp/skills`
+- **THEN** detection does not report Warp integration evidence
+
+#### Scenario: Preserve both unique-path deliveries
+- **WHEN** matching AtomCode command and skill artifacts are both present
+- **THEN** detection retains both workflow-specific evidence sets for AtomCode
+- **AND** reports the integration delivery as `both`
+
+#### Scenario: API returns unique-path v1.14.0 evidence
+- **WHEN** the command availability API inspects a repository with matching Warp or EasyCode artifacts
+- **THEN** its integrations include those tools with the matching Commands and Skills inventories
+- **AND** its supported tool options include those tools' preferred invocation forms
+
+### Requirement: Parse compound `.prompt.md` command filenames
+The system SHALL treat `.prompt.md` as a single command-file suffix when deriving a workflow id from an OpenSpec command filename. A file named `opsx-<workflow-id>.prompt.md` SHALL be reported as workflow id `<workflow-id>`. Ordinary last-extension stripping SHALL remain valid for `.md`, `.toml`, and other single-suffix command files.
+
+#### Scenario: Detect GitHub Copilot prompt command files
+- **WHEN** the active repository contains `.github/prompts/opsx-propose.prompt.md`
+- **THEN** detection reports GitHub Copilot Commands evidence for the `propose` workflow
+- **AND** does not treat the workflow id as `propose.prompt`
+
+#### Scenario: Detect Kiro prompt command files
+- **WHEN** the active repository contains `.kiro/prompts/opsx-propose.prompt.md`
+- **THEN** detection reports Kiro Commands evidence for the `propose` workflow
+
+#### Scenario: Preserve single-extension command files
+- **WHEN** the active repository contains `.cursor/commands/opsx-propose.md`
+- **THEN** detection reports Cursor Commands evidence for the `propose` workflow
+
+### Requirement: Surface IBM Bob under the official catalog name
+The system SHALL report IBM Bob repository integration evidence using the official catalog display name `IBM Bob`.
+
+#### Scenario: Detect IBM Bob using the catalog name
+- **WHEN** the active repository contains `.bob/commands/opsx-propose.md`
+- **THEN** detection reports IBM Bob Commands evidence for the `propose` workflow
+- **AND** the detected tool name is `IBM Bob`

@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "source": {
-    "checkedAt": "2026-09-26",
-    "revision": "db2309783547a14e150dbcbfc19120e4028446c3",
-    "url": "https://github.com/Fission-AI/OpenSpec/blob/v1.13.2/docs/supported-tools.md",
-    "version": "v1.13.2"
+    "checkedAt": "2026-10-02",
+    "revision": "94ca9c1eb15d1b49c06c988419b75c3d95f8b2b5",
+    "url": "https://github.com/Fission-AI/OpenSpec/blob/v1.14.0/docs/supported-tools.md",
+    "version": "v1.14.0"
   },
   "tools": [
     {
@@ -20,6 +20,15 @@
       }
     },
     {
+      "commands": null,
+      "id": "amp",
+      "name": "Amp",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".agents/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
       "commands": {
         "invocation": "/opsx-<id>",
         "path": ".agents/workflows/opsx-<id>.md"
@@ -29,6 +38,18 @@
       "skills": {
         "invocation": "/openspec-<skill>",
         "path": ".agents/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": {
+        "invocation": "/opsx-<id>",
+        "path": ".atomcode/commands/opsx-<id>.md"
+      },
+      "id": "atomcode",
+      "name": "AtomCode",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".atomcode/skills/openspec-*/SKILL.md"
       }
     },
     {
@@ -49,7 +70,7 @@
         "path": ".bob/commands/opsx-<id>.md"
       },
       "id": "bob",
-      "name": "IBM Bob Shell",
+      "name": "IBM Bob",
       "skills": {
         "invocation": "/openspec-<skill>",
         "path": ".bob/skills/openspec-*/SKILL.md"
@@ -113,12 +134,33 @@
       }
     },
     {
+      "commands": {
+        "invocation": "/opsx-<id>",
+        "path": ".codestudio/prompts/opsx-<id>.prompt.md"
+      },
+      "id": "codestudio",
+      "name": "Code Studio",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".codestudio/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
       "commands": null,
       "id": "codex",
       "name": "Codex",
       "skills": {
         "invocation": "$openspec-<skill>",
         "path": ".agents/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "dsh",
+      "name": "DeepSeek Harness",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".dsh/skills/openspec-*/SKILL.md"
       }
     },
     {
@@ -192,6 +234,18 @@
     },
     {
       "commands": {
+        "invocation": "/opsx:<id>",
+        "path": ".easycode/commands/opsx/<id>.toml"
+      },
+      "id": "easycode",
+      "name": "EasyCode",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".easycode/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": {
         "invocation": "/opsx-<id>",
         "path": ".factory/commands/opsx-<id>.md"
       },
@@ -224,6 +278,36 @@
       "skills": {
         "invocation": "/openspec-<skill>",
         "path": ".github/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": {
+        "invocation": "/opsx-<id>",
+        "path": ".gigacode/commands/opsx-<id>.md"
+      },
+      "id": "gigacode",
+      "name": "GigaCode",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".gigacode/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "grok",
+      "name": "Grok Build",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".grok/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "gsd",
+      "name": "GSD",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".agents/skills/openspec-*/SKILL.md"
       }
     },
     {
@@ -425,6 +509,24 @@
       "skills": {
         "invocation": "/openspec-<skill>",
         "path": ".trae/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "veai",
+      "name": "Veai",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".veai/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "warp",
+      "name": "Warp",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".warp/skills/openspec-*/SKILL.md"
       }
     },
     {

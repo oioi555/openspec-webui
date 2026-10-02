@@ -3,6 +3,7 @@ import { test } from 'node:test';
 
 import type { ToolCompatibilityReferenceResponse } from '../shared/types.js';
 import {
+  OFFICIAL_TOOL_DATASET,
   OPEN_SPEC_TOOL_DEFINITIONS,
   TOOL_COMPATIBILITY_REFERENCE,
   validateToolCompatibilityReference,
@@ -12,19 +13,23 @@ function cloneReference(): ToolCompatibilityReferenceResponse {
   return structuredClone(TOOL_COMPATIBILITY_REFERENCE);
 }
 
-test('v1.13.2 official definition snapshot contains every upstream tool row', () => {
-  assert.equal(TOOL_COMPATIBILITY_REFERENCE.officialSource.version, 'v1.13.2');
-  assert.equal(OPEN_SPEC_TOOL_DEFINITIONS.length, 40);
+test('v1.14.0 official definition snapshot contains every upstream tool row', () => {
+  assert.equal(TOOL_COMPATIBILITY_REFERENCE.officialSource.version, 'v1.14.0');
+  assert.equal(TOOL_COMPATIBILITY_REFERENCE.officialSource.verifiedAt, '2026-10-02');
+  assert.equal(OFFICIAL_TOOL_DATASET.source.revision, '94ca9c1eb15d1b49c06c988419b75c3d95f8b2b5');
+  assert.equal(OFFICIAL_TOOL_DATASET.source.checkedAt, '2026-10-02');
+  assert.equal(OPEN_SPEC_TOOL_DEFINITIONS.length, 50);
   assert.deepEqual(
     OPEN_SPEC_TOOL_DEFINITIONS.map((definition) => definition.id),
     [
-      'amazon-q', 'antigravity', 'auggie', 'bob', 'claude', 'cline',
-      'command-code', 'codeartsagent', 'codebuddy', 'codex', 'devin',
-      'forgecode', 'continue', 'costrict', 'crush', 'cursor', 'factory',
-      'gemini', 'github-copilot', 'hermes', 'iflow', 'junie', 'kilocode',
-      'kimi', 'kiro', 'lingma', 'minimax-code', 'vibe', 'oh-my-pi',
-      'opencode', 'pi', 'codeassistant', 'qoder', 'qwen', 'rovodev',
-      'roocode', 'trae', 'zed', 'zcode', 'agents',
+      'amazon-q', 'amp', 'antigravity', 'atomcode', 'auggie', 'bob', 'claude',
+      'cline', 'command-code', 'codeartsagent', 'codebuddy', 'codestudio',
+      'codex', 'dsh', 'devin', 'forgecode', 'continue', 'costrict', 'crush',
+      'cursor', 'easycode', 'factory', 'gemini', 'github-copilot', 'gigacode',
+      'grok', 'gsd', 'hermes', 'iflow', 'junie', 'kilocode', 'kimi', 'kiro',
+      'lingma', 'minimax-code', 'vibe', 'oh-my-pi', 'opencode', 'pi',
+      'codeassistant', 'qoder', 'qwen', 'rovodev', 'roocode', 'trae', 'veai',
+      'warp', 'zed', 'zcode', 'agents',
     ]
   );
 
@@ -37,6 +42,15 @@ test('v1.13.2 official definition snapshot contains every upstream tool row', ()
   assert.equal(byId.get('kilocode')?.commands?.path, '.kilo/command/opsx-<id>.md');
   assert.equal(byId.get('kilocode')?.skills?.path, '.kilocode/skills/openspec-*/SKILL.md');
   assert.equal(byId.get('kilocode')?.commands?.invocation, '/opsx-<id>');
+  assert.equal(byId.get('bob')?.name, 'IBM Bob');
+  assert.equal(byId.get('amp')?.skills?.path, '.agents/skills/openspec-*/SKILL.md');
+  assert.equal(byId.get('atomcode')?.commands?.path, '.atomcode/commands/opsx-<id>.md');
+  assert.equal(byId.get('codestudio')?.commands?.path, '.codestudio/prompts/opsx-<id>.prompt.md');
+  assert.equal(byId.get('easycode')?.commands?.invocation, '/opsx:<id>');
+  assert.equal(byId.get('easycode')?.commands?.path, '.easycode/commands/opsx/<id>.toml');
+  assert.equal(byId.get('github-copilot')?.commands?.path, '.github/prompts/opsx-<id>.prompt.md');
+  assert.equal(byId.get('kiro')?.commands?.path, '.kiro/prompts/opsx-<id>.prompt.md');
+  assert.equal(byId.get('warp')?.skills?.path, '.warp/skills/openspec-*/SKILL.md');
   assert.equal(byId.get('agents')?.name, 'Shared .agents skills');
   assert.equal(byId.get('codex')?.commands, null);
   assert.equal(byId.get('codex')?.skills?.path, '.agents/skills/openspec-*/SKILL.md');
@@ -71,7 +85,9 @@ test('shared clients retain OpenSpec linkage and minimal notes', () => {
     // new minimal schema has no accessMode/scopes/evidence — just identity
     assert.equal(typeof record!.name, 'string');
   }
-  assert.equal(byId.get('grok-build')?.openSpecToolId, undefined);
+  assert.equal(byId.get('grok-build')?.openSpecToolId, 'grok');
+  assert.equal(byId.get('amp')?.openSpecToolId, 'amp');
+  assert.equal(byId.get('warp')?.openSpecToolId, 'warp');
   assert.equal(byId.get('hermes')?.note, 'Global shared path requires config (skills.external_dirs)');
   assert.equal(byId.get('forgecode')?.note, 'Global ~/.agents/skills only (project uses .forge/skills)');
   assert.deepEqual(
@@ -80,8 +96,8 @@ test('shared clients retain OpenSpec linkage and minimal notes', () => {
       .map((record) => record.clientId)
       .sort(),
     [
-      'amp', 'antigravity-cli', 'deep-agents', 'dexto', 'firebender',
-      'grok-build', 'loaf', 'promptscript', 'replit', 'warp',
+      'antigravity-cli', 'deep-agents', 'dexto', 'firebender',
+      'loaf', 'promptscript', 'replit',
     ]
   );
   assert.equal(byId.get('qwen')?.openSpecToolId, 'qwen');

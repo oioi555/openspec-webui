@@ -345,7 +345,7 @@ test('shared .agents evidence yields both documented candidate forms', () => {
   ]);
 });
 
-test('shared target metadata selects Zed, agents, Antigravity, Codex-led, and legacy mappings', () => {
+test('shared target metadata selects Zed, agents, Antigravity, Amp, GSD, Codex-led, and legacy mappings', () => {
   const cases = [
     {
       target: 'zed',
@@ -358,6 +358,14 @@ test('shared target metadata selects Zed, agents, Antigravity, Codex-led, and le
     {
       target: 'antigravity',
       expected: [{ key: '/openspec-propose', text: '/openspec-propose', tools: ['Antigravity'] }],
+    },
+    {
+      target: 'amp',
+      expected: [{ key: '/openspec-propose', text: '/openspec-propose', tools: ['Amp'] }],
+    },
+    {
+      target: 'gsd',
+      expected: [{ key: '/openspec-propose', text: '/openspec-propose', tools: ['GSD'] }],
     },
     {
       target: 'codex',

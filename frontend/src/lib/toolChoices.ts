@@ -13,8 +13,9 @@
  *    id, its command form is used.
  * 2. Otherwise the tool's Skills inventory is consulted and the skill form is
  *    used only when it contains the workflow's canonical OpenSpec skill name.
- * 3. Shared `.agents` target metadata selects Zed, Antigravity, or generic
- *    agents slash forms, Codex-led compatible forms, or the legacy fallback.
+ * 3. Shared `.agents` target metadata selects Zed, Antigravity, Amp, GSD, or
+ *    generic agents slash forms, Codex-led compatible forms, or the legacy
+ *    fallback.
  *
  * Effective candidates are grouped by their final command text; each group
  * carries every associated tool name in stable detector order, deduplicated.
@@ -46,8 +47,9 @@ export interface ToolChoice {
 export const AGENTS_TOOL_NAME = 'Shared .agents / Codex';
 
 /**
- * Labels for the shared slash and Codex dollar interpretations. Valid Zed and
- * agents markers override these labels before final-command grouping.
+ * Labels for the shared slash and Codex dollar interpretations. Valid Zed,
+ * agents, Antigravity, Amp, and GSD markers override these labels before
+ * final-command grouping.
  */
 const AGENTS_SPLIT_LABELS: Partial<Record<InvocationFormId, string>> = {
   'skill-slash': 'Shared .agents',
@@ -65,6 +67,12 @@ function toolLabelFor(integration: DetectedIntegration, form: InvocationFormId):
     if (integration.sharedSkillTarget === 'antigravity') {
       return 'Antigravity';
     }
+    if (integration.sharedSkillTarget === 'amp') {
+      return 'Amp';
+    }
+    if (integration.sharedSkillTarget === 'gsd') {
+      return 'GSD';
+    }
     return AGENTS_SPLIT_LABELS[form] ?? integration.tool;
   }
   return integration.tool;
@@ -79,6 +87,8 @@ function skillFormsFor(integration: DetectedIntegration): InvocationFormId[] {
   return integration.sharedSkillTarget === 'zed'
     || integration.sharedSkillTarget === 'agents'
     || integration.sharedSkillTarget === 'antigravity'
+    || integration.sharedSkillTarget === 'amp'
+    || integration.sharedSkillTarget === 'gsd'
     ? ['skill-slash']
     : ['skill-slash', 'skill-dollar'];
 }
