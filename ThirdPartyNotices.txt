@@ -547,8 +547,8 @@ THE SOFTWARE.
 
 The following npm packages may be included in this product:
 
- - fast-uri@3.1.7
- - fast-uri@4.1.4
+ - fast-uri@3.1.8
+ - fast-uri@4.2.1
 
 These packages each contain the following license:
 
@@ -1197,7 +1197,7 @@ SOFTWARE.
 
 The following npm packages may be included in this product:
 
- - @fastify/static@10.1.4
+ - @fastify/static@10.1.5
  - @fastify/websocket@11.3.1
  - fastify-plugin@6.0.0
 
@@ -1672,7 +1672,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 The following npm package may be included in this product:
 
- - brace-expansion@5.0.9
+ - brace-expansion@5.0.12
 
 This package contains the following license:
 
