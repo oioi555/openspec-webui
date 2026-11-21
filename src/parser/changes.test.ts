@@ -261,3 +261,62 @@ test('parseChangeByName keeps nested spec deltas out of file groups and Other Fi
   );
   assert.equal(result.data.lastModified, '2026-04-12T07:45:00.000Z');
 });
+
+// ---------------------------------------------------------------------------
+// Delta header rules (OpenSpec 2.1.1 parity)
+// ---------------------------------------------------------------------------
+async function parseDeltaOps(content: string) {
+  const fixture = await createChangeFixture('delta-headers');
+  await writeSpecDelta(fixture.changePath, 'cap', content);
+  const result = await parseChangeByName(fixture.root, 'delta-headers');
+  assert.ok(result.data);
+  return result.data.specDeltas[0].operations;
+}
+
+test('delta parser accepts a requirement header without a space after ###', async () => {
+  const ops = await parseDeltaOps('## ADDED Requirements\n\n###Requirement: Compact header\nBody\n');
+  assert.deepEqual(ops.map((op) => [op.type, op.name]), [['added', 'Compact header']]);
+});
+
+test('delta parser strips closing hash runs from section and requirement headers', async () => {
+  const ops = await parseDeltaOps('## MODIFIED Requirements ##\n\n### Requirement: Foo ###\nBody\n\n### Requirement: C#\n');
+  assert.deepEqual(ops.map((op) => [op.type, op.name]), [['modified', 'Foo'], ['modified', 'C#']]);
+});
+
+test('delta parser ignores headers inside fenced code blocks', async () => {
+  const content = [
+    '## ADDED Requirements',
+    '',
+    '### Requirement: Outer',
+    '````md',
+    '### Requirement: Example',
+    '```',
+    '## REMOVED Requirements',
+    '````',
+    '~~~',
+    '### Requirement: Tilde',
+    '~~~',
+    'Tail',
+  ].join('\n');
+  const ops = await parseDeltaOps(content);
+  assert.deepEqual(ops.map((op) => [op.type, op.name]), [['added', 'Outer']]);
+  assert.equal(ops[0].content, content.split('\n').slice(2).join('\n'));
+});
+
+test('delta parser lets an unclosed fence swallow the rest of the file', async () => {
+  const ops = await parseDeltaOps('## ADDED Requirements\n\n### Requirement: A\n```\n### Requirement: B\n');
+  assert.deepEqual(ops.map((op) => op.name), ['A']);
+});
+
+test('delta parser treats a backtick opener with a backtick in its info string as inline code', async () => {
+  const ops = await parseDeltaOps('## ADDED Requirements\n\n### Requirement: A\n```npm test```\n\n### Requirement: B\nBody\n');
+  assert.deepEqual(ops.map((op) => op.name), ['A', 'B']);
+});
+
+test('delta parser gives CRLF and BOM files the same operations as LF', async () => {
+  const lf = '## ADDED Requirements\n\n### Requirement: One\nBody\n\n## REMOVED Requirements\n### Requirement: Two\n';
+  const lfOps = await parseDeltaOps(lf);
+  const crlfOps = await parseDeltaOps('﻿' + lf.replace(/\n/g, '\r\n'));
+  assert.deepEqual(crlfOps, lfOps);
+  assert.deepEqual(lfOps.map((op) => [op.type, op.name]), [['added', 'One'], ['removed', 'Two']]);
+});

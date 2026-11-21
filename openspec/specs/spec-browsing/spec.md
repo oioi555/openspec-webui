@@ -2,7 +2,9 @@
 
 ## Purpose
 Expose capability specs through the Explorer Pane and open spec content in the tabbed Main Viewer.
+
 ## Requirements
+
 ### Requirement: Catalog capability specs
 The system SHALL discover capability specs recursively under `specs/`, matching nested `openspec/specs/**/spec.md` files at any depth in addition to top-level `specs/<capability>/spec.md` files, sort them alphabetically by default, and display them in the Explorer Pane's SPECS collapsible section. A directory that directly contains a `spec.md` file SHALL count as a capability; a parent directory that contains only nested directories and no direct `spec.md` SHALL NOT be rendered as a capability. The system SHALL tolerate deleted retired spec files by omitting them from discovery without errors. The operator SHALL be able to switch the SPECS section between `Name` ordering and `Date` ordering from the section header. When `Date` ordering is selected, specs SHALL be sorted by last modification datetime descending. Spec rows SHALL display a compact trailing validation icon only when the latest validation target status for that spec is `failed`, `warning`, or `info`.
 
@@ -139,3 +141,27 @@ The SpecViewer SHALL highlight matching rendered markdown text for the current c
 #### Scenario: Spec renders normally when highlighting is unavailable
 - **WHEN** the current spec does not contain the query in its markdown body or viewer highlighting is disabled
 - **THEN** the SpecViewer renders its markdown content without in-page highlight marks
+
+### Requirement: Parse delta operations with OpenSpec header rules
+When parsing a change spec delta into operations, the system SHALL use the requirement header rules of OpenSpec 2.1:
+- A requirement header SHALL match `###`, optional whitespace, then `Requirement:`.
+- A closing run of `#` characters preceded by a space or tab SHALL be removed from requirement names and SHALL be allowed on delta section headers.
+- Lines inside fenced code blocks SHALL NOT be treated as headers.
+- A leading byte-order mark and CRLF line endings SHALL NOT change the result.
+
+#### Scenario: Header without a space
+- **WHEN** an ADDED section contains `###Requirement: Compact header`
+- **THEN** the operations include an added requirement named `Compact header`
+
+#### Scenario: Closing run of hashes
+- **WHEN** a delta contains `## MODIFIED Requirements ##` followed by `### Requirement: Foo ###`
+- **THEN** the operations include a modified requirement named `Foo`
+
+#### Scenario: Header example in a code fence
+- **WHEN** a requirement body contains a fenced code block with the line `### Requirement: Example`
+- **THEN** no separate requirement named `Example` is produced
+- **AND** the fenced lines stay in the enclosing requirement's content
+
+#### Scenario: CRLF file
+- **WHEN** a delta file uses CRLF line endings
+- **THEN** its operations equal those of the same file with LF line endings

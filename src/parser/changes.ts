@@ -452,20 +452,64 @@ async function parseSpecDeltas(specsPath: string): Promise<{ data: SpecDelta[]; 
 }
 
 /**
- * Parse delta operations (ADDED, MODIFIED, REMOVED, RENAMED) from spec content
+ * Per-line mask marking fenced code block lines (opening and closing fences included).
+ * Mirrors OpenSpec 2.1.1 `dist/core/parsers/code-fence.js` (`buildCodeFenceMask`):
+ * opener `^\s*(`{3,}|~{3,})`, a backtick opener whose info string contains a
+ * backtick is inline code, and a fence closes on the same character with at least
+ * the opening length. An unclosed fence runs to the end of the file.
+ */
+function buildCodeFenceMask(lines: string[]): boolean[] {
+  const mask = new Array<boolean>(lines.length).fill(false);
+  let active: { marker: string; length: number } | null = null;
+  for (let i = 0; i < lines.length; i++) {
+    if (!active) {
+      const open = lines[i].match(/^\s*(`{3,}|~{3,})(.*)/);
+      if (open && !(open[1][0] === '`' && open[2].includes('`'))) {
+        active = { marker: open[1][0], length: open[1].length };
+        mask[i] = true;
+      }
+      continue;
+    }
+    mask[i] = true;
+    const close = lines[i].match(/^\s*(`{3,}|~{3,})\s*$/);
+    if (close && close[1][0] === active.marker && close[1].length >= active.length) {
+      active = null;
+    }
+  }
+  return mask;
+}
+
+/**
+ * Parse delta operations (ADDED, MODIFIED, REMOVED, RENAMED) from spec content.
+ *
+ * Header rules mirror OpenSpec 2.1.1 `dist/core/parsers/requirement-blocks.js`:
+ * - requirement header `/^###\s*Requirement:\s*(.+)\s*$/i`;
+ * - closing run stripped by `stripClosingSequence` (`/[ \t]+#+[ \t]*$/`);
+ * - fenced lines are never headers; BOM and CRLF/CR are normalized first.
+ * The section regex stays deliberately more lenient than upstream (singular
+ * `Requirement` accepted; unanchored, so a closing `##` run is allowed).
  */
 function parseDeltaOperations(content: string): DeltaOperation[] {
   const operations: DeltaOperation[] = [];
-  const lines = content.split('\n');
+  const lines = content.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n').split('\n');
+  const fenceMask = buildCodeFenceMask(lines);
 
   const sectionRegex = /^##\s+(ADDED|MODIFIED|REMOVED|RENAMED)\s+Requirements?/i;
-  const requirementRegex = /^###\s+Requirement:\s*(.+)/i;
+  const requirementRegex = /^###\s*Requirement:\s*(.+)\s*$/i;
 
   let currentSection: 'added' | 'modified' | 'removed' | 'renamed' | null = null;
   let currentRequirement: { name: string; startLine: number; content: string[] } | null = null;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
+
+    // Lines inside fenced code blocks are never headers
+    if (fenceMask[i]) {
+      if (currentRequirement) {
+        currentRequirement.content.push(line);
+      }
+      continue;
+    }
 
     // Check for section headers
     const sectionMatch = line.match(sectionRegex);
@@ -499,7 +543,7 @@ function parseDeltaOperations(content: string): DeltaOperation[] {
         });
       }
       currentRequirement = {
-        name: reqMatch[1].trim(),
+        name: reqMatch[1].replace(/[ \t]+#+[ \t]*$/, '').trim(),
         startLine: i + 1,
         content: [line],
       };
