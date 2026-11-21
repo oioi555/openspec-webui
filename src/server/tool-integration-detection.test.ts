@@ -1220,7 +1220,8 @@ test('detects global Claude skills via ~/.claude fallback and CLAUDE_CONFIG_DIR'
   const outside = await makeHome();
   await write(outside, 'skills/openspec-propose/SKILL.md');
   const external = await detectToolIntegrations(root, { homeDir: home, claudeConfigDir: outside });
-  assert.equal(external[0]?.source, join(outside, 'skills/openspec-propose/SKILL.md'));
+  // Display paths outside home are absolute but always use `/` separators.
+  assert.equal(external[0]?.source, join(outside, 'skills/openspec-propose/SKILL.md').split('\\').join('/'));
 });
 
 test('detects other tool-specific global folders', async () => {

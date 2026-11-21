@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { createStoreDiscoveryService } from './store-discovery.js';
@@ -41,7 +41,7 @@ test('store list invokes only `openspec store list --json` with a stable cwd', a
   assert.equal(typeof captured[0]?.options.timeout, 'number');
 
   assert.equal(result.status, 'stores');
-  assert.deepEqual(result.stores, [{ id: 's1', root: '/store/one' }]);
+  assert.deepEqual(result.stores, [{ id: 's1', root: resolve('/store/one') }]);
   assert.equal(result.reason, null);
   assert.equal(result.checkedAt, '2026-08-10T00:00:00.000Z');
 });
@@ -148,8 +148,8 @@ test('store list ignores unknown fields and normalizes roots', async () => {
   const result = await svc.listStores();
   assert.equal(result.status, 'stores');
   assert.deepEqual(result.stores, [
-    { id: 's1', root: '/store/one' },
-    { id: 's2', root: '/store/two' },
+    { id: 's1', root: resolve('/store/one') },
+    { id: 's2', root: resolve('/store/two') },
   ]);
 });
 
