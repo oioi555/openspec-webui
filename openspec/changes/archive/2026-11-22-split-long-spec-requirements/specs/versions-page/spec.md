@@ -1,0 +1,103 @@
+## MODIFIED Requirements
+
+### Requirement: Collect tool version status at startup
+The system SHALL build a version-status snapshot during server startup holding, for `openspec-webui`, the current package version and latest published npm version, and for OpenSpec CLI, the installed version from `openspec --version` when available and the latest npm version of `@fission-ai/openspec`. Version lookups SHALL NOT block startup completion; a failed lookup SHALL expose an unavailable or unknown state instead of aborting startup.
+
+#### Scenario: Startup snapshot succeeds for both tools
+- **WHEN** the server starts with network access to npm registry
+- **AND** OpenSpec CLI is installed locally
+- **THEN** the version snapshot contains current and latest version values for `openspec-webui`
+- **AND** the version snapshot contains installed and latest version values for OpenSpec CLI
+
+#### Scenario: Startup snapshot tolerates unavailable lookups
+- **WHEN** the server starts and npm registry lookup fails or OpenSpec CLI cannot be executed
+- **THEN** the server still starts normally
+- **AND** the version snapshot marks the affected version fields as unavailable or unknown
+
+### Requirement: Show a Versions page in settings
+The settings dialog SHALL include a `Versions` category showing installed/current version, latest version, and update status for `openspec-webui` and OpenSpec CLI, with representative npm global-install update commands as primary examples, a small copy action per command, and a link to each tool's GitHub releases page. The section header SHALL show the latest version-snapshot check time immediately left of an icon-only manual refresh action.
+
+#### Scenario: View Versions page with snapshot freshness metadata
+- **WHEN** the operator opens Settings and selects `Versions`
+- **AND** the server has already built a version snapshot
+- **THEN** the Versions section header shows when the snapshot was last checked
+- **AND** the header shows an icon-only refresh action to the right of that timestamp
+
+#### Scenario: Trigger a manual version refresh from the header
+- **WHEN** the operator clicks the refresh action in the Versions section header
+- **THEN** the client triggers a fresh server-side version snapshot lookup for both tools
+- **AND** the refresh action becomes disabled while that lookup is in flight
+- **AND** the Versions page updates to reflect the refreshed snapshot when the lookup completes
+
+#### Scenario: View Versions page before any successful check time exists
+- **WHEN** the operator opens Settings and selects `Versions`
+- **AND** the current snapshot has no `checkedAt` value yet
+- **THEN** the Versions section header shows a clear fallback instead of a timestamp
+- **AND** the refresh action remains available unless a lookup is already in progress
+
+#### Scenario: View Versions page when both tools are up to date
+- **WHEN** the operator opens Settings and selects `Versions`
+- **AND** both `openspec-webui` and OpenSpec CLI are on their latest versions
+- **THEN** the page shows the current and latest version values for both tools
+- **AND** the page shows both tools as up to date
+
+#### Scenario: View Versions page when updates are available
+- **WHEN** the operator opens Settings and selects `Versions`
+- **AND** either `openspec-webui` or OpenSpec CLI has a newer latest version than the installed/current version
+- **THEN** the page shows which tool has an update available
+- **AND** the page shows the representative npm update command for that tool
+
+#### Scenario: Copy an update command from the Versions page
+- **WHEN** the operator clicks the copy action next to a displayed update command
+- **THEN** the command text is copied to the clipboard
+
+#### Scenario: Open a tool's releases page from the Versions page
+- **WHEN** the operator clicks the releases link for `openspec-webui` or OpenSpec CLI
+- **THEN** the UI opens that tool's GitHub releases page
+
+#### Scenario: View Versions page when OpenSpec CLI is unavailable
+- **WHEN** the operator opens Settings and selects `Versions`
+- **AND** OpenSpec CLI is not installed or cannot be executed locally
+- **THEN** the page shows that the installed OpenSpec CLI version is unavailable
+- **AND** the page still shows the representative npm install/update command for OpenSpec CLI
+
+### Requirement: Show post-upgrade OpenSpec project guidance
+The Versions page SHALL explain that after upgrading OpenSpec CLI the operator must run `openspec update` in each registered project. For each project root in the project registry, it SHALL show a compact row with the detected generation version, update status (`up-to-date`, `update-available`, or `unknown`), and a copy action for `openspec update <path>`, quoting paths that contain whitespace. Projects with `unknown` status SHALL still be listed and offered as copy targets.
+
+#### Scenario: Manual refresh updates project statuses
+- **WHEN** the operator clicks the refresh control on the Versions page
+- **THEN** the global version status is refreshed first
+- **AND** the per-project statuses are recomputed afterwards against the refreshed CLI baseline
+- **AND** projects registered since the previous computation are included in the recomputed list
+
+#### Scenario: Registered projects exist
+- **WHEN** the operator opens Settings and selects `Versions`
+- **AND** one or more projects are registered in the project registry
+- **THEN** the page explains that `openspec update` must be run after an OpenSpec CLI upgrade
+- **AND** the page renders one compact row per registered project showing that project's generation version, update status, and a copy action
+
+#### Scenario: No registered projects exist
+- **WHEN** the operator opens Settings and selects `Versions`
+- **AND** no projects are registered
+- **THEN** the page still explains that `openspec update` must be run after an OpenSpec CLI upgrade
+- **AND** the page shows no project list
+
+#### Scenario: Copy the post-upgrade project command
+- **WHEN** the operator clicks the copy action on a project row
+- **THEN** `openspec update <path>` is copied to the clipboard for that project
+- **AND** when the path contains whitespace the copied command wraps the path in quotes
+
+#### Scenario: Projects with unknown status remain visible
+- **WHEN** a project's generation version cannot be detected
+- **THEN** the page still renders that project with an `unknown` status
+- **AND** the per-project copy action remains available
+
+#### Scenario: Per-project copy replaces the single update command
+- **WHEN** the post-upgrade guidance is rendered
+- **THEN** the page does not offer the former single `openspec update` command copy
+- **AND** per-project copy actions are offered instead
+
+#### Scenario: Update status is scannable at a glance
+- **WHEN** the operator views the project list on the Versions page
+- **THEN** each project row clearly indicates one of `up-to-date`, `update-available`, or `unknown`
+- **AND** projects that still need an update are identifiable without inspecting each row in detail

@@ -4,8 +4,9 @@
 Defines the Svelte 5 runes patterns used for shared reactive state, derived values, side effects, props, and rune-enabled store modules.
 
 ## Requirements
+
 ### Requirement: Module-level reactive state via runes
-The system SHALL use Svelte 5 `$state` rune for all shared reactive state, declared at module scope in `.svelte.ts` files. All state that was previously a `writable()` store SHALL become a `$state` variable within a factory function. Each store module SHALL expose its state through wrapper objects with `.value` getter/setter properties (created via a `createBox` helper) rather than raw module-level `$state` exports. Components that import these wrapper objects SHALL access reactive state via `.value` and SHALL receive reactive updates automatically.
+The system SHALL use the Svelte 5 `$state` rune, at module scope in `.svelte.ts` files, for all shared reactive state. All state that was previously a `writable()` store SHALL become a `$state` variable within a factory function. Each store module SHALL expose state through `createBox` wrapper objects with `.value` getter/setter properties, not raw module-level `$state` exports. Importing components SHALL read state via `.value` and SHALL receive reactive updates automatically.
 
 #### Scenario: State change propagates to importing component
 - **WHEN** a `$state` variable inside a store wrapper is updated via `.value` setter

@@ -2,13 +2,16 @@
 
 ## Purpose
 Define how tasks.md checkbox hierarchies are parsed to calculate progress for individual changes and the workspace as a whole.
+
 ## Requirements
+
 ### Requirement: Parse markdown checkbox tasks
-The system SHALL parse markdown checklist items that match OpenSpec's v1.13.1 task-line rule: a CommonMark list marker (`-`, `*`, `+`, or an ordered marker of up to nine digits followed by `.` or `)`), then a checkbox whose marker is at most one non-whitespace token, then optional description text. The system SHALL treat only a marker whose trimmed value is `x` or `X` as completed; empty `[]`, whitespace-only `[ ]`, and unrecognized tokens such as `[~]` SHALL count as incomplete, while padded forms such as `[ x]` SHALL count as completed. The system SHALL ignore lines whose closing checkbox bracket is immediately followed by `(` or `[`, except when the checkbox is whitespace-only. The system SHALL allow empty descriptions. The system SHALL build nested task trees from leading indentation, SHALL retain the source line number for each parsed task, and SHALL ignore non-checkbox content.
+The system SHALL parse checklist items matching OpenSpec's v1.13.1 task-line rule: a CommonMark list marker, a checkbox holding at most one non-whitespace token, and optional description text. Only a trimmed marker of `x` or `X` SHALL count as completed. A line whose closing checkbox bracket is directly followed by `(` or `[` SHALL be ignored unless the checkbox is whitespace-only. It SHALL nest tasks by indentation, keep each task's source line number, and ignore non-checkbox content.
 
 #### Scenario: Parse nested tasks from indentation
 - **WHEN** a task list contains indented child checklist items
 - **THEN** the system nests the child items under the nearest less-indented parent task
+- **AND** each parsed task retains its source line number
 
 #### Scenario: Ignore non-task lines
 - **WHEN** the tasks document contains headings, paragraphs, or list items that are not checklist entries
@@ -18,6 +21,10 @@ The system SHALL parse markdown checklist items that match OpenSpec's v1.13.1 ta
 - **WHEN** a tasks document contains checklist items marked with `+`, `*`, `1.`, or `1)`
 - **THEN** the system includes each matching line in the parsed task tree
 - **AND** counts them toward progress totals
+
+#### Scenario: Accept CommonMark list markers
+- **WHEN** a checklist line starts with `-`, `*`, `+`, or an ordered marker of up to nine digits followed by `.` or `)`
+- **THEN** the system accepts the list marker as part of a task line
 
 #### Scenario: Treat unknown checkbox markers as incomplete
 - **WHEN** a checklist item uses a one-token marker other than `x` or `X`, such as `[~]`
@@ -33,6 +40,7 @@ The system SHALL parse markdown checklist items that match OpenSpec's v1.13.1 ta
 - **WHEN** a checklist item has no description text, an empty `[]` marker, or inner padding such as `[ x]`
 - **THEN** the system includes the line in the parsed task tree
 - **AND** treats only a marker whose trimmed value is `x` or `X` as completed
+- **AND** empty `[]` and whitespace-only `[ ]` markers count as incomplete, while padded forms such as `[ x]` count as completed
 
 ### Requirement: Calculate recursive task progress
 The system SHALL calculate per-change progress by counting all parsed tasks recursively, SHALL compute done, total, and rounded percentage values from those counts, SHALL count a task as done only when its checkbox marker is `x` or `X`, and SHALL use active change task progress to compute the dashboard's overall progress.

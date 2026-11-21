@@ -1,7 +1,9 @@
 ## Purpose
 
 Validation provides project-scoped OpenSpec validation from the WebUI, with configurable execution preferences, result display, and integration into the Explorer Pane.
+
 ## Requirements
+
 ### Requirement: Persist validation execution preferences
 The client SHALL persist validation execution preferences for strict mode, optional concurrency, and automatic validation runs using the existing browser-local preferences pattern. Automatic validation SHALL remain a client-only preference and SHALL NOT be sent to the validation API.
 
@@ -26,7 +28,7 @@ The client SHALL persist validation execution preferences for strict mode, optio
 - **AND** the Validation panel can automatically run validation for the new project
 
 ### Requirement: Execute project validation from the WebUI
-The system SHALL expose a project-scoped validation action that runs OpenSpec validation for the active workspace using all-item validation semantics equivalent to `openspec validate --all [--strict] [--concurrency <n>] --json`. Strict mode SHALL default to enabled for backward compatibility. The action SHALL return a normalized validation result containing overall status, pass/fail counts, per-item issue summaries, issue-bearing items, item-level status counts, last-run timestamp, and raw command failure context when command execution fails outside normal validation failure semantics.
+The system SHALL expose a project-scoped validation action that runs OpenSpec validation for the active workspace with semantics equivalent to `openspec validate --all [--strict] [--concurrency <n>] --json`, strict by default. It SHALL return a normalized result: overall status, pass/fail counts, per-item issue summaries, issue-bearing items, item-level status counts, last-run timestamp, and raw command failure context when execution fails outside normal validation failure semantics.
 
 #### Scenario: Validation passes
 - **WHEN** the operator runs validation for an active project whose OpenSpec content is valid and contains no issues
@@ -80,7 +82,7 @@ The system SHALL expose a project-scoped validation action that runs OpenSpec va
 - **AND** command failure context records the actual validation command that was attempted
 
 ### Requirement: Render Validation panel in the Explorer Pane
-The system SHALL provide a dedicated Validation panel in the Explorer Pane. The panel SHALL display a compact header, Run Validate action, last-run metadata, loading and error states, validation result summary, and a list of validation items requiring attention. The panel SHALL keep persistent validation preferences out of the Explorer header, SHALL avoid duplicating summary counts between the header and result list, SHALL place last-run metadata on its own line so the run button loading spinner does not cause horizontal layout shift, and SHALL remain visible after a validation item opens a Main Viewer tab. The list SHALL render non-passed validation items using file-level status rather than issue severity labels.
+The system SHALL provide a dedicated Validation panel in the Explorer Pane with a compact header, Run Validate action, last-run metadata, loading and error states, result summary, and a list of attention items shown by file-level status, not issue severity. The panel SHALL keep persistent validation preferences out of the Explorer header, SHALL NOT duplicate header and list counts, SHALL put last-run metadata on its own line, and SHALL stay visible after an item opens a Main Viewer tab.
 
 #### Scenario: Open Validation panel from Activity Bar
 - **WHEN** the operator clicks the Validate icon in the Activity Bar
@@ -108,6 +110,15 @@ The system SHALL provide a dedicated Validation panel in the Explorer Pane. The 
 - **THEN** the Validation panel shows a passing status
 - **AND** it does not show stale failed or issue items from an earlier run
 
+#### Scenario: Explorer header holds no persistent preferences
+- **WHEN** the Validation panel header is rendered
+- **THEN** persistent validation preferences are not shown in the Explorer header
+- **AND** summary counts are not duplicated between the header and the result list
+
+#### Scenario: Panel stays visible after opening an item
+- **WHEN** the operator opens a validation item in a Main Viewer tab
+- **THEN** the Validation panel remains visible in the Explorer Pane
+
 ### Requirement: Inline validation status uses shared semantics
 The system SHALL render inline validation target status using the shared entity, validation status, and validation severity semantics. The inline status surface SHALL avoid duplicating local status icon, status badge variant, and issue severity variant mappings when shared semantics are available. It SHALL keep the existing accessible status and details labels, collapsible details behavior, last-run metadata, and issue detail content.
 
@@ -124,7 +135,7 @@ The system SHALL render inline validation target status using the shared entity,
 - **AND** the issue path and message remain visible as before
 
 ### Requirement: Validation distinguishes file status from issue severity
-The system SHALL distinguish file-level validation status from issue-level severity. File-level status SHALL describe a validation target such as a spec, change, project, or unknown item. Issue-level severity SHALL describe an individual validation issue. The system SHALL NOT use issue severity labels as the file-level status label for a validation target. When issues exist, the derived file-level status SHALL follow the highest issue severity present before falling back to the raw validity flag.
+The system SHALL distinguish file-level validation status, which describes a validation target such as a spec, change, project, or unknown item, from issue-level severity, which describes an individual issue, and SHALL NOT use issue severity labels as a target's file-level status label. When issues exist, the derived file-level status SHALL follow the highest issue severity present before falling back to the raw validity flag.
 
 #### Scenario: Failed file with error issue
 - **WHEN** a validation item contains an `ERROR` issue
@@ -150,7 +161,7 @@ The system SHALL distinguish file-level validation status from issue-level sever
 - **THEN** the item-level status is `passed`
 
 ### Requirement: Validation result exposes issue-bearing items
-The validation result returned to the client SHALL expose failed items separately from issue-bearing items. `failedItems` SHALL contain items whose derived item status is `failed`. The result SHALL also expose `issueItems` or an equivalent field containing every item with one or more issues, including items with `WARNING` or `INFO` issues even when the raw validity flag is `false`. Summary counts SHALL allow the client to render failed, warning, and info item counts without reinterpreting issue severities in each UI surface.
+The validation result SHALL expose `failedItems`, holding items whose derived status is `failed`, separately from `issueItems` or an equivalent field holding every item with one or more issues, including items with `WARNING` or `INFO` issues even when the raw validity flag is `false`. Summary counts SHALL let the client render failed, warning, and info item counts without reinterpreting issue severities in each UI surface.
 
 #### Scenario: Invalid error item appears in both failed and issue lists
 - **WHEN** a validation item is invalid and has at least one `ERROR` issue

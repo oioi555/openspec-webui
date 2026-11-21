@@ -7,9 +7,7 @@ Defines a lightweight, repeatable workflow for OpenSpec tool definitions and the
 ## Requirements
 
 ### Requirement: Store official definitions and shared mapping separately
-The system SHALL maintain the pinned OpenSpec tool-definition snapshot and the Shared `.agents/skills` mapping as separate schema-versioned JSON datasets. The official dataset SHALL identify its upstream URL, immutable revision, and check date. The shared dataset SHALL identify its single source (`vercel-labs/skills` commit) and dataset-level `updatedAt`.
-
-Both datasets SHALL be included in production builds and npm packages without requiring runtime network access. Loading the external datasets SHALL preserve the existing tool-reference API response shape.
+The system SHALL maintain the pinned OpenSpec tool-definition snapshot and the Shared `.agents/skills` mapping as separate schema-versioned JSON datasets: the official one records its upstream URL, immutable revision, and check date; the shared one records its single source (`vercel-labs/skills` commit) and dataset-level `updatedAt`. Both SHALL ship in production builds and npm packages without runtime network access, and loading them SHALL preserve the tool-reference API response shape.
 
 #### Scenario: Load packaged reference data offline
 - **WHEN** the WebUI starts from a built npm package without network access
@@ -22,14 +20,13 @@ Both datasets SHALL be included in production builds and npm packages without re
 - **AND** the shared list's primary provenance is `https://github.com/vercel-labs/skills`
 
 ### Requirement: Build a candidate union from 2 sources
-The maintenance workflow SHALL build its candidate set from OpenSpec's official `supported-tools.md` at the caller-selected release and the `vercel-labs/skills` Supported Agents source (`src/agents.ts`, `skillsDir === '.agents/skills'`). The workflow SHALL join them on exact tool id first, then on a reviewed client-id alias map, to decide `openSpecToolId`. An alias SHALL apply only when the research client id is absent from the official id set and the alias target is present in the official id set. Exact id SHALL take precedence over an alias. The alias map SHALL include `grok-build` → `grok` while the pinned official snapshot uses id `grok` for Grok Build.
-
-No per-client evidence collection is required for this reference. A short `note` MAY be kept for exceptions (e.g. Hermes global requires config).
+The maintenance workflow SHALL build its candidate set from OpenSpec's official `supported-tools.md` at the caller-selected release and the `vercel-labs/skills` Supported Agents source, joining them on exact tool id first and then on a reviewed client-id alias map to decide `openSpecToolId`. An alias SHALL apply only when the research client id is absent from the official id set and the alias target is present in it. Per-client evidence collection SHALL NOT be required.
 
 #### Scenario: Add a newly listed client as a candidate
 - **WHEN** a client appears in OpenSpec or the Vercel Supported Agents source for the first time
 - **THEN** the maintenance workflow reports it as a new candidate and adds a flat `{ id, name, openSpecToolId?, note? }` entry
 - **AND** does not require per-client vendor-doc verification
+- **AND** may keep a short `note` for exceptions, such as Hermes global requiring config
 
 #### Scenario: Retain a disappeared client report
 - **WHEN** a previously recorded client is absent from the current union
@@ -44,10 +41,20 @@ No per-client evidence collection is required for this reference. A short `note`
 - **WHEN** a research client id is absent from the official id set and has no reviewed alias
 - **THEN** the shared record has no `openSpecToolId`
 
-### Requirement: Update on upstream releases or explicit requests
-The maintenance skill SHALL be invoked by an operator or automation caller with a target OpenSpec CLI release/tag at release time. It SHALL NOT poll for releases, schedule itself, decide when it should run, or initiate automation. Before processing external candidates, it SHALL load and pin the official definitions from the caller-selected release so official-versus-external classification is relative to that release.
+#### Scenario: Vercel candidates come from shared-path agents
+- **WHEN** the workflow reads the `vercel-labs/skills` Supported Agents source
+- **THEN** it uses `src/agents.ts` entries whose `skillsDir === '.agents/skills'`
 
-The workflow SHALL also accept an explicit targeted or full refresh request regardless of dataset age. No fixed day threshold is required.
+#### Scenario: Exact id takes precedence over an alias
+- **WHEN** a research client id matches an official tool id exactly and also has an alias entry
+- **THEN** the exact id match decides `openSpecToolId`
+
+#### Scenario: Alias map includes Grok Build
+- **WHEN** the pinned official snapshot uses id `grok` for Grok Build
+- **THEN** the reviewed alias map includes `grok-build` → `grok`
+
+### Requirement: Update on upstream releases or explicit requests
+The maintenance skill SHALL run only when an operator or automation caller invokes it with a target OpenSpec CLI release/tag, and SHALL NOT poll for releases, schedule itself, decide when to run, or initiate automation. Before processing external candidates, it SHALL load and pin the official definitions from that release. It SHALL also accept an explicit targeted or full refresh request regardless of dataset age.
 
 #### Scenario: Caller invokes maintenance for a CLI release
 - **WHEN** an operator invokes the skill with a target OpenSpec CLI release/tag
@@ -63,10 +70,13 @@ The workflow SHALL also accept an explicit targeted or full refresh request rega
 - **THEN** the workflow reports that no update is required
 - **AND** does not rewrite the datasets
 
-### Requirement: Reconcile official release documentation before updating definitions
-The maintenance workflow SHALL inspect both `docs/supported-tools.md` at the caller-selected OpenSpec release/tag and that release's official GitHub release notes before constructing the proposed official definition snapshot. Release notes SHALL be treated as formal release data rather than an external exception. When the two official sources disagree about a tool path, invocation, delivery, migration, or ownership rule, the workflow SHALL report the disagreement in the analyze-first review output and SHALL NOT silently select the older or less specific statement.
+#### Scenario: Explicit refresh regardless of age
+- **WHEN** an operator explicitly requests a targeted or full refresh
+- **THEN** the workflow runs the refresh regardless of dataset age
+- **AND** no fixed day threshold is applied
 
-The review output SHALL identify the source used for each proposed reconciliation. A source disagreement SHALL prevent an automatic no-change conclusion and SHALL require an explicit reviewed resolution before the datasets are written. Failure to retrieve either official source SHALL fail closed for official-definition updates and SHALL NOT be interpreted as evidence that a previously recorded definition disappeared.
+### Requirement: Reconcile official release documentation before updating definitions
+Before proposing an official snapshot, the maintenance workflow SHALL inspect both `docs/supported-tools.md` and the official GitHub release notes for the caller-selected release, treating release notes as formal release data. A disagreement about a tool path, invocation, delivery, migration, or ownership rule SHALL be reported in the analyze-first review, SHALL block an automatic no-change conclusion, and SHALL need an explicit reviewed resolution before writing.
 
 #### Scenario: Release notes and supported-tools documentation agree
 - **WHEN** the selected release's official release notes and `docs/supported-tools.md` describe the same tool definition
@@ -83,6 +93,16 @@ The review output SHALL identify the source used for each proposed reconciliatio
 - **WHEN** the selected release's official release notes cannot be retrieved or parsed
 - **THEN** the workflow reports the official source as unavailable
 - **AND** does not write or infer removals from an official snapshot built with incomplete release information
+
+#### Scenario: Disagreements are never resolved silently
+- **WHEN** the two official sources disagree
+- **THEN** the workflow does not silently select the older or less specific statement
+- **AND** the review output identifies the source used for each proposed reconciliation
+
+#### Scenario: Retrieval failure is not a disappearance
+- **WHEN** either official source cannot be retrieved
+- **THEN** official-definition updates fail closed
+- **AND** the failure is not interpreted as evidence that a previously recorded definition disappeared
 
 ### Requirement: Produce a reviewable dry-run diff before writing
 The repository maintenance skill SHALL default to a non-writing analysis that reports source revisions, added/missing clients, and validation failures. Writing updated data SHALL require an explicit write step after the proposed diff is available for review.

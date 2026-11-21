@@ -2,9 +2,11 @@
 
 ## Purpose
 Define the Explorer Pane that organizes active changes, archives, and specs beside the Activity Bar.
+
 ## Requirements
+
 ### Requirement: Explorer Pane renders collapsible sections
-The system SHALL render an Explorer Pane between the Activity Bar and the Main Viewer. The Explorer Pane SHALL use the `ExplorerSection` component for each of its three sections (ACTIVE CHANGES, ARCHIVE, SPECS). Each section SHALL pass its title, item count, collapse state, focused state, and header icon as props, and SHALL render section-specific content via slots. The ACTIVE CHANGES section SHALL use the `headerExtra` slot to render `CommandShortcutBar` when workspace commands exist and SHALL render a sort control that lets the operator choose `Date` or `Name` ordering. The ARCHIVE and SPECS sections SHALL also render the same `Date` / `Name` sort control in their section headers. Explorer list items SHALL NOT render leading per-item icons on the first line. No inline collapsible section header markup SHALL remain in `ExplorerPane.svelte` outside of the `ExplorerSection` component usage. Each list item SHALL use the `ExplorerSectionItem` component, which internally uses `ItemContextMenu` to provide context menu actions and handles click interactions. Each section SHALL pass `emptyMessage` props to `ExplorerSection` to handle empty states internally; the `emptyIcon` is determined internally by each ExplorerSection component reusing its section header icon.
+The system SHALL render an Explorer Pane between the Activity Bar and the Main Viewer, using the `ExplorerSection` component for each of its three sections (ACTIVE CHANGES, ARCHIVE, SPECS), passing its props (including `emptyMessage`) and rendering section content via slots. Each section header SHALL render a `Date` / `Name` sort control. Each list item SHALL use `ExplorerSectionItem`, and `ExplorerPane.svelte` SHALL keep no inline collapsible section header markup.
 
 #### Scenario: Explorer Pane uses ExplorerSection for ACTIVE CHANGES
 - **WHEN** the Explorer Pane renders the ACTIVE CHANGES section
@@ -16,6 +18,13 @@ The system SHALL render an Explorer Pane between the Activity Bar and the Main V
 - **AND** the ExplorerSection internally reuses its section header icon as the empty icon
 - **AND** the default slot renders `ExplorerSectionItem` components for each active change
 - **AND** each `ExplorerSectionItem` shows a compact second line with Calendar+date, FileText+delta count, CircleCheckBig+task progress, and a narrow progress bar
+
+#### Scenario: Explorer list items have no leading icons
+- **WHEN** any Explorer section renders its list items
+- **THEN** no leading per-item icon is rendered on the first line
+- **AND** each `ExplorerSectionItem` internally uses `ItemContextMenu` for context menu actions and handles click interactions
+- **AND** `ExplorerPane.svelte` has no inline collapsible section header markup outside of `ExplorerSection` usage
+- **AND** each section passes its title, item count, collapse state, focused state, and header icon as props
 
 #### Scenario: Explorer Pane uses ExplorerSection for ARCHIVE
 - **WHEN** the Explorer Pane renders the ARCHIVE section
@@ -46,24 +55,28 @@ The system SHALL render an Explorer Pane between the Activity Bar and the Main V
 - **AND** the SPECS section still defaults to Name sorting
 
 ### Requirement: Default Explorer sections use flush list layout
-The Explorer Pane default section group SHALL render Active Changes, Archive, and Specs as adjacent flush full-width list sections instead of visually separated rounded card containers. The default section group SHALL avoid large outer padding and large inter-section gaps so Explorer list items gain horizontal space comparable to Search and Validation panel rows. Each section SHALL retain its collapsible header, icon, count, chevron, sort controls where applicable, Active Changes command shortcut area, empty-state behavior, context menu behavior, item selection behavior, preview/confirmed tab behavior, inline validation indicators, and existing item metadata. Section boundaries SHALL remain visually clear through full-width header styling, separators, or equivalent flush-list-friendly treatment. Programmatic section focus SHALL remain visible without requiring a card-wide rounded focus ring.
+The Explorer Pane default section group SHALL render Active Changes, Archive, and Specs as adjacent flush full-width list sections instead of separated rounded card containers, without large outer padding or large inter-section gaps, so list items gain horizontal space like Search and Validation rows. Each section SHALL keep its existing header controls and item behavior. Section boundaries and programmatic section focus SHALL stay visually clear without a card-wide rounded focus ring.
 
 #### Scenario: Default Explorer uses adjacent full-width sections
 - **WHEN** the Explorer Pane displays the default Active Changes, Archive, and Specs group
 - **THEN** the sections render as a contiguous flush list surface rather than as three separated rounded cards
 - **AND** there is no large vertical gap between adjacent section containers
 - **AND** list rows can use the available Explorer Pane width without extra card-stack inset padding
+- **AND** Explorer list items gain horizontal space comparable to Search and Validation panel rows
 
 #### Scenario: Section controls remain available in flush layout
 - **WHEN** the default Explorer section group is rendered in the flush layout
-- **THEN** each section header still displays its title, icon, count, and collapse/expand control
+- **THEN** each section header still displays its title, icon, count, chevron, and collapse/expand control
+- **AND** each section keeps its existing empty-state behavior
 - **AND** Active Changes, Archive, and Specs still display their sort controls where currently supported
 - **AND** Active Changes still displays workspace command shortcuts when available
 
 #### Scenario: Flush layout preserves section wayfinding
 - **WHEN** multiple default Explorer sections are expanded next to each other
 - **THEN** section headers and separators make the boundary between Active Changes, Archive, and Specs visually clear
+- **AND** the boundary may use full-width header styling, separators, or an equivalent flush-list-friendly treatment
 - **AND** a programmatically focused section has a visible focused state suitable for a flush list layout
+- **AND** that focused state does not require a card-wide rounded focus ring
 
 #### Scenario: Existing item behavior is unchanged
 - **WHEN** the operator selects, previews, confirms, or opens the context menu for an Active Changes, Archive, or Specs row
@@ -88,7 +101,7 @@ The system SHALL allow each Explorer Pane section to be collapsed and expanded i
 - **THEN** the section expands to show its items
 
 ### Requirement: Activity Bar selection applies explorer focus presets
-The system SHALL synchronize Activity Bar selection with Explorer Pane expansion presets. Selecting Home from the Activity Bar SHALL expand ACTIVE CHANGES and collapse ARCHIVE and SPECS. Selecting Archive from the Activity Bar SHALL expand ARCHIVE and collapse ACTIVE CHANGES and SPECS. Selecting Specs from the Activity Bar SHALL expand SPECS and collapse ACTIVE CHANGES and ARCHIVE. Selecting Search from the Activity Bar SHALL show the Search panel. Selecting Validate from the Activity Bar SHALL show the Validation panel. Manual section toggles inside the Explorer Pane SHALL remain allowed until the next Activity Bar preset change.
+The system SHALL synchronize Activity Bar selection with Explorer Pane expansion presets: Home, Archive, and Specs SHALL each expand their own section (ACTIVE CHANGES, ARCHIVE, SPECS) and collapse the other two, and Search and Validate SHALL show the Search and Validation panels. Manual section toggles inside the Explorer Pane SHALL remain allowed until the next Activity Bar preset change.
 
 #### Scenario: Home preset expands active changes browsing
 - **WHEN** the operator clicks the Home icon in the Activity Bar
@@ -121,6 +134,11 @@ The system SHALL synchronize Activity Bar selection with Explorer Pane expansion
 - **THEN** the Explorer Pane expands back to its previous width
 - **AND** the ACTIVE CHANGES section is expanded
 
+#### Scenario: Manual toggles persist until the next preset
+- **WHEN** the operator applies the Home preset and then manually expands the SPECS section
+- **THEN** the SPECS section stays expanded
+- **AND** the next Activity Bar preset change reapplies that preset's expansion state
+
 ### Requirement: Explorer items open tabs in main viewer
 The system SHALL open a new tab (or focus an existing one) in the Main Viewer when the operator clicks an item in the Explorer Pane. Clicking a spec item SHALL open that spec's detail view. Clicking a change item SHALL open that change's detail view.
 
@@ -143,7 +161,7 @@ The system SHALL allow the operator to resize the Explorer Pane width by draggin
 - **AND** the width stays within the 180px-600px range
 
 ### Requirement: Explorer Pane renders current-project footer content
-When the Explorer Pane is visible, the system SHALL render current-project identity content at the bottom of the pane. The footer SHALL display a folder icon and a "Current Project" label, SHALL display the active project name inside an interactive card, and SHALL provide a `folder-pen` button on the card that opens the project selector. The footer SHALL NOT render a project avatar or project appearance editor affordance. In narrow layout, the drawer SHALL open to the right of the Activity Bar so the rail remains visible.
+When the Explorer Pane is visible, the system SHALL render current-project footer content at the bottom of the pane: a folder icon, a "Current Project" label, and an interactive card with the active project name and a `folder-pen` button that opens the project selector. The footer SHALL NOT render a project avatar or project appearance editor affordance. In narrow layout, the drawer SHALL open to the right of the Activity Bar so the rail remains visible.
 
 #### Scenario: Explorer Pane shows project footer content
 - **WHEN** the Explorer Pane is visible with an active project
@@ -210,11 +228,12 @@ The system SHALL scroll the focused explorer section header to the top of the ex
 - **AND** the new reactive scroll does not produce a double-scroll
 
 ### Requirement: Explorer Pane renders a persistent Search panel
-The system SHALL render Search as a dedicated Explorer Pane panel separate from the Active Changes, Archive, and Specs section group. When Search is active, the Explorer Pane SHALL show only the Search panel above the existing project selector footer. The panel SHALL follow the existing Explorer visual language while using a larger fixed header, search input, and persistent result list. Explanatory copy for initial, short-query, and no-results states SHALL render in the list/body area as placeholder content rather than as persistent descriptive prose in the header. The panel SHALL show result counts, loading state, short-query guidance, empty results, and a clear control as appropriate. Search result rows SHALL render as Explorer-style selectable list items using shared entity visual semantics, including distinct active-change and archived-change treatment when change results can be resolved to either state.
+The system SHALL render Search as a dedicated Explorer Pane panel separate from the Active Changes, Archive, and Specs section group, shown alone above the project selector footer when active. It SHALL follow the Explorer visual language with a larger fixed header, search input, and persistent result list, and SHALL show result counts, loading state, short-query guidance, empty results, and a clear control as appropriate. State explanations SHALL render in the list area, not as header prose.
 
 #### Scenario: Search panel initial state
 - **WHEN** the Explorer Pane is switched to Search and no search query has been entered
 - **THEN** the Search panel displays a prominent Search header
+- **AND** only the Search panel is shown above the existing project selector footer, following the Explorer visual language
 - **AND** it displays a search input
 - **AND** the list area displays a localized placeholder explaining the search scope and minimum-query guidance
 
@@ -228,7 +247,13 @@ The system SHALL render Search as a dedicated Explorer Pane panel separate from 
 - **WHEN** a valid search query returns matches
 - **THEN** the Search panel displays the number of matches
 - **AND** it renders each result as a selectable Explorer-style list item with shared type semantics, name, and preview text
-- **AND** archived change results are visually distinguishable from active change results
+- **AND** archived change results are visually distinguishable from active change results when a change result can be resolved to either state
+- **AND** result rows use shared entity visual semantics
+
+#### Scenario: Search panel short-query and loading states
+- **WHEN** the entered query is too short, or a valid search is running
+- **THEN** the list area shows short-query guidance as placeholder content, or the panel shows a loading state
+- **AND** a clear control is shown when a query is present
 
 #### Scenario: Search header remains visible while results scroll
 - **WHEN** the operator scrolls a long Search result list
@@ -236,7 +261,7 @@ The system SHALL render Search as a dedicated Explorer Pane panel separate from 
 - **AND** only the result list scrolls
 
 ### Requirement: Explorer Pane renders a persistent Validation panel
-The system SHALL render Validation as a dedicated Explorer Pane panel separate from the Active Changes, Archive, and Specs section group. When Validation is active, the Explorer Pane SHALL show only the Validation panel above the existing project selector footer. The panel SHALL follow the existing Explorer visual language while using a compact header, initial list placeholder with prominent Run Validate action, compact post-run reload action, last-run metadata, loading and error states, result-visible compact file-status count filters, validation status, and persistent validation item list. The title row SHALL show the Validation title and a compact action that opens Settings to the Validation section. The title row SHALL NOT show the validation result status badge. Before a result exists, explanatory content and the prominent Run Validate action SHALL live in the list placeholder. After a result exists, the compact reload action SHALL appear in the title-row action cluster beside the Settings action, and file-status count filters SHALL appear in a compact status row below. The panel SHALL keep persistent validation preferences out of the Explorer header, SHALL avoid duplicating summary counts between the header and result list, SHALL place last-run metadata on its own line so the run button loading spinner does not cause horizontal layout shift, and SHALL remain visible after a validation item opens a Main Viewer tab, and SHALL mark the row for the currently active validation document as selected when that item is navigable.
+The system SHALL render Validation as a dedicated Explorer Pane panel separate from the section group, shown alone above the project selector footer when active. Its title row SHALL show the Validation title and a compact action opening Settings to the Validation section, and SHALL NOT show the result status badge. Before a result exists, explanation and a prominent Run Validate action SHALL live in the list placeholder; after one, a compact reload action and count filters SHALL appear.
 
 #### Scenario: Validation panel initial state
 - **WHEN** the Explorer Pane is switched to Validation and no validation result exists
@@ -247,6 +272,14 @@ The system SHALL render Validation as a dedicated Explorer Pane panel separate f
 - **AND** the list area displays an explanatory placeholder
 - **AND** the placeholder displays a prominent text-labeled Run Validate action
 - **AND** the header does not display file-status count filters before a result exists
+
+#### Scenario: Validation panel layout constraints
+- **WHEN** the Validation panel is shown
+- **THEN** only the Validation panel is shown above the existing project selector footer, using a compact header
+- **AND** it shows last-run metadata, loading and error states, validation status, and a persistent validation item list
+- **AND** persistent validation preferences are kept out of the Explorer header
+- **AND** summary counts are not duplicated between the header and the result list
+- **AND** last-run metadata sits on its own line so the run button loading spinner does not cause horizontal layout shift
 
 #### Scenario: Settings action opens validation settings
 - **WHEN** the operator activates the settings action in the Validation panel title row
@@ -269,7 +302,8 @@ The system SHALL render Validation as a dedicated Explorer Pane panel separate f
 
 #### Scenario: Validation panel shows post-run reload and status count filters
 - **WHEN** validation has completed and file-level status counts are available
-- **THEN** the title row displays a compact reload action beside the Settings action
+- **THEN** the title row displays a compact reload action in the action cluster beside the Settings action
+- **AND** the file-status count filters appear in a compact status row below the title row
 - **AND** the status row displays compact counts for `failed`, `warning`, and `info`
 - **AND** included statuses are visually distinguishable by status tone
 - **AND** excluded statuses are visually muted or greyed out
@@ -292,7 +326,7 @@ The system SHALL render Validation as a dedicated Explorer Pane panel separate f
 - **AND** it does not render obsolete items from an earlier run
 
 ### Requirement: Search panel exposes a persistent viewer highlight toggle
-The Search panel SHALL expose a toggle in its sticky header that lets the operator enable or disable in-page highlighting of the current search query inside open markdown viewers. The toggle SHALL use the `Highlighter` icon, SHALL appear in the Search header action area, and SHALL use warning-tone styling when enabled. The system SHALL persist the operator's chosen state locally and SHALL restore that state in later sessions. The Search header SHALL keep result status readable without relying on a separate redundant result-count badge.
+The Search panel SHALL expose a toggle in its sticky header action area, using the `Highlighter` icon, that enables or disables in-page highlighting of the current search query in open markdown viewers, with warning-tone styling when enabled. The system SHALL persist the chosen state locally and restore it in later sessions. The Search header SHALL keep result status readable without a separate redundant result-count badge.
 
 #### Scenario: Enable viewer highlighting from the Search header
 - **WHEN** the operator enables the Search panel's highlight toggle while a valid search query is present
@@ -304,3 +338,10 @@ The Search panel SHALL expose a toggle in its sticky header that lets the operat
 - **THEN** the Search panel restores the toggle in the disabled state
 - **AND** markdown viewers do not render query highlights until the operator enables it again
 
+### Requirement: Validation panel stays open and tracks the active document
+The Validation panel SHALL remain visible after a validation item opens a Main Viewer tab, and SHALL mark the row for the currently active validation document as selected when that item is navigable.
+
+#### Scenario: Opening a validation item keeps the panel and selects its row
+- **WHEN** the operator selects a navigable validation item and its document becomes the active Main Viewer tab
+- **THEN** the Validation panel stays visible
+- **AND** that item's row renders the selected state

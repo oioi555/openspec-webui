@@ -5,7 +5,7 @@
 ## Requirements
 
 ### Requirement: Detect per-project OpenSpec generation version
-The system SHALL detect the OpenSpec generation version for each registered project by reading the version recorded in the frontmatter of an OpenSpec-generated skill file (`metadata.generatedBy`) within that project. Detection SHALL be read-only and SHALL NOT modify, create, or delete any file in the project. Detection SHALL scan the standard skill directories that OpenSpec generates for representative AI tools, including the shared `.agents/skills` root used by Codex and vendor-neutral agent skills and the `.commandcode/skills` root used by Command Code.
+The system SHALL detect the OpenSpec generation version for each registered project by reading the version recorded in the frontmatter of an OpenSpec-generated skill file (`metadata.generatedBy`) within that project. Detection SHALL be read-only and SHALL NOT modify, create, or delete any file in the project. Detection SHALL scan the standard skill directories that OpenSpec generates for representative AI tools.
 
 #### Scenario: Generation version is readable from a skill file
 - **WHEN** a registered project contains an OpenSpec-generated skill file
@@ -13,12 +13,12 @@ The system SHALL detect the OpenSpec generation version for each registered proj
 - **THEN** the system reports that recorded version as the project's generation version
 
 #### Scenario: Generation version is readable from the shared agents skill root
-- **WHEN** a registered project's only OpenSpec-generated skill file is under `.agents/skills`
+- **WHEN** a registered project's only OpenSpec-generated skill file is under `.agents/skills`, the shared root used by Codex and vendor-neutral agent skills
 - **AND** that file's frontmatter records a version in `metadata.generatedBy`
 - **THEN** the system reports that recorded version as the project's generation version
 
 #### Scenario: Generation version is readable from the Command Code skill root
-- **WHEN** a registered project's only OpenSpec-generated skill file is under `.commandcode/skills`
+- **WHEN** a registered project's only OpenSpec-generated skill file is under `.commandcode/skills`, the root used by Command Code
 - **AND** that file's frontmatter records a version in `metadata.generatedBy`
 - **THEN** the system reports that recorded version as the project's generation version
 
@@ -52,12 +52,12 @@ The system SHALL compare each project's detected generation version against the 
 - **THEN** the system reports every project's status as unknown
 
 ### Requirement: Expose per-project version status through the API
-The system SHALL expose the version status of each registered project through the API. For each project, the response SHALL include the project path, the detected generation version, the current CLI version used as the comparison baseline, and the update status (`up-to-date` / `update-available` / `unknown`). The status SHALL be recomputed on server startup and on an explicit manual refresh request. Any per-project detection failure SHALL NOT fail the API response as a whole and SHALL be represented as `unknown` for the affected project.
+The system SHALL expose the version status of each registered project through the API. Each project entry SHALL include the path, generation version, current CLI version, and update status. The status SHALL be recomputed on server startup and on an explicit manual refresh request. Any per-project detection failure SHALL NOT fail the API response as a whole and SHALL be represented as `unknown` for the affected project.
 
 #### Scenario: Retrieve status for registered projects
 - **WHEN** the client requests the per-project version status
 - **THEN** the response includes each registered project
-- **AND** each entry includes path, generation version, current CLI version, and update status
+- **AND** each entry includes path, detected generation version, the current CLI version used as the comparison baseline, and update status (`up-to-date` / `update-available` / `unknown`)
 
 #### Scenario: Manual refresh recomputes status
 - **WHEN** the client requests a manual refresh of the per-project version status

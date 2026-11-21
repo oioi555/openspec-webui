@@ -4,6 +4,7 @@
 Define how the server keeps multiple project sessions active at the same time.
 
 ## Requirements
+
 ### Requirement: Simultaneous active project sessions
 The system SHALL maintain zero or more active project sessions simultaneously, each identified by a project ID. Each session SHALL have its own file watcher and parsed OpenSpec data. The system SHALL support activating a project without deactivating any currently active project. The system SHALL persist `activeProjectId` as a global default project ID for backward compatibility while independently managing per-session state.
 
@@ -22,7 +23,7 @@ The system SHALL maintain zero or more active project sessions simultaneously, e
 - **AND** the existing parsed data is returned
 
 ### Requirement: Session reference counting
-Each active session SHALL maintain a reference count of bound clients. When a client binds to a project session, the reference count SHALL increment. When a client unbinds (disconnects or switches to another project), the reference count SHALL decrement. When a client-driven decrement causes the reference count to transition from a positive value to zero, the system SHALL close the file watcher and release the session's resources. The system SHALL NOT release a session while its reference count is greater than zero, and it MAY retain a `refCount = 0` session that was created by API access or global activation until an explicit cleanup path runs.
+Each active session SHALL keep a reference count of bound clients that increments on bind and decrements on unbind (disconnects or switches to another project). When a client-driven decrement brings the count from a positive value to zero, the system SHALL close the file watcher and release the session's resources. The system SHALL NOT release a session while its count is above zero, and MAY retain an API-created or globally activated `refCount = 0` session until explicit cleanup.
 
 #### Scenario: First client binds to a project
 - **WHEN** a client requests a project that has no active session
@@ -47,14 +48,15 @@ Each active session SHALL maintain a reference count of bound clients. When a cl
 - **THEN** the session is created with `refCount = 0`
 - **AND** the session remains available for subsequent requests
 - **AND** it is not released solely because its current refCount is zero
+- **AND** the same retention applies to a `refCount = 0` session created by global activation, until an explicit cleanup path runs
 
 ### Requirement: On-demand session creation via API
-The system SHALL accept an `X-Project-Id` header on all project-scoped API endpoints. When the header specifies a registered project that does not yet have an active session, the system SHALL create a session on demand (parse the OpenSpec data and start a file watcher) before responding. An API-created session SHALL start with `refCount = 0`. When the header is absent, the system SHALL use the global default project. When the header specifies an unregistered project ID, the system SHALL respond with a 404 error.
+The system SHALL accept an `X-Project-Id` header on all project-scoped API endpoints. For a registered project without an active session, the system SHALL create a session on demand (parse the OpenSpec data and start a file watcher) with `refCount = 0` before responding. Without the header, the system SHALL use the global default project; for an unregistered project ID, it SHALL respond with a 404 error.
 
 #### Scenario: Request with X-Project-Id for an inactive project
 - **WHEN** a GET request is sent to `/api/specs` with `X-Project-Id: abc123`
 - **AND** `abc123` is a registered project without an active session
-- **THEN** the system creates a session for `abc123`
+- **THEN** the system creates a session for `abc123` by parsing its OpenSpec data and starting a file watcher, with `refCount = 0`
 - **AND** returns the specs data from that session
 
 #### Scenario: Request without X-Project-Id header

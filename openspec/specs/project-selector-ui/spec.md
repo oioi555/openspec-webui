@@ -6,24 +6,29 @@ Project selection, addition, and switching UI components.
 ## Requirements
 
 ### Requirement: Add-project dialog
-The web UI SHALL render a dedicated AddProjectDialog component when `layoutStore.overlay` is set to `'add-project'`. The dialog SHALL prioritize directory browsing, SHALL show which subdirectories contain an `openspec/` folder, SHALL provide a manual path fallback, and SHALL show a concise initialization hint that points to OpenSpec installation and `openspec init` setup documentation. Selecting the current directory or submitting a manual path SHALL add and activate that project. After the API add or reactivate step completes, the client SHALL complete a WebSocket `project:bind` flow for the returned project before treating that project as ready. The manual path fallback SHALL accept any non-empty string without absolute-path validation; the server validates the path.
+The web UI SHALL render a dedicated AddProjectDialog component when `layoutStore.overlay` is `'add-project'`. The dialog SHALL prioritize directory browsing, SHALL mark subdirectories that contain an `openspec/` folder, SHALL provide a manual path fallback, and SHALL show a concise initialization hint. Selecting the current directory or submitting a manual path SHALL add and activate that project, and the client SHALL complete a WebSocket `project:bind` flow before treating it as ready.
 
 #### Scenario: Open add-project dialog from empty state
 - **WHEN** the operator clicks the primary add-project action from the empty project state
 - **THEN** the dedicated add-project dialog opens
 - **AND** a directory browser is shown immediately
-- **AND** the dialog shows a concise initialization hint with links to setup documentation
+- **AND** the dialog shows a concise initialization hint with links to OpenSpec installation and `openspec init` setup documentation
+
+#### Scenario: Directory browser marks OpenSpec folders
+- **WHEN** the directory browser lists subdirectories
+- **THEN** it shows which subdirectories contain an `openspec/` folder
 
 #### Scenario: Browse and add current directory
 - **WHEN** the operator navigates directories in the add-project dialog and chooses the currently displayed directory
 - **THEN** a POST request is sent to `/api/projects`
 - **AND** the client sends WebSocket `project:bind` for the returned project id
-- **AND** the selected directory becomes the active project after the `project:bound` response has reinitialized project-scoped data
+- **AND** the selected directory becomes the active project after the `project:bound` response has reinitialized project-scoped data, which follows the completed API add or reactivate step
 - **AND** the add-project dialog closes
 
 #### Scenario: Manual path fallback
 - **WHEN** the operator expands the manual path section in the add-project dialog and submits a path
 - **THEN** a POST request is sent to `/api/projects`
+- **AND** the client accepts any non-empty string without absolute-path validation and leaves path validation to the server
 - **AND** the client sends WebSocket `project:bind` for the returned project id
 - **AND** the selected directory becomes the active project after the `project:bound` response has reinitialized project-scoped data
 - **AND** the add-project dialog closes
@@ -70,7 +75,7 @@ The web UI SHALL display a loading indicator during project switching. The loadi
 - **AND** the indicator disappears when the project data is loaded
 
 ### Requirement: Project selector shows one unified navigable list
-The project selector SHALL render one flat, unified, navigable list whose sources are the UNION of existing WebUI projects and CLI-registered Stores from `openspec store list --json`. A registered Store is an ordinary OpenSpec project root and SHALL appear by default in the unified list even when it was not separately added to the WebUI project registry. The selector SHALL NOT render a `Registered Stores` section, region, heading, second list, Store-only sidebar, or a separate `Open Store` row action. Selecting a Store row SHALL use the same normal project selection/activation/binding behavior as any other project row and SHALL NOT require a second manual add-project step. Internal persistence choices are implementation detail; only observable behavior is specified.
+The project selector SHALL render one flat, unified, navigable list from the UNION of WebUI projects and CLI-registered Stores from `openspec store list --json`. A registered Store is an ordinary project root and SHALL appear by default even if not in the WebUI registry. The selector SHALL NOT render any Store-only section, list, sidebar, or `Open Store` action. Selecting a Store row SHALL behave like any project row. Persistence is implementation detail.
 
 #### Scenario: Store-only registration appears in the unified list
 - **WHEN** the CLI reports a registered Store whose canonical normalized root path is not a WebUI project
@@ -79,12 +84,13 @@ The project selector SHALL render one flat, unified, navigable list whose source
 
 #### Scenario: Store-only row is selectable like any project
 - **WHEN** the operator selects a Store-only row in the unified list
-- **THEN** the row activates and binds using the same selection/activation flow as any project row
+- **THEN** the row activates and binds using the same normal selection/activation/binding flow as any project row
 - **AND** the operator does not need a second manual add-project step
 
 #### Scenario: Selector renders one flat list
 - **WHEN** the operator opens the project selector with both WebUI projects and registered Stores
 - **THEN** all rows render in one flat navigable list without a Store-only grouping or heading
+- **AND** no `Registered Stores` section, region, heading, second list, Store-only sidebar, or separate `Open Store` row action is rendered
 
 ### Requirement: Merge sources by canonical normalized root path
 The system SHALL merge WebUI projects and registered Stores by canonical normalized filesystem root path into exactly one row. When a WebUI project and a registered Store share a canonical root, the system SHALL render one row enriched with a `Store` badge and store id. Distinct roots SHALL render as distinct rows. Rows SHALL NOT be filtered out on the basis of Store registration state.
@@ -104,7 +110,7 @@ The system SHALL merge WebUI projects and registered Stores by canonical normali
 - **AND** the two sources merge into a single row
 
 ### Requirement: Selector rows express Store relationships without hierarchy
-Project rows SHALL express relationships using only official Store concepts and SHALL NOT use master/slave, parent/child, owner, or any other terminology implying hierarchy or Store ownership. A project whose canonical root path is a registered Store root SHALL show a `Store` badge. A project that declares a `store:` pointer SHALL show a concise pointer/planning-destination badge (for example `Points to: <id>`), where the pointer's resolved root source is `declared`. A project that declares `references:` SHALL show a `References: N` badge where N is the number of read-only references.
+Project rows SHALL express relationships using only official Store concepts and SHALL NOT use master/slave, parent/child, owner, or any other terminology implying hierarchy or Store ownership. Rows SHALL show a `Store` badge for registered Store roots, a concise pointer/planning-destination badge for projects with a declared `store:` pointer, and a `References: N` badge for projects that declare `references:`.
 
 #### Scenario: Store root row shows Store badge
 - **WHEN** the selector renders a row whose canonical root path is a registered Store root
@@ -112,23 +118,28 @@ Project rows SHALL express relationships using only official Store concepts and 
 - **AND** no parent/child or ownership terminology is used
 
 #### Scenario: Pointer project shows planning-destination badge
-- **WHEN** the selector renders a project that declares a `store:` pointer with a declared root source
+- **WHEN** the selector renders a project that declares a `store:` pointer whose resolved root source is `declared`
 - **THEN** the row shows a concise pointer badge such as `Points to: <id>`
 - **AND** the badge uses pointer terminology rather than hierarchy terminology
 
 #### Scenario: References project shows count badge
 - **WHEN** the selector renders a project that declares `references:`
-- **THEN** the row shows a `References: N` badge where N is the number of references
+- **THEN** the row shows a `References: N` badge where N is the number of read-only references
 - **AND** the references are presented as read-only context
 
 ### Requirement: Selector header shows official Store documentation links
-The project selector SHALL render visible Store documentation links in its HEADER near the list context, and SHALL NOT reproduce or summarize Store concepts, setup, registration, removal, or lifecycle instructions in the WebUI — Stores are beta and the official documentation is authoritative and live. The links SHALL use centralized constants pointing to the official current `main` pages: the Store guide `https://github.com/Fission-AI/OpenSpec/blob/main/docs/stores-beta/user-guide.md` and the Store CLI reference `https://github.com/Fission-AI/OpenSpec/blob/main/docs/cli.md#stores-standalone-openspec-repos`, with suggested visible labels `OpenSpec Stores Guide` and `Store CLI Reference` (localized equivalents). The links SHALL remain visible whether Store discovery succeeds, reports no Stores, or is unavailable, and discovery errors SHALL be non-blocking.
+The project selector SHALL render visible Store documentation links in its HEADER near the list context, using centralized constants for the official current `main` Store guide and Store CLI reference pages. The WebUI SHALL NOT reproduce or summarize Store concepts, setup, registration, removal, or lifecycle instructions; Stores are beta and the official docs are authoritative. The links SHALL stay visible whatever the discovery outcome, and discovery errors SHALL be non-blocking.
 
 #### Scenario: Header renders both exact current links
 - **WHEN** the operator opens the project selector
 - **THEN** the selector header visibly renders a link to `https://github.com/Fission-AI/OpenSpec/blob/main/docs/stores-beta/user-guide.md`
 - **AND** the selector header visibly renders a link to `https://github.com/Fission-AI/OpenSpec/blob/main/docs/cli.md#stores-standalone-openspec-repos`
 - **AND** both links use the shared centralized constants
+- **AND** the suggested visible labels are `OpenSpec Stores Guide` and `Store CLI Reference` (or localized equivalents)
+
+#### Scenario: Header links stay visible when discovery succeeds
+- **WHEN** Store discovery succeeds
+- **THEN** the selector header keeps the Store guide and Store CLI reference links visible
 
 #### Scenario: Header links stay visible when discovery is empty
 - **WHEN** Store discovery reports no Stores
@@ -142,8 +153,8 @@ The project selector SHALL render visible Store documentation links in its HEADE
 
 #### Scenario: WebUI does not summarize Store lifecycle instructions
 - **WHEN** the project selector renders its Store documentation links
-- **THEN** the WebUI does not reproduce or summarize Store setup, registration, removal, or lifecycle instructions
-- **AND** it points to the official documentation instead
+- **THEN** the WebUI does not reproduce or summarize Store concepts, setup, registration, removal, or lifecycle instructions
+- **AND** it points to the official documentation instead, which is authoritative and live
 
 ### Requirement: Add-project directory list stays responsive for large folders
 The add-project dialog SHALL list subdirectories that contain an `openspec/` folder before the other subdirectories, keeping name order inside each group. It SHALL offer a filter input that narrows the listed subdirectories by a case-insensitive name match without requesting the directory again. It SHALL render at most 200 matching entries at first and SHALL offer a control that reveals the remaining matches. Navigating to another directory SHALL clear the filter and reset the rendered limit.

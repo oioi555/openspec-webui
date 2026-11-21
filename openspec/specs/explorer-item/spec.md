@@ -4,8 +4,16 @@
 Define the ExplorerItem component that wraps a list item with context menu support, click handling, and selection state styling for the Explorer Pane.
 
 ## Requirements
+
 ### Requirement: ExplorerItem component
-The system SHALL provide an `ExplorerSectionItem` component in `$lib/components/shared/explorer-section/explorer-section-item.svelte` that wraps a list item with context menu support, click handling, and selection state styling. The component SHALL accept `path` (string for tab path identification), `section` (ExplorerSection for layout focus), `kind` (ItemContextMenuKind for context menu generation), `name` (string for display and menu), `date` (optional string for metadata display), `specDeltaCount` (optional number for metadata display), `taskProgress` (optional object with done/total/percentage for metadata display), `showProgress` (optional boolean to render progress bar), `displayName` (optional string to override name display), `class` (optional string for additional styling), `onItemSelected` (optional callback), and a `children` snippet for additional content. The component SHALL internally determine the active selection state by comparing `path` with the active tab in `tabStore`. The component SHALL internally generate context menu items via `createItemContextMenuItems` based on `kind` and `name`, rather than accepting them as a prop.
+The system SHALL provide an `ExplorerSectionItem` component in `$lib/components/shared/explorer-section/explorer-section-item.svelte` that wraps a list item with context menu support, click handling, and selection styling. The component SHALL determine its active state by comparing `path` with the active tab in `tabStore`, and SHALL generate context menu items internally via `createItemContextMenuItems` from `kind` and `name` rather than accepting them as a prop.
+
+#### Scenario: Component props
+- **WHEN** a consumer renders an `ExplorerSectionItem`
+- **THEN** it can pass `path` (string for tab path identification), `section` (ExplorerSection for layout focus), `kind` (ItemContextMenuKind for context menu generation), and `name` (string for display and menu)
+- **AND** it can pass optional `date` (string) and `specDeltaCount` (number) for metadata display, `taskProgress` (object with done/total/percentage for metadata display), and `showProgress` (boolean to render a progress bar)
+- **AND** it can pass optional `displayName` (string to override name display), `class` (string for additional styling), `onItemSelected` (callback), and a `children` snippet for additional content
+- **AND** context menu items are not accepted as a prop
 
 #### Scenario: Render item with context menu
 - **WHEN** an ExplorerSectionItem is rendered with `kind="spec"` and `name="my-spec"`

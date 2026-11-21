@@ -2,7 +2,9 @@
 
 ## Purpose
 Define reusable shared UI primitives that standardize state presentation, command affordances, section headers, and tab navigation across the application.
+
 ## Requirements
+
 ### Requirement: ErrorBanner component
 The system SHALL provide an `ErrorBanner` component in `$lib/components/ui/error-banner/` that renders a styled error container. The component SHALL accept an `error` message string prop and an optional `onRetry` callback prop. When `onRetry` is provided, the component SHALL render a retry button whose label is localized for the active locale.
 
@@ -74,11 +76,15 @@ The system SHALL provide a `DialogHeader` component in `$lib/components/ui/dialo
 - **THEN** it renders the title and close button without an icon
 
 ### Requirement: ExplorerSection component
-The system SHALL provide an `ExplorerSection` component in `$lib/components/shared/explorer-section/` that renders a collapsible section with header and content area. The component SHALL accept `title` (string), `count` (number), `open` (boolean), `focused` (boolean, optional), `onToggle` (callback), an optional `icon`, an optional `headerExtra` slot, `emptyMessage` (string, optional), `emptyIcon` (Component, optional), and a default slot for content. The header SHALL display the icon, title in uppercase tracking-wider text, a count badge, and a chevron icon indicating collapsed/expanded state. When `emptyMessage` is provided and the children snippet produces no content (i.e., the section is empty), the component SHALL render an `EmptyState` with the `emptyMessage` and optional `emptyIcon` instead of rendering the children.
+The system SHALL provide an `ExplorerSection` component in `$lib/components/shared/explorer-section/` rendering a collapsible section with header, content area, and the props listed below. The header SHALL display the icon, title in uppercase tracking-wider text, a count badge, and a collapsed/expanded chevron. With `emptyMessage` set and no child content, it SHALL render an `EmptyState` (with `emptyMessage` and optional `emptyIcon`) instead of the children.
+
+#### Scenario: Accept section props
+- **WHEN** an ExplorerSection is used
+- **THEN** it accepts `title` (string), `count` (number), `open` (boolean), `focused` (boolean, optional), `onToggle` (callback), an optional `icon`, an optional `headerExtra` slot, `emptyMessage` (string, optional), `emptyIcon` (Component, optional), and a default slot for content
 
 #### Scenario: Render expanded section
 - **WHEN** an ExplorerSection is rendered with `title="ACTIVE CHANGES"`, `count={3}`, and `open={true}`
-- **THEN** the section header shows the icon, title, count badge with "3", and a down chevron
+- **THEN** the section header shows the icon, title in uppercase tracking-wider text, count badge with "3", and a down chevron
 - **AND** the content area is visible
 
 #### Scenario: Render collapsed section
@@ -184,7 +190,7 @@ The system SHALL provide a `copyToClipboard` function in `$lib/utils.ts` that ac
 - **AND** this is an accepted divergence from the shared utility pattern
 
 ### Requirement: Card surface primitives
-The system SHALL provide reusable Card surface primitives in `$lib/components/ui/card/` for standard container, header, title, description, content, and footer layouts. Feature surfaces that use the shared Card pattern SHALL compose these primitives directly or through thin shared wrappers instead of duplicating feature-local card container markup. Dashboard section wrappers built on shared `SurfaceCard` styling SHALL use a consistent default shadow weight across peer panels unless a stronger elevation is explicitly required by a capability-specific requirement. Shared card and surface primitives SHALL support a restrained radius hierarchy where major outer shells may retain modest rounding, while nested item/list surfaces can render with smaller radius or no visible radius to avoid stacked card-in-card chrome. Compound dashboard task items MAY retain a small-radius bounded surface when they contain internal sub-rows whose separators must remain visually distinct from item boundaries.
+The system SHALL provide reusable Card primitives in `$lib/components/ui/card/`, as listed in the import scenario. Shared Card surfaces SHALL compose these primitives directly or through thin wrappers instead of duplicating card markup. Peer Dashboard `SurfaceCard` wrappers SHALL share one default shadow weight unless a capability-specific requirement explicitly needs stronger elevation. Card and surface primitives SHALL support a restrained radius hierarchy without stacked card-in-card chrome.
 
 #### Scenario: Import Card primitives from shared UI
 - **WHEN** a feature component imports from `$lib/components/ui/card/`
@@ -204,7 +210,7 @@ The system SHALL provide reusable Card surface primitives in `$lib/components/ui
 #### Scenario: Render dashboard section surfaces consistently
 - **WHEN** the Dashboard renders peer section panels such as Active Changes and Recent Activity
 - **THEN** their shared `SurfaceCard` wrappers use the same default shadow weight
-- **AND** no section appears more elevated solely because of a local shadow mismatch
+- **AND** no section appears more elevated solely because of a local shadow mismatch, unless a capability-specific requirement explicitly requires stronger elevation
 
 #### Scenario: Preserve outer shell grouping while reducing nested radius
 - **WHEN** a major Dashboard or viewer section uses a shared surface wrapper as an outer shell
@@ -213,13 +219,17 @@ The system SHALL provide reusable Card surface primitives in `$lib/components/ui
 - **AND** the resulting composition does not stack multiple large rounded containers inside each other
 
 #### Scenario: Preserve compound task item boundaries
-- **WHEN** a Dashboard Active Changes item contains both a main row and a `Next Step` sub-row
+- **WHEN** a Dashboard Active Changes item contains both a main row and a `Next Step` sub-row whose separator must remain visually distinct from item boundaries
 - **THEN** the item may render as a small-radius bounded task card with modest spacing from adjacent items
 - **AND** the `Next Step` sub-row uses a weaker internal separator or subtle background so it reads as part of the same change item
 - **AND** the item does not use large-radius floating-card styling or shadow-heavy hover treatment
 
 ### Requirement: Shared surfaces follow solid radius hierarchy
-The system SHALL apply a solid, restrained radius hierarchy across shared UI surfaces. Outer containers such as major cards, dialogs, and section shells MAY keep modest rounding. Inner list rows, dashboard items, settings controls, callouts, option cards, inset values, badges, chips, and icon boxes SHALL avoid excessive pill or large-rounded treatment unless the component's semantic role explicitly requires it. Dense list, dashboard, and settings surfaces SHALL prefer border separators, background hover states, and focus outlines over hover translation and stacked shadows.
+The system SHALL apply a solid, restrained radius hierarchy across shared UI surfaces. Outer containers such as major cards, dialogs, and section shells MAY keep modest rounding. Inner surfaces SHALL avoid excessive pill or large-rounded treatment unless the component's semantic role explicitly requires it. Dense list, dashboard, and settings surfaces SHALL prefer border separators, background hover states, and focus outlines over hover translation and stacked shadows.
+
+#### Scenario: Inner surfaces covered by the radius hierarchy
+- **WHEN** inner list rows, dashboard items, settings controls, callouts, option cards, inset values, badges, chips, or icon boxes render
+- **THEN** they avoid excessive pill or large-rounded treatment unless their semantic role explicitly requires it
 
 #### Scenario: Inner dashboard items render as solid rows
 - **WHEN** the Dashboard renders Active Changes or Recent Activity inside an outer section shell
@@ -307,7 +317,7 @@ The system SHALL provide shared validation severity semantics for error, warning
 - **THEN** it uses the shared info severity icon, label, and neutral or informational visual tone
 
 ### Requirement: Shared validation status semantics
-The system SHALL provide shared validation status semantics for target and result states including not-run, passed, failed, warning, stale, unknown, and info. The shared semantics SHALL define the canonical label, icon, icon-box tone, and badge tone for each state. Components that render validation status SHALL consume the shared semantics instead of defining local status icon or badge mappings. The reusable status indicator SHALL also support a compact icon-only presentation for list-row use via its `minimal` format.
+The system SHALL provide shared validation status semantics for target and result states including not-run, passed, failed, warning, stale, unknown, and info. The shared semantics SHALL define each state's canonical label, icon, icon-box tone, and badge tone. Components rendering validation status SHALL consume them instead of local icon or badge mappings. The status indicator SHALL also support a compact icon-only `minimal` format for list rows.
 
 #### Scenario: Render inline validation target status
 - **WHEN** an inline validation target status renders a passed, failed, warning, stale, not-run, or unknown state
@@ -366,4 +376,3 @@ The system SHALL provide shared task-progress icon semantics for summary surface
 #### Scenario: Render complete-task summary icon
 - **WHEN** a task summary surface renders aggregate progress with `total > 0` and `done = total`
 - **THEN** the shared task-progress icon semantics return a success `IconBox` tone
-

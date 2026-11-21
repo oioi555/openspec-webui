@@ -6,7 +6,7 @@ Expose capability specs through the Explorer Pane and open spec content in the t
 ## Requirements
 
 ### Requirement: Catalog capability specs
-The system SHALL discover capability specs recursively under `specs/`, matching nested `openspec/specs/**/spec.md` files at any depth in addition to top-level `specs/<capability>/spec.md` files, sort them alphabetically by default, and display them in the Explorer Pane's SPECS collapsible section. A directory that directly contains a `spec.md` file SHALL count as a capability; a parent directory that contains only nested directories and no direct `spec.md` SHALL NOT be rendered as a capability. The system SHALL tolerate deleted retired spec files by omitting them from discovery without errors. The operator SHALL be able to switch the SPECS section between `Name` ordering and `Date` ordering from the section header. When `Date` ordering is selected, specs SHALL be sorted by last modification datetime descending. Spec rows SHALL display a compact trailing validation icon only when the latest validation target status for that spec is `failed`, `warning`, or `info`.
+The system SHALL discover capability specs recursively under `specs/` at any depth, sort them alphabetically by default, and display them in the Explorer Pane's SPECS collapsible section. Only a directory that directly contains a `spec.md` SHALL count as a capability. Deleted retired spec files SHALL be omitted without errors. The SPECS header SHALL switch between `Name` and `Date` ordering. Spec rows SHALL show a trailing validation icon only for `failed`, `warning`, or `info` status.
 
 #### Scenario: List available capabilities in Explorer by default name order
 - **WHEN** the workspace contains one or more spec capability directories
@@ -17,6 +17,7 @@ The system SHALL discover capability specs recursively under `specs/`, matching 
 - **WHEN** the workspace contains a spec file at `specs/network/auth/` so the full path is `openspec/specs/network/auth/spec.md`
 - **THEN** the Explorer Pane's SPECS section lists the nested capability
 - **AND** the nested capability renders and opens exactly like a top-level capability
+- **AND** nested `openspec/specs/**/spec.md` files at any depth are matched in addition to top-level `specs/<capability>/spec.md` files
 
 #### Scenario: Skip empty parent directories as capabilities
 - **WHEN** a directory under `specs/` contains only subdirectories and no direct `spec.md` file
@@ -29,8 +30,12 @@ The system SHALL discover capability specs recursively under `specs/`, matching 
 - **AND** discovery continues without raising an error
 
 #### Scenario: Sort specs by last modification datetime
-- **WHEN** the operator selects `Date` ordering in the SPECS section
-- **THEN** the Explorer Pane's SPECS section lists specs from newest to oldest by `lastModified`
+- **WHEN** the operator selects `Date` ordering from the SPECS section header
+- **THEN** the Explorer Pane's SPECS section lists specs from newest to oldest by `lastModified` (last modification datetime descending)
+
+#### Scenario: Switch back to name ordering
+- **WHEN** the operator selects `Name` ordering from the SPECS section header
+- **THEN** the SPECS section lists specs alphabetically
 
 #### Scenario: Show an empty spec list in Explorer
 - **WHEN** the workspace contains no spec capability directories
@@ -78,24 +83,26 @@ The system SHALL display each spec entry with a Calendar icon and the last modif
 - **THEN** the second line shows a Calendar icon followed by the datetime in canonical `YYYY-MM-DD HH:mm` format reflecting the browser's local timezone
 
 ### Requirement: Render spec content
-The system SHALL load a spec by capability name when the operator clicks it in the Explorer Pane, SHALL open a tab in the Main Viewer rendering `spec.md` content, and SHALL display the spec's last modification datetime using the same compact metadata style as other views: a Calendar icon followed by the canonical `YYYY-MM-DD HH:mm` string when available, or `Specification` as fallback. The SpecViewer heading icon SHALL use the same `FileText`-based success color treatment as the Dashboard Specs summary card so spec surfaces share a consistent visual identity.
+The system SHALL load a spec by capability name when the operator clicks it in the Explorer Pane, SHALL open a Main Viewer tab rendering `spec.md`, and SHALL display the spec's last modification datetime in the compact metadata style of other views. The SpecViewer heading icon SHALL use the same `FileText`-based success color treatment as the Dashboard Specs summary card so spec surfaces share a consistent visual identity.
 
 #### Scenario: View a capability spec
 - **WHEN** the operator clicks a capability that has `spec.md` in the Explorer Pane
 - **THEN** a tab opens in the Main Viewer
 - **AND** the tab renders the specification content
 - **AND** no design sub-tab is shown
-- **AND** the header subtitle shows a Calendar icon and the canonical last modification datetime
+- **AND** the header subtitle shows a Calendar icon and the canonical `YYYY-MM-DD HH:mm` last modification datetime
+- **AND** when no datetime is available the subtitle falls back to `Specification`
 - **AND** the heading icon uses the shared spec color treatment
 
 ### Requirement: Catalog change spec deltas
-The system SHALL discover spec delta documents recursively under each change's `specs/` directory, matching nested `changes/<name>/specs/**/spec.md` files at any depth in addition to top-level `changes/<name>/specs/<capability>/spec.md` files. A directory that directly contains a `spec.md` file SHALL count as a spec delta whose capability identity is the path of that directory relative to the change's `specs/` directory, using `/` as the separator. A parent directory that contains only nested directories and no direct `spec.md` SHALL NOT be counted as a spec delta. The system SHALL tolerate deleted retired spec delta files by omitting them from discovery without errors. Discovered spec deltas SHALL be sorted alphabetically by capability identity, SHALL appear in the change's dedicated Spec Deltas UI, and SHALL be included in Explorer Pane and Dashboard spec delta counts. Spec deltas SHALL NOT be rendered as regular change file groups or Other Files.
+The system SHALL discover spec deltas recursively at any depth under each change's `specs/`. Only a directory that directly contains a `spec.md` SHALL count as a spec delta, identified by its `/`-separated path relative to the change's `specs/`. Deleted retired deltas SHALL be omitted without errors. Deltas SHALL be sorted alphabetically by identity, shown in the Spec Deltas UI, and counted in Explorer Pane and Dashboard. Deltas SHALL NOT be rendered as change file groups or Other Files.
 
 #### Scenario: Discover nested change spec deltas
 - **WHEN** a change contains a spec delta at `specs/network/auth/` so the full path is `openspec/changes/<name>/specs/network/auth/spec.md`
 - **THEN** the parsed change includes that spec delta
 - **AND** its capability identity is `network/auth`
 - **AND** ChangeViewer Spec Deltas lists it with that capability identity
+- **AND** nested `changes/<name>/specs/**/spec.md` files at any depth are matched in addition to top-level `changes/<name>/specs/<capability>/spec.md` files
 
 #### Scenario: Skip empty parent directories as spec deltas
 - **WHEN** a change's `specs/network/` directory contains only nested directories and no direct `spec.md`

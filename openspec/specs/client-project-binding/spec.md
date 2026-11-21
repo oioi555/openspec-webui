@@ -4,6 +4,7 @@
 Define how WebSocket clients bind to projects and receive project-scoped updates.
 
 ## Requirements
+
 ### Requirement: Client-project binding on WebSocket connect
 When a WebSocket client connects, the system SHALL assign the client to the global default project. The system SHALL send a `connection:init` message containing `activeProjectId` (the client's bound project ID). The system SHALL increment the reference count of the bound project session.
 
@@ -21,7 +22,7 @@ When a WebSocket client connects, the system SHALL assign the client to the glob
 - **AND** the client receives `connection:init` with `activeProjectId: null`
 
 ### Requirement: Client-project binding on project switch
-The system SHALL provide a WebSocket message type `project:bind` that a client can send to switch or confirm its bound project. Upon receiving `project:bind` with a valid project ID, the system SHALL increment the new project session's reference count (creating the session on demand if needed), decrement the old project session's reference count when the target differs from the current binding, update the client's binding, and send a `project:bound` message to the requesting client with the new project ID as `activeProjectId` and the project's current data. The `project:bound` message SHALL remain the authoritative acknowledgment that the client's project binding has changed, even when a REST workflow has already updated the global default project or the client's local selection state.
+The system SHALL accept a WebSocket `project:bind` message to switch or confirm a client's binding. For a valid project ID that differs from the current binding, it SHALL update session reference counts and the binding. For any valid project ID, it SHALL then send the client `project:bound` with `activeProjectId` and current project data. `project:bound` SHALL remain the authoritative acknowledgment, even when a REST workflow already changed the global default project or the client's selection.
 
 #### Scenario: Client switches to a different project
 - **WHEN** a client sends `{ type: 'project:bind', projectId: 'def456' }`
@@ -41,6 +42,11 @@ The system SHALL provide a WebSocket message type `project:bind` that a client c
 - **THEN** the client still sends `project:bind` for the created or reactivated project
 - **AND** the server responds with `project:bound` containing that project's current data
 - **AND** the client's project-scoped refresh runs only after that acknowledgment
+
+#### Scenario: Client binds to its currently bound project
+- **WHEN** a client sends `project:bind` with the project ID it is already bound to
+- **THEN** no session refCount changes, because the target does not differ from the current binding
+- **AND** the client receives `project:bound` with that project ID as `activeProjectId` and its current data
 
 ### Requirement: Per-client file change routing
 The system SHALL route `data:refresh` WebSocket messages only to clients whose bound project matches the event's project. Clients bound to a different project SHALL NOT receive refresh events for other projects.

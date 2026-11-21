@@ -6,11 +6,19 @@ Generates and surfaces copyable OpenSpec commands in the web UI using tool-ident
 ## Requirements
 
 ### Requirement: Show workspace-only command buttons on Dashboard and Changes
-The system SHALL render copy-command buttons inline within the ACTIVE CHANGES section header surface using the `CommandChip` component from `$lib/components/shared/command-chip/`, whether that surface is shown in the persistent Explorer Pane or the temporary narrow-width Home drawer. The system SHALL include `propose` and `explore` only when those commands are present in the CLI-reported `workflows` list for the active project and are enabled via visibility settings, SHALL include `new` only when that command is present in the CLI-reported `workflows` list, is available, and is enabled, SHALL include `bulk-archive` only when at least one active change is fully complete and that command is present in the CLI-reported `workflows` list, is available, and is enabled, SHALL NOT include `continue`, `ff`, `apply`, `update`, `verify`, `sync`, or `archive` in the workspace command row, and SHALL NOT include `onboard` in the workspace command row. The row SHALL remain compact, SHALL wrap when many commands are visible, and SHALL preserve command-emphasis styling distinct from standard action buttons.
+The system SHALL render copy-command buttons inline within the ACTIVE CHANGES section header surface using the `CommandChip` component from `$lib/components/shared/command-chip/`, in the persistent Explorer Pane and the narrow-width Home drawer. The workspace command row SHALL include only `propose`, `explore`, `new`, and `bulk-archive`, each only when present in the CLI-reported `workflows` list and enabled. The row SHALL stay compact, wrap when crowded, and keep command-emphasis styling.
 
 #### Scenario: Show enabled workspace commands on Home
 - **WHEN** the operator views the Home surface and the CLI-reported `workflows` list includes `propose` and `explore`
 - **THEN** the UI shows `CommandChip` controls for `propose` and `explore` if those commands are enabled via visibility settings
+
+#### Scenario: Show new only when listed, available, and enabled
+- **WHEN** the workspace command row is rendered
+- **THEN** a `CommandChip` for `new` is shown only if `new` is present in the CLI-reported `workflows` list, is available, and is enabled
+
+#### Scenario: Hide other change-scoped commands from the workspace command row
+- **WHEN** the workspace command row is rendered and the CLI-reported `workflows` list includes `apply`, `verify`, `sync`, and `archive`
+- **THEN** no `CommandChip` or generated command text for `apply`, `verify`, `sync`, or `archive` is shown in the workspace command row
 
 #### Scenario: Hide update from the workspace command row
 - **WHEN** the workspace command row is rendered and the CLI-reported `workflows` list includes `update`
@@ -29,6 +37,7 @@ The system SHALL render copy-command buttons inline within the ACTIVE CHANGES se
 - **WHEN** multiple workspace commands are simultaneously visible
 - **THEN** the command row wraps across lines with compact spacing
 - **AND** the chips remain visually grouped apart from surrounding title / count UI
+- **AND** the chips keep command-emphasis styling distinct from standard action buttons
 
 #### Scenario: Copy a workspace command without arguments
 - **WHEN** the operator activates a workspace command button with a single detected invocation form
@@ -44,7 +53,15 @@ The system SHALL render copy-command buttons inline within the ACTIVE CHANGES se
 - **THEN** no `CommandChip` or generated command text for `onboard` is shown
 
 ### Requirement: Show change-scoped command buttons in ChangeViewer
-The system SHALL render change-scoped copy-command buttons inline within the ChangeViewer header using `CommandChip` components. The system SHALL also render change-scoped copy-command buttons within each Dashboard Active Changes list item using `CommandChip` components via `CommandShortcutBar`. The system SHALL show `apply` only when the change still has incomplete tasks, `apply` is present in the CLI-reported `workflows` list for the active project, and the command is enabled; SHALL show `continue` and `ff` for incomplete changes only when those commands are present in the CLI-reported `workflows` list, are available, and are enabled; SHALL show `update` (labeled `Update`) for any active, unarchived change when `update` is present in the CLI-reported `workflows` list and the command is enabled, regardless of task completion status; and SHALL show `sync` for any active, unarchived change that has one or more spec deltas and the command is enabled, regardless of task completion status. The system SHALL show `verify` only when the change has no incomplete tasks and the command is enabled, and SHALL show `archive` only when the change has no incomplete tasks and the command is enabled. Change-scoped command chips SHALL be ordered left-to-right by workflow stage so later-stage actions appear farther right; incomplete changes SHALL order implementation-continuation commands before `sync` with `update` immediately after `apply`, and completed changes SHALL order commands as `verify`, `update`, `sync`, `archive`. In Dashboard list items, the command chips SHALL be visually separated from the primary open-change action and SHALL be preceded by a `Next Step` cue label. The entire `Next Step` command row, including its background and label, SHALL be a non-navigating command region. The primary change summary above that row SHALL remain the explicit open-change action.
+The system SHALL render change-scoped copy-command buttons as `CommandChip` components inline within the ChangeViewer header and, via `CommandShortcutBar`, within each Dashboard Active Changes list item. Each change-scoped command SHALL be shown only when it is enabled and the task-completion, spec-delta, and CLI-reported `workflows` conditions that apply to that command hold. `update` SHALL be labeled `Update`.
+
+#### Scenario: Change-scoped command visibility conditions
+- **WHEN** a change-scoped command row is rendered for an active, unarchived change
+- **THEN** `apply` is shown only when the change has incomplete tasks, `apply` is present in the CLI-reported `workflows` list for the active project, and it is enabled
+- **AND** `continue` and `ff` are shown for incomplete changes only when present in the `workflows` list, available, and enabled
+- **AND** `update` is shown when present in the `workflows` list and enabled, regardless of task completion status
+- **AND** `sync` is shown when the change has one or more spec deltas and it is enabled, regardless of task completion status
+- **AND** `verify` and `archive` are each shown only when the change has no incomplete tasks and the command is enabled
 
 #### Scenario: Show commands for an incomplete active change in Dashboard
 - **WHEN** the Dashboard surface renders an active change with incomplete tasks and the CLI-reported `workflows` list includes `apply`, `update`, `continue`, and `ff`
@@ -133,13 +150,7 @@ The system SHALL NOT render, generate, or report the `onboard` command in any co
 - **THEN** the availability response does not include the `onboard` command
 
 ### Requirement: Generate installed-only grouped invocation candidates
-The system SHALL internally generate copyable command text from the official OpenSpec invocation forms: `/opsx:<id>`, `/opsx-<id>`, `@opsx-<id>`, `/openspec-<skill>`, `/skill:openspec-<skill>`, and `$openspec-<skill>`. Forms based on a workflow id SHALL interpolate the workflow id; forms based on a skill name SHALL interpolate the workflow's resolved skill name (for example `sync` → `openspec-sync-specs`). The system SHALL append no positional arguments for workspace-scoped commands and SHALL append `<change-name>` for change-scoped commands.
-
-For each workflow, the system SHALL build candidates exclusively from matching OpenSpec artifacts detected for the active project: repository-local artifacts and, as defined by the tool-integration-detection global-skill requirement, machine-wide (global) skill artifacts the project's agents load. For a tool that has matching Commands and Skills artifacts for the same workflow, the system SHALL use the Commands form; when only one matching delivery exists, it SHALL use that delivery. The system SHALL group effective tool candidates by their final generated command text, SHALL show every corresponding tool name on the grouped choice, and SHALL collapse duplicate evidence for the same tool and command text.
-
-For a matching skill under `.agents/skills`, the system SHALL use valid `.openspec-target` metadata to resolve the shared tree before applying any fallback. A `zed` target SHALL produce the Zed `/openspec-<skill>` candidate, an `agents` target SHALL produce the Shared `.agents` `/openspec-<skill>` candidate, an `antigravity` target SHALL produce the Antigravity `/openspec-<skill>` candidate, an `amp` target SHALL produce the Amp `/openspec-<skill>` candidate, a `gsd` target SHALL produce the GSD `/openspec-<skill>` candidate, and a `codex` target SHALL produce the Codex `$openspec-<skill>` candidate together with the slash-compatible interpretation documented by the Codex-led shared tree. When the target metadata is absent, unreadable, or invalid, the system SHALL preserve the legacy ambiguity by producing both Shared `.agents` slash and Codex dollar candidates. When the marker lists several tool ids (the OpenSpec 2.x multi-line form), the system SHALL produce, for each listed tool that reads the shared tree, that tool's documented skill form (for example `$openspec-<skill>` for Codex and `/skill:openspec-<skill>` for Kimi Code, `/openspec-<skill>` otherwise) and SHALL group the results by final command text as for any other evidence. A `<tool> own-files` entry SHALL NOT produce a shared-tree candidate for that tool, because its candidate comes from the tool's own skills folder. No shared target interpretation SHALL add unrelated supported-but-undetected tools.
-
-When exactly one distinct command string remains, activating the copy control SHALL copy it directly even when multiple detected tools share it. When two or more distinct command strings remain, activating the control SHALL open a menu with one entry per command string and SHALL copy only after the operator selects an entry. When no matching installed artifact is detected for a workflow, the system SHALL hide that workflow's command shortcut on that surface. The selector SHALL NOT offer supported-but-undetected tools, an `Other tool…` entry, or custom command input. The system SHALL NOT auto-copy a previously selected candidate and SHALL NOT persist a tool or form selection globally, per repository, or per command.
+The system SHALL internally generate copyable command text from the official OpenSpec invocation forms: `/opsx:<id>`, `/opsx-<id>`, `@opsx-<id>`, `/openspec-<skill>`, `/skill:openspec-<skill>`, and `$openspec-<skill>`. Workflow-id forms SHALL interpolate the workflow id, and skill-name forms SHALL interpolate the workflow's resolved skill name. The system SHALL append no positional arguments for workspace-scoped commands and SHALL append `<change-name>` for change-scoped commands.
 
 #### Scenario: One tool with one matching delivery copies directly
 - **WHEN** one tool has a matching Commands or Skills artifact for a workflow
@@ -222,10 +233,12 @@ When exactly one distinct command string remains, activating the copy control SH
 #### Scenario: Skill-based forms interpolate the skill name
 - **WHEN** a matching skill artifact is selected for the `sync` workflow
 - **THEN** the generated command uses the resolved `openspec-sync-specs` skill name with that tool's detected skill invocation form
+- **AND** workflow-id based forms such as `/opsx:<id>` interpolate the workflow id instead
 
 #### Scenario: Change-scoped candidates append the change name
 - **WHEN** the operator selects or directly copies a candidate for a change-scoped command
 - **THEN** the copied text appends the current change name
+- **AND** workspace-scoped candidates append no positional arguments
 
 #### Scenario: No last-candidate auto-copy
 - **WHEN** the operator previously selected a grouped candidate and later activates a shortcut that still has multiple distinct command strings
@@ -244,11 +257,11 @@ When exactly one distinct command string remains, activating the copy control SH
 - **THEN** the system presents a single `/openspec-<skill>` candidate for Claude Code
 
 ### Requirement: Generate SourceCraft skill prompt candidates
-The system SHALL represent SourceCraft's documented natural-language skill activation as a stable invocation form and SHALL generate a copyable `use the openspec-<skill> skill` prompt only from matching SourceCraft Skills evidence. The form SHALL interpolate the workflow's canonical OpenSpec skill name. Workspace-scoped prompts SHALL contain no positional argument, while change-scoped prompts SHALL append ` for <change-name>`. Matching SourceCraft Commands evidence SHALL retain the existing Commands-first priority and use `/opsx-<workflow-id>` instead of offering a second SourceCraft Skills choice for the same workflow.
+The system SHALL represent SourceCraft's natural-language skill activation as a stable invocation form, generating a copyable `use the openspec-<skill> skill` prompt only from matching SourceCraft Skills evidence and interpolating the workflow's canonical OpenSpec skill name. Workspace-scoped prompts SHALL have no positional argument; change-scoped prompts SHALL append ` for <change-name>`. Matching SourceCraft Commands evidence SHALL keep Commands-first priority and use `/opsx-<workflow-id>`.
 
 #### Scenario: Generate a SourceCraft workspace skill prompt
 - **WHEN** SourceCraft Skills evidence contains `openspec-propose` and no SourceCraft command exists for `propose`
-- **THEN** the `propose` shortcut candidate is `use the openspec-propose skill`
+- **THEN** the `propose` shortcut candidate is `use the openspec-propose skill`, following SourceCraft's documented natural-language skill activation
 - **AND** the candidate is attributed to SourceCraft
 
 #### Scenario: Generate a SourceCraft change-scoped skill prompt
@@ -259,6 +272,7 @@ The system SHALL represent SourceCraft's documented natural-language skill activ
 - **WHEN** SourceCraft has matching Commands and Skills evidence for the same workflow
 - **THEN** the candidate uses `/opsx-<workflow-id>`
 - **AND** no natural-language SourceCraft Skills candidate is added for that workflow
+- **AND** no second SourceCraft Skills choice is offered for the same workflow
 
 #### Scenario: Group an identical SourceCraft prompt candidate
 - **WHEN** multiple detected evidence entries produce the same final SourceCraft prompt text
@@ -270,11 +284,13 @@ The system SHALL represent SourceCraft's documented natural-language skill activ
 - **THEN** SourceCraft contributes no candidate for that workflow
 
 ### Requirement: Centralize workflow metadata
-The system SHALL maintain a single source of workflow metadata covering every workflow surfaced in command generation and Tools documentation, providing at minimum for each workflow its id, a user-facing label, a scope of `workspace` or `change`, and the OpenSpec skill name used by skill-based invocation forms (for example `apply` → `openspec-apply-change`, `sync` → `openspec-sync-specs`). The metadata SHALL include `update` with scope `change` and skill name `openspec-update-change`, SHALL NOT include `onboard`, SHALL NOT introduce a per-tool catalog, a generic adapter registry, an arguments schema, or a `multi-change` scope, and SHALL be the single source used to render workflow labels and skill-based invocation text.
+The system SHALL maintain a single source of workflow metadata for every workflow surfaced in command generation and Tools documentation, giving each at minimum an id, a user-facing label, a `workspace` or `change` scope, and the OpenSpec skill name used by skill-based invocation forms. It SHALL be the single source for workflow labels and skill-based invocation text, and SHALL NOT include `onboard`, a per-tool catalog, a generic adapter registry, an arguments schema, or a `multi-change` scope.
 
 #### Scenario: Workflow metadata is complete
 - **WHEN** the system resolves metadata for each workflow surfaced in the UI
 - **THEN** each workflow has an id, a user-facing label, a `workspace` or `change` scope, and a skill name
+- **AND** skill names follow the skill-based invocation forms, for example `apply` → `openspec-apply-change` and `sync` → `openspec-sync-specs`
+- **AND** the metadata is the single source used to render workflow labels and skill-based invocation text
 
 #### Scenario: Update is change-scoped with a skill name
 - **WHEN** the system resolves metadata for the `update` workflow
@@ -289,23 +305,26 @@ The system SHALL maintain a single source of workflow metadata covering every wo
 #### Scenario: Onboard is absent from workflow metadata
 - **WHEN** the system resolves workflow metadata
 - **THEN** no `onboard` entry is present
+- **AND** no per-tool catalog, generic adapter registry, or arguments schema is present
 
 #### Scenario: No multi-change scope exists
 - **WHEN** the system resolves workflow metadata for `bulk-archive`
 - **THEN** the scope is `workspace` rather than a `multi-change` scope
 
 ### Requirement: Resolve command availability from CLI workflows
-The system SHALL treat the `workflows` list reported by the OpenSpec CLI/config for the active project as the single source of truth for command availability. A command SHALL be shown only when its workflow id is present in the reported `workflows` list and its visibility preference is enabled, and the system SHALL NOT use a core/expanded dichotomy to decide display. The command availability API SHALL add `delivery`, detected integrations, and invocation-form candidates for the active project, and SHALL retain the existing fields, marking `availableExpandedCommands` as deprecated. The system SHALL continue to exclude `onboard` from every command surface even when the underlying CLI reports `onboard` as available.
+The system SHALL treat the `workflows` list reported by the OpenSpec CLI/config for the active project as the single source of truth for command availability: a command SHALL be shown only when its workflow id is in that list and its visibility preference is enabled, with no core/expanded dichotomy. The availability API SHALL add `delivery`, detected integrations, and invocation-form candidates and keep existing fields. `onboard` SHALL stay excluded from every command surface.
 
 #### Scenario: Availability gates commands by the CLI workflows list
 - **WHEN** the CLI reports `workflows` such as `["propose","explore","apply","sync","archive","verify"]` for the active project
 - **THEN** command surfaces gate every workflow on membership in that list
 - **AND** `update` and other absent workflow ids do not appear in any command surface
+- **AND** no core/expanded classification is used to decide display
 
 #### Scenario: Availability response carries delivery and detected forms
 - **WHEN** the server resolves command availability for the active project
 - **THEN** the response includes `delivery`, the detected integrations, and the detected invocation-form candidates
 - **AND** the existing `availableExpandedCommands` field remains present but is marked as deprecated
+- **AND** the other existing fields are retained
 
 #### Scenario: Onboard absent from generated commands and chips
 - **WHEN** the operator invokes any command generation or command chip surface and the underlying CLI reports `onboard` as available
@@ -322,3 +341,60 @@ The command availability API SHALL keep its `delivery` field for compatibility. 
 - **WHEN** the availability API runs against an OpenSpec 2.1.1 CLI whose config still contains `delivery: both`
 - **THEN** the response's `delivery` is `null`
 - **AND** command candidates are unchanged
+
+### Requirement: Order change-scoped command chips by workflow stage
+Change-scoped command chips SHALL be ordered left-to-right by workflow stage so later-stage actions appear farther right. For incomplete changes, implementation-continuation commands SHALL come before `sync`, with `update` immediately after `apply`. For completed changes, commands SHALL be ordered as `verify`, `update`, `sync`, `archive`.
+
+#### Scenario: Incomplete change orders update after apply
+- **WHEN** a change-scoped command row renders `apply`, `update`, and `sync` for an incomplete active change
+- **THEN** `update` appears immediately after `apply`
+- **AND** `sync` appears to the right of the implementation-continuation commands
+
+### Requirement: Dashboard Next Step command row
+In Dashboard Active Changes list items, the change-scoped command chips SHALL be visually separated from the primary open-change action and preceded by a `Next Step` cue label. The entire `Next Step` command row, including its background and label, SHALL be a non-navigating command region, and the primary change summary above it SHALL remain the explicit open-change action.
+
+#### Scenario: Next Step row is separate from the open-change action
+- **WHEN** the Dashboard renders an Active Changes item with change-scoped command chips
+- **THEN** the chips appear in a `Next Step` row visually separated from the primary change summary
+- **AND** clicking the row background or label does not open the change
+- **AND** clicking the primary change summary opens the change
+
+### Requirement: Build invocation candidates from detected artifacts
+For each workflow, the system SHALL build candidates only from matching OpenSpec artifacts detected for the active project: repository-local artifacts and the global skill artifacts defined by the tool-integration-detection global-skill requirement. A tool with matching Commands and Skills artifacts SHALL use the Commands form, otherwise its one matching delivery. Candidates SHALL be grouped by final command text with every tool name shown, collapsing duplicate evidence for a tool and text.
+
+#### Scenario: Candidates come only from detected artifacts
+- **WHEN** the system builds candidates for a workflow
+- **THEN** each candidate is backed by a matching repository-local or machine-wide (global) OpenSpec skill artifact that the project's agents load
+- **AND** duplicate evidence for the same tool and command text yields one tool entry on the grouped choice
+
+### Requirement: Resolve shared agents skill tree targets
+For a matching skill under `.agents/skills`, the system SHALL use valid `.openspec-target` metadata to resolve the shared tree before any fallback, producing the target tool's skill form. Absent, unreadable, or invalid metadata SHALL produce both the Shared `.agents` slash and Codex dollar candidates. A marker listing several tool ids SHALL produce each listed shared-tree tool's form, grouped by final command text. No interpretation SHALL add unrelated undetected tools.
+
+#### Scenario: Single-tool targets map to documented forms
+- **WHEN** a matching skill under `.agents/skills` has a valid single-tool target
+- **THEN** `zed`, `agents`, `antigravity`, `amp`, and `gsd` produce the `/openspec-<skill>` candidate attributed to Zed, Shared `.agents`, Antigravity, Amp, and GSD respectively
+- **AND** `codex` produces the Codex `$openspec-<skill>` candidate together with the slash-compatible interpretation documented by the Codex-led shared tree
+
+#### Scenario: Multi-line marker uses each tool's skill form
+- **WHEN** the marker lists several tool ids in the OpenSpec 2.x multi-line form
+- **THEN** each listed tool that reads the shared tree gets its documented skill form: `$openspec-<skill>` for Codex, `/skill:openspec-<skill>` for Kimi Code, and `/openspec-<skill>` otherwise
+- **AND** the results are grouped by final command text as for any other evidence
+- **AND** no unrelated supported-but-undetected tool is added by any shared target interpretation
+
+#### Scenario: Own-files entry produces no shared-tree candidate
+- **WHEN** the marker lists a `<tool> own-files` entry
+- **THEN** no shared-tree candidate is produced for that tool
+- **AND** that tool's candidate comes from its own skills folder
+
+### Requirement: Copy or select grouped invocation candidates
+When exactly one distinct command string remains, activating the copy control SHALL copy it directly, even when several detected tools share it. With two or more distinct strings, it SHALL open a menu with one entry per string and copy only after the operator selects one. A workflow with no matching installed artifact SHALL have its shortcut hidden on that surface. The selector SHALL NOT offer undetected tools, an `Other tool…` entry, or custom input, nor auto-copy or persist a selection.
+
+#### Scenario: Selection is never persisted
+- **WHEN** the operator selects a candidate from the menu
+- **THEN** the tool or form selection is not persisted globally, per repository, or per command
+- **AND** the menu offers no supported-but-undetected tools, `Other tool…` entry, or custom command input
+- **AND** a later activation with multiple distinct command strings opens the menu again instead of auto-copying the previous candidate
+
+#### Scenario: Unmatched workflow shortcut is hidden
+- **WHEN** no matching installed artifact is detected for a workflow
+- **THEN** that workflow's command shortcut is hidden on that surface

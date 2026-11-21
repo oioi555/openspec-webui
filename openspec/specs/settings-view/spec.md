@@ -6,7 +6,7 @@ Settings view for configuring OpenSpec WebUI preferences.
 ## Requirements
 
 ### Requirement: Settings view includes validation execution preferences
-The Settings view SHALL render as a main-tab page in the Main Viewer and include a Validation section alongside the existing settings sections. The Validation section SHALL include validation execution preferences for strict mode, optional concurrency, and automatic validation runs. The Validation section SHALL participate in the existing Settings section navigation, so selecting Validation updates the visible/scroll-targeted settings content without closing or replacing the Settings tab. Other UI surfaces, including the Validation Explorer panel, SHALL be able to open Settings directly to the Validation section.
+The Settings view SHALL render as a main-tab page in the Main Viewer and include a Validation section with execution preferences for strict mode, optional concurrency, and automatic runs. The Validation section SHALL participate in the existing Settings section navigation without closing or replacing the Settings tab. Other UI surfaces, including the Validation Explorer panel, SHALL be able to open Settings directly to the Validation section.
 
 #### Scenario: Configure validation preferences from Settings
 - **WHEN** the operator opens the Validation section in Settings
@@ -18,15 +18,18 @@ The Settings view SHALL render as a main-tab page in the Main Viewer and include
 - **THEN** persistent validation preference controls are not rendered in the Explorer panel header
 - **AND** those preferences remain configurable from Settings
 
+#### Scenario: Navigate to Validation within Settings
+- **WHEN** the operator selects Validation in the Settings section navigation
+- **THEN** the visible or scroll-targeted settings content updates to the Validation section
+- **AND** the Settings tab is not closed or replaced
+
 #### Scenario: Open Settings directly to Validation section
 - **WHEN** another UI surface requests Settings with the Validation section selected
 - **THEN** the Settings tab opens or focuses in the Main Viewer
 - **AND** the Validation settings section is selected or scrolled into view
 
 ### Requirement: Settings provides an independent Language section
-The Settings view SHALL expose Language as an independent section in its section navigation rather than placing the WebUI locale control inside General. The Language section SHALL present the two language concerns as separate labeled sub-blocks: a WebUI display-language block and an OpenSpec artifact-language block. The WebUI display-language block SHALL render as a labeled row with the locale selector aligned to the right, consistent with the label-plus-control layout used by other settings sections. The section SHALL NOT present the two settings as synchronized.
-
-The artifact-language block SHALL show a one-line body description stating that artifact language is configured separately in each OpenSpec project's context, and SHALL provide a help affordance attached to the artifact-language block heading. Activating the help affordance SHALL reveal guidance that directs existing projects to edit `context` in `openspec/config.yaml` and states that OpenSpec structural headings and `SHALL` / `MUST` keywords remain in English. The Language section header SHALL link to the official OpenSpec multi-language documentation through a shared documentation URL, following the docs-link presentation used by the other settings sections. A copyable `openspec init --language "<language>"` command example for new projects SHALL appear below the artifact-language heading, use the human-readable language corresponding to the active WebUI locale as a convenient example, and SHALL be labeled so it is not presented as an update command for the active project. Copying SHALL place the command on the clipboard only and SHALL NOT execute it.
+The Settings view SHALL expose Language as an independent section in its section navigation rather than placing the WebUI locale control inside General. The section SHALL present a WebUI display-language block and an OpenSpec artifact-language block as separate labeled sub-blocks, and SHALL NOT present the two settings as synchronized. The display-language block SHALL be a labeled row with the locale selector right-aligned, like the label-plus-control layout of other sections.
 
 #### Scenario: Navigate directly to Language
 - **WHEN** the operator selects Language in the Settings section navigation
@@ -117,3 +120,29 @@ Every OpenSpec documentation link shown in Settings and the Add Project dialog S
 #### Scenario: Open the init reference
 - **WHEN** the operator follows the init reference link in the Tools section
 - **THEN** the official documentation page for `openspec init` opens
+
+### Requirement: Language section guides per-project artifact language
+The artifact-language block SHALL show a one-line description that artifact language is configured separately in each OpenSpec project's context, plus a help affordance on its heading that SHALL direct existing projects to edit `context` in `openspec/config.yaml` and SHALL state that OpenSpec structural headings and `SHALL` / `MUST` keywords remain in English. The Language section header SHALL link to the official OpenSpec multi-language documentation through a shared documentation URL.
+
+#### Scenario: Help affordance reveals per-project guidance
+- **WHEN** the operator activates the help affordance on the artifact-language block heading
+- **THEN** guidance directs existing projects to edit `context` in `openspec/config.yaml`
+- **AND** states that OpenSpec structural headings and `SHALL` / `MUST` keywords remain in English
+
+#### Scenario: Header docs link uses the shared URL
+- **WHEN** the operator views the Language section header
+- **THEN** the official OpenSpec multi-language documentation link uses the shared documentation URL
+- **AND** follows the docs-link presentation used by the other settings sections
+
+### Requirement: Language section offers a copy-only new-project init command
+The artifact-language block SHALL show a copyable `openspec init --language "<language>"` command example for new projects below its heading. The example SHALL use the human-readable language of the active WebUI locale and SHALL be labeled so it is not presented as an update command for the active project. Copying SHALL place the command on the clipboard only and SHALL NOT execute it.
+
+#### Scenario: Example follows the active WebUI locale
+- **WHEN** the active WebUI locale is English
+- **THEN** the example below the artifact-language heading contains `openspec init --language "English"`
+- **AND** its label marks it as a new-project command, not an update command for the active project
+
+#### Scenario: Copy does not execute the command
+- **WHEN** the operator copies the command example
+- **THEN** the command is placed on the clipboard
+- **AND** the command is not executed

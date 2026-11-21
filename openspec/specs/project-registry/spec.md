@@ -2,9 +2,18 @@
 
 ## Purpose
 Define persistent project registration, active-project selection, and project-scoped API context for the WebUI server.
+
 ## Requirements
+
 ### Requirement: Project registry persistence
-The system SHALL maintain a project registry file at `${XDG_CONFIG_HOME:-~/.config}/openspec-webui/projects.json`. The file SHALL contain a versioned JSON object with a `version` field, a `projects` array, and an `activeProjectId` string or null. Each project entry SHALL include `id` (UUID), `path` (absolute normalized project-root path), `label` (auto-derived from directory name), `addedAt` (timestamp), and `lastOpenedAt` (timestamp). The system SHALL create the config directory and file if they do not exist at server startup. The system SHALL NOT allow duplicate paths in the registry. The system SHALL write the file atomically.
+The system SHALL maintain a project registry file at `${XDG_CONFIG_HOME:-~/.config}/openspec-webui/projects.json` holding a versioned JSON object with a `version` field, a `projects` array, and an `activeProjectId` string or null. Each project entry SHALL include `id`, `path`, `label`, `addedAt`, and `lastOpenedAt`. The system SHALL create the config directory and file at server startup if missing, SHALL NOT allow duplicate paths, and SHALL write the file atomically.
+
+#### Scenario: Project entry fields
+- **WHEN** a project entry is written to `projects.json`
+- **THEN** `id` is a UUID
+- **AND** `path` is the absolute normalized project-root path
+- **AND** `label` is auto-derived from the directory name
+- **AND** `addedAt` and `lastOpenedAt` are timestamps
 
 #### Scenario: First startup with no config directory
 - **WHEN** the server starts and `~/.config/openspec-webui/` does not exist
@@ -33,7 +42,7 @@ The system SHALL maintain a project registry file at `${XDG_CONFIG_HOME:-~/.conf
 - **AND** excludes that entry from the active in-memory registry
 
 ### Requirement: Add project via API
-The system SHALL provide a `POST /api/projects` endpoint that accepts a JSON body with a `path` string. The system SHALL validate that the path is an existing directory containing an `openspec/` subdirectory. If valid and not already registered, the system SHALL create a new project entry with a generated UUID id, auto-derived label, and current timestamps. If the normalized path is already registered, the system SHALL reactivate the existing entry instead of creating a duplicate. The system SHALL persist the updated registry to `projects.json`. The system SHALL set the newly added or reactivated project as active.
+The system SHALL provide a `POST /api/projects` endpoint taking a JSON body with a `path` string, and SHALL validate that the path is an existing directory with an `openspec/` subdirectory. A valid, unregistered path SHALL get a new entry (generated UUID id, derived label, current timestamps); an already registered normalized path SHALL reactivate the existing entry instead of duplicating it. The system SHALL persist the updated registry and set the added or reactivated project as active.
 
 #### Scenario: Add a valid project path
 - **WHEN** a POST request is sent to `/api/projects` with `{"path": "/home/user/my-repo"}`
@@ -84,7 +93,7 @@ The system SHALL provide a `DELETE /api/projects/:id` endpoint that removes the 
 - **THEN** the server responds with status 404
 
 ### Requirement: Switch active project via API
-The system SHALL provide a `POST /api/projects/:id/activate` endpoint that activates the target project as the global default. The system SHALL parse and prepare the target project's OpenSpec data before committing the switch, SHALL start a new file watcher for the target project (or reuse an existing session if one exists), SHALL NOT close any other project's watcher, SHALL update `activeProjectId` as the global default, and SHALL persist the registry. Client-local binding remains the responsibility of the WebSocket `project:bind` flow. If activation fails, the system SHALL keep the previous state intact. A malformed but readable `openspec/config.yaml` SHALL NOT by itself count as an activation failure when the system can still build degraded project data for the viewer.
+The system SHALL provide a `POST /api/projects/:id/activate` endpoint that activates the target project as the global default. The system SHALL parse and prepare the target's OpenSpec data before committing the switch, SHALL start or reuse the target's file watcher session, SHALL NOT close other projects' watchers, and SHALL update and persist `activeProjectId`. Client-local binding remains with the WebSocket `project:bind` flow. A failed activation SHALL keep the previous state intact.
 
 #### Scenario: Switch to a different project
 - **WHEN** a POST request is sent to `/api/projects/def456/activate`
@@ -101,7 +110,7 @@ The system SHALL provide a `POST /api/projects/:id/activate` endpoint that activ
 - **AND** `def456/openspec/config.yaml` is readable but malformed
 - **THEN** the system activates the project successfully
 - **AND** exposes project data with invalid planning context diagnostics
-- **AND** does not return `ACTIVATION_FAILED`
+- **AND** does not return `ACTIVATION_FAILED`, because a malformed but readable `config.yaml` does not by itself count as an activation failure when degraded project data can still be built
 
 #### Scenario: Switch to the already active project
 - **WHEN** a POST request is sent to `/api/projects/abc123/activate`
@@ -153,7 +162,7 @@ The system SHALL return structured API errors for project-management and active-
 - **AND** includes a human-readable `error` message
 
 ### Requirement: Initial project from current working directory
-The system SHALL evaluate the current working directory at startup. If the registry contains no projects and `activeProjectId` is null, and the current working directory is a valid directory containing an `openspec/` subdirectory, the system SHALL add it to the registry and set it as active, equivalent to a `POST /api/projects` call. If registered projects already exist, the system SHALL NOT change the global default based on the startup working directory. If the current working directory is not a valid OpenSpec project, the system SHALL start normally without adding a project from startup context.
+The system SHALL evaluate the current working directory at startup. When the registry has no projects, `activeProjectId` is null, and the working directory contains an `openspec/` subdirectory, the system SHALL add and activate it as a `POST /api/projects` call would. Existing registered projects SHALL keep the global default unchanged. A non-project working directory SHALL NOT add a project; the server SHALL start normally.
 
 #### Scenario: First startup with a valid current working directory
 - **WHEN** the server starts from `/home/user/my-repo`

@@ -6,7 +6,7 @@ Localization support for the OpenSpec WebUI interface.
 ## Requirements
 
 ### Requirement: Localize project initialization guidance
-The system SHALL localize the empty-state onboarding guidance, the add-project dialog hint, the setup links, and the related initialization error text in every supported locale. Command names such as `openspec init` and fixed OpenSpec terms such as `Settings`, `Dashboard`, `Archive`, `Specs`, `Specification`, `Design`, and `Spec Deltas` SHALL remain in English so they continue to match command names and project structure. When a translation is unavailable in the active locale, the system SHALL fall back to the base locale.
+The system SHALL localize the empty-state onboarding guidance, the add-project dialog hint, the setup links, and the related initialization error text in every supported locale. Command names such as `openspec init` and fixed OpenSpec terms SHALL remain in English so they keep matching command names and project structure. When a translation is unavailable in the active locale, the system SHALL fall back to the base locale.
 
 #### Scenario: Render init guidance in Japanese
 - **WHEN** the active locale is `ja`
@@ -28,8 +28,13 @@ The system SHALL localize the empty-state onboarding guidance, the add-project d
 - **THEN** they use the same localized intro copy key for the docs label
 - **AND** that copy is available in every supported locale
 
+#### Scenario: Fixed OpenSpec terms stay English in init guidance
+- **WHEN** initialization guidance, setup links, or initialization error text render in any supported locale
+- **THEN** `Settings`, `Dashboard`, `Archive`, `Specs`, `Specification`, `Design`, and `Spec Deltas` remain in English
+- **AND** the add-project dialog hint, setup links, and initialization error text are localized
+
 ### Requirement: Localize Tools section repository and init-command copy
-The system SHALL localize, in every supported locale, the Tools section copy introduced to identify the active repository and the `openspec init <active-repository-path>` command block: the active-repository label, the init-command block caption, the copy-button aria label, and the empty-state message shown when no project is active. Command tokens such as `openspec init` and fixed OpenSpec terms such as `Settings`, `Dashboard`, `Archive`, `Specs`, `Specification`, `Design`, and `Spec Deltas` SHALL remain in English so they continue to match command names and project structure. When a translation is unavailable in the active locale, the system SHALL fall back to the base locale.
+The system SHALL localize, in every supported locale, the Tools section copy for the active repository and the `openspec init <active-repository-path>` command block: the active-repository label, the block caption, the copy-button aria label, and the no-active-project empty-state message. Command tokens such as `openspec init` and fixed OpenSpec terms SHALL remain in English. When a translation is unavailable in the active locale, the system SHALL fall back to the base locale.
 
 #### Scenario: Tools section copy renders in Japanese with English init token
 - **WHEN** the active locale is `ja` and an active project is selected
@@ -51,8 +56,12 @@ The system SHALL localize, in every supported locale, the Tools section copy int
 - **THEN** the command token `openspec init` is rendered in English
 - **AND** the copied clipboard text contains the English `openspec init` token followed by the active repository path
 
+#### Scenario: Fixed OpenSpec terms stay English in Tools section copy
+- **WHEN** Tools section repository or init-command copy renders in any supported locale
+- **THEN** `Settings`, `Dashboard`, `Archive`, `Specs`, `Specification`, `Design`, and `Spec Deltas` remain in English
+
 ### Requirement: Localize Commands section per-command descriptions and config profile copy
-The system SHALL localize, in every supported locale, the Commands section copy introduced to describe each workflow command and to label the always-visible `openspec config profile` copy block: (a) one description message key per workflow command shown in the Commands section (`propose`, `explore`, `apply`, `sync`, `archive`, `update`, `new`, `continue`, `ff`, `verify`, `bulk-archive`), (b) the caption and copy-button aria label for the `openspec config profile` copy block. Command tokens such as `openspec config profile`, `openspec update`, and `openspec init` SHALL remain in English across every locale so they continue to match command names. Fixed OpenSpec terms such as `Settings`, `Dashboard`, `Archive`, `Specs`, `Specification`, `Design`, and `Spec Deltas` SHALL also remain in English. When a translation is unavailable in the active locale, the system SHALL fall back to the base locale.
+The system SHALL localize, in every supported locale, one description per workflow command shown in the Commands section, plus the caption and copy-button aria label of the always-visible `openspec config profile` copy block. Command tokens such as `openspec config profile`, `openspec update`, and `openspec init`, and fixed OpenSpec terms, SHALL remain in English in every locale. When a translation is unavailable in the active locale, the system SHALL fall back to the base locale.
 
 #### Scenario: Per-command description renders in Japanese with English command tokens
 - **WHEN** the active locale is `ja` and the operator views the Commands section
@@ -80,12 +89,13 @@ The system SHALL localize, in every supported locale, the Commands section copy 
 - **THEN** command tokens (`openspec config profile`, `openspec update`, `openspec init`) inside those key values remain in English
 - **AND** only the surrounding prose is translated
 
+#### Scenario: Every Commands-section workflow has a description key
+- **WHEN** the Commands section renders under any supported locale
+- **THEN** one description message key exists for each of `propose`, `explore`, `apply`, `sync`, `archive`, `update`, `new`, `continue`, `ff`, `verify`, and `bulk-archive`
+- **AND** `Settings`, `Dashboard`, `Archive`, `Specs`, `Specification`, `Design`, and `Spec Deltas` remain in English
+
 ### Requirement: Localize the complete Settings interface with catalog parity
-The system SHALL render all user-facing Settings navigation labels, section headings, field labels, option labels, status labels, integration-delivery labels, documentation-link labels, workflow names, workflow descriptions, captions, warnings, and accessibility labels in the active supported locale. Changing the active locale while Settings is open SHALL update that copy without requiring a page reload. CLI command tokens and OpenSpec terms explicitly designated as fixed English terms SHALL remain unchanged while their surrounding prose is localized.
-
-Every supported locale source catalog SHALL contain the same message-key set as the English base catalog, and every value SHALL be a non-empty string. Source-catalog validation SHALL run before generated fallback aliases can conceal missing translations. Non-Japanese locale catalogs SHALL NOT contain Japanese kana in localized prose. Runtime base-locale fallback SHALL remain available as a defensive mechanism for malformed or externally incomplete catalogs, but maintained source catalogs SHALL pass parity without relying on it.
-
-Workflow display names and descriptions shown in Settings SHALL resolve through one canonical metadata-to-message path so the active locale controls both values consistently. The system SHALL NOT maintain a second helper with the same public purpose but different return semantics.
+The system SHALL render all user-facing Settings copy (navigation, headings, field, option, status, and integration-delivery labels, documentation-link labels, workflow names and descriptions, captions, warnings, and accessibility labels) in the active supported locale, and SHALL update it without a page reload when the locale changes while Settings is open. CLI command tokens and designated fixed English terms SHALL remain unchanged while surrounding prose is localized.
 
 #### Scenario: Settings renders complete Japanese copy
 - **WHEN** the active locale is `ja` and the operator opens each Settings section
@@ -123,7 +133,7 @@ Workflow display names and descriptions shown in Settings SHALL resolve through 
 - **AND** no duplicate description API with conflicting message-id versus rendered-text semantics is used
 
 ### Requirement: Localize Language guidance and Zed integration copy
-The system SHALL localize the independent Language section's navigation label, headings, distinction between WebUI and artifact language, existing-project guidance, new-project command caption, documentation-link text, copy-button accessibility label, and Zed integration labels in every supported locale. Every locale SHALL map its WebUI locale to a non-empty human-readable language value suitable for the `--language` command example. The command tokens `openspec init` and `--language`, the path `openspec/config.yaml`, structural keywords `SHALL` and `MUST`, the target id `zed`, and product name `Zed` SHALL remain stable where referenced.
+The system SHALL localize, in every supported locale, the Language section's navigation label, headings, WebUI-versus-artifact language distinction, existing-project guidance, new-project command caption, documentation-link text, copy-button accessibility label, and Zed integration labels. Every locale SHALL map to a non-empty human-readable value for the `--language` command example. Fixed command tokens, paths, keywords, target ids, and product names SHALL remain stable where referenced.
 
 #### Scenario: Render complete Japanese language guidance
 - **WHEN** the active locale is `ja` and the operator opens Language
@@ -146,6 +156,10 @@ The system SHALL localize the independent Language section's navigation label, h
 - **THEN** Settings and command-choice copy render the localized surrounding text
 - **AND** retain `Zed` and `/openspec-*` unchanged
 
+#### Scenario: Language section fixed tokens stay stable
+- **WHEN** Language or Zed copy renders in any supported locale
+- **THEN** `openspec init`, `--language`, `openspec/config.yaml`, `SHALL`, `MUST`, the target id `zed`, and the product name `Zed` remain unchanged where referenced
+
 ### Requirement: Localize the tool compatibility reference dialog
 The system SHALL localize the dialog title, description, view labels, search labels and empty states, field labels, access-mode labels, scope labels, evidence-kind labels, provenance labels, warnings, close-control accessibility text, and responsive presentation copy in every supported locale. Product names, OpenSpec tool ids, commands, invocation forms, filesystem paths, version strings, and URLs SHALL remain unchanged.
 
@@ -163,3 +177,27 @@ The system SHALL localize the dialog title, description, view labels, search lab
 - **WHEN** localization source catalogs are validated
 - **THEN** every supported locale contains the complete tool-reference message-key set
 - **AND** every value is non-empty and passes the existing locale-content checks
+
+### Requirement: Keep locale source catalogs in parity
+Every supported locale source catalog SHALL contain the same message-key set as the English base catalog, with every value a non-empty string, and this validation SHALL run before generated fallback aliases can conceal missing translations. Non-Japanese locale catalogs SHALL NOT contain Japanese kana in localized prose. Runtime base-locale fallback SHALL remain a defense against malformed or externally incomplete catalogs, but maintained source catalogs SHALL pass parity without relying on it.
+
+#### Scenario: Parity validation runs before fallback aliases
+- **WHEN** a maintained locale catalog is missing a key that the English base catalog has
+- **THEN** source-catalog validation fails before generated fallback aliases are produced
+- **AND** the missing translation is not concealed by runtime fallback
+
+#### Scenario: Runtime fallback stays defensive
+- **WHEN** an externally incomplete or malformed catalog is loaded at runtime
+- **THEN** the base-locale copy is rendered for the affected keys
+- **AND** maintained source catalogs still pass parity without this fallback
+
+### Requirement: Resolve Settings workflow copy through one canonical path
+Workflow display names and descriptions shown in Settings SHALL resolve through one canonical metadata-to-message path so the active locale controls both values consistently. The system SHALL NOT maintain a second helper with the same public purpose but different return semantics.
+
+#### Scenario: Name and description follow the same locale
+- **WHEN** Settings renders a workflow row
+- **THEN** its name and description both resolve through the canonical metadata-to-message path in the active locale
+
+#### Scenario: No duplicate workflow-copy helper
+- **WHEN** the workflow-copy helpers are inspected
+- **THEN** only one helper serves the purpose of resolving workflow names and descriptions

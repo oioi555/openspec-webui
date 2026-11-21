@@ -2,20 +2,24 @@
 
 ## Purpose
 Define the Web UI CLI runtime contract for startup, host and port configuration, initial project resolution, and packaged execution.
+
 ## Requirements
+
 ### Requirement: Start a local workspace session
-The system SHALL start the WebUI without requiring a positional workspace path argument, SHALL default the port to `3001`, SHALL default the host to `127.0.0.1`, SHALL bind to the host specified by `--host <address>` when provided, SHALL bootstrap the current working directory when it points to a valid OpenSpec project root (or its `openspec/` directory). If the current working directory is not a valid OpenSpec project, the system SHALL still start normally and leave project selection to the UI. The user-facing `package.json` scripts surface SHALL be limited to the essential development commands: `dev`, `build`, `test`, and `typecheck`. npm lifecycle hooks such as `prepublishOnly` MAY remain. The CLI version displayed by `openspec-webui --version` SHALL match the current published package version defined by the package metadata source of truth.
+The system SHALL start the WebUI without requiring a positional workspace path argument, default to port `3001` and host `127.0.0.1`, and bind to the `--host <address>` value when provided. It SHALL bootstrap the current working directory when it is a valid OpenSpec project root or its `openspec/` directory; otherwise it SHALL start normally and leave project selection to the UI. The version shown by `openspec-webui --version` SHALL match the current published package version.
 
 #### Scenario: Start from a valid current working directory
 - **WHEN** the operator runs `openspec-webui` from `/home/user/my-repo`
 - **AND** the current working directory is a valid OpenSpec project
 - **THEN** the system starts normally
 - **AND** bootstraps that project into the registry as the active project
+- **AND** the same bootstrap applies when the current working directory is the project's `openspec/` directory
 
 #### Scenario: Start from a non-project current working directory
 - **WHEN** the operator runs `openspec-webui` from a directory without an `openspec/` subdirectory
 - **THEN** the system starts normally
 - **AND** no project is auto-added from the working directory
+- **AND** project selection is left to the UI
 
 #### Scenario: Reject an occupied port
 - **WHEN** the operator starts the UI on a port that is already in use
@@ -27,6 +31,11 @@ The system SHALL start the WebUI without requiring a positional workspace path a
 - **THEN** the README SHALL provide clear installation instructions (`npm install -g openspec-webui` or `npx openspec-webui`)
 - **AND** SHALL provide basic usage instructions (CLI commands, options including `--host`)
 - **AND** SHALL include a separate section for contributors (dev setup, build, test)
+
+#### Scenario: Package scripts are limited to essential development commands
+- **WHEN** a contributor inspects the user-facing `package.json` scripts
+- **THEN** the scripts surface is limited to `dev`, `build`, `test`, and `typecheck`
+- **AND** npm lifecycle hooks such as `prepublishOnly` MAY remain
 
 #### Scenario: Start with default localhost binding
 - **WHEN** the operator runs `openspec-webui` without `--host`
@@ -62,7 +71,7 @@ The system SHALL open the browser to the running UI by default using a localhost
 - **THEN** the system launches the current UI URL in the browser using localhost
 
 ### Requirement: Serve the web application shell
-The system SHALL expose the JSON API routes, the websocket endpoint, and the browser UI from the same local server, and SHALL return the SPA entry document for non-API and non-websocket paths when a built frontend is available. The frontend build pipeline SHALL use Tailwind CSS v4 via the `@tailwindcss/vite` Vite plugin, eliminating PostCSS dependencies. Frontend CSS SHALL use `@import "tailwindcss"`, `@plugin "@tailwindcss/typography"`, and `@theme` directives instead of `@tailwind` directives and a separate JavaScript config file.
+The system SHALL expose the JSON API routes, the websocket endpoint, and the browser UI from the same local server, and SHALL return the SPA entry document for non-API and non-websocket paths when a built frontend is available. The frontend build pipeline SHALL use Tailwind CSS v4 via the `@tailwindcss/vite` Vite plugin, with no PostCSS dependencies and no separate JavaScript Tailwind config file.
 
 #### Scenario: Load a deep-linked UI route
 - **WHEN** a browser requests a non-API UI path such as `/specs/<name>`
@@ -79,6 +88,7 @@ The system SHALL expose the JSON API routes, the websocket endpoint, and the bro
 - **THEN** Tailwind CSS v4 processes styles via the `@tailwindcss/vite` plugin
 - **AND** `@tailwindcss/typography` styles are loaded via CSS `@plugin`
 - **AND** no PostCSS configuration is required
+- **AND** frontend CSS uses `@import "tailwindcss"`, `@plugin "@tailwindcss/typography"`, and `@theme` directives instead of `@tailwind` directives and a separate JavaScript config file
 
 #### Scenario: Existing @apply directives remain functional
 - **WHEN** the CSS contains `@apply` directives (e.g., markdown overrides and diff styles)
@@ -86,7 +96,7 @@ The system SHALL expose the JSON API routes, the websocket endpoint, and the bro
 - **AND** the visual output matches the intended themed appearance
 
 ### Requirement: Manage theme state via custom store
-The system SHALL provide a `themeStore` object with a `value` getter that holds the current theme mode (`light`, `dark`, or `system`), a `setTheme` method to update and persist the theme, and an `initialize` method to load the saved preference on app mount. When the theme mode is `system`, the system SHALL remove the `data-theme` attribute from the `<html>` element rather than resolving to a specific light or dark value. The system SHALL listen to `prefers-color-scheme` media query changes when in System mode and re-apply the system theme. The selection SHALL be persisted to `localStorage`. The effective resolved theme (light or dark) SHALL NOT be exposed as explicit state on the store.
+The system SHALL provide a `themeStore` object with a `value` getter for the current theme mode (`light`, `dark`, or `system`), a `setTheme` method that updates the mode and persists it to `localStorage`, and an `initialize` method that loads the saved preference on app mount. In `system` mode the system SHALL remove the `data-theme` attribute from `<html>` and re-apply the system theme when `prefers-color-scheme` changes. The store SHALL NOT expose the effective resolved theme as state.
 
 #### Scenario: Initialize theme store on app mount
 - **WHEN** the application mounts
@@ -102,3 +112,9 @@ The system SHALL provide a `themeStore` object with a `value` getter that holds 
 - **WHEN** the user selects System mode
 - **THEN** the system removes the `data-theme` attribute from the `<html>` element
 - **AND** the browser's `prefers-color-scheme` media query determines the effective appearance
+- **AND** the attribute is not resolved to a specific light or dark value
+
+#### Scenario: System mode follows color scheme changes
+- **WHEN** the theme mode is `system` and the `prefers-color-scheme` media query changes
+- **THEN** the system re-applies the system theme
+- **AND** the store does not expose the effective resolved theme as explicit state

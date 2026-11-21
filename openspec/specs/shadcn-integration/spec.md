@@ -4,6 +4,7 @@
 Define the shared UI foundation for the redesigned interface using shadcn-svelte, Tailwind CSS v4, and Lucide icons.
 
 ## Requirements
+
 ### Requirement: shadcn-svelte library integration
 The system SHALL integrate shadcn-svelte as the UI component library. The `components.json` configuration file SHALL be created at the frontend root with appropriate path aliases for a plain Vite + Svelte 5 project.
 
@@ -47,15 +48,16 @@ The system SHALL replace the custom `Icon.svelte` component with `@lucide/svelte
 - **THEN** file/folder/archive icons use `@lucide/svelte` components
 
 ### Requirement: Install required shadcn-svelte components
-The system SHALL install the following shadcn-svelte components: Button, Tabs, Tooltip, ScrollArea, Collapsible, Resizable, Separator, Dialog, DropdownMenu, Sheet, Input, Badge, Progress, and Sonner. The Badge component SHALL support a `success` variant in addition to the standard variants (`default`, `secondary`, `outline`, `destructive`). General action buttons SHALL use the shared shadcn `<Button>` component, while command shortcut controls SHALL use the dedicated `<CommandChip>` shared component. No feature component SHALL keep inline button or badge styling once the corresponding shared UI component exists. The `toast()` function SHALL be imported directly from `svelte-sonner` rather than from `$lib/components/ui/sonner/`; the Sonner component requirement applies only to the `<Toaster>` root mount component.
+The system SHALL install the required shadcn-svelte components. The Badge component SHALL support a `success` variant in addition to the standard variants. General actions SHALL use the shared shadcn `<Button>`; command shortcuts SHALL use the shared `<CommandChip>`. Feature components SHALL NOT keep inline button or badge styling once a shared component exists. `toast()` SHALL be imported directly from `svelte-sonner`; the Sonner component is required only for the `<Toaster>` root mount.
 
 #### Scenario: All required components are available
 - **WHEN** the frontend is built
-- **THEN** all listed shadcn-svelte components are importable from `$lib/components/ui/`
+- **THEN** Button, Tabs, Tooltip, ScrollArea, Collapsible, Resizable, Separator, Dialog, DropdownMenu, Sheet, Input, Badge, Progress, and Sonner are importable from `$lib/components/ui/`
 
 #### Scenario: Badge success variant renders
 - **WHEN** a Badge is rendered with `variant="success"`
 - **THEN** it displays with success background and text colors
+- **AND** the standard variants `default`, `secondary`, `outline`, and `destructive` remain available
 
 #### Scenario: General actions use Button component
 - **WHEN** any feature component renders a primary, ghost, destructive, or icon utility action
@@ -77,7 +79,7 @@ The system SHALL install the following shadcn-svelte components: Button, Tabs, T
 
 #### Scenario: Sonner toast component is available
 - **WHEN** a feature component needs to show a toast notification
-- **THEN** it imports `toast()` directly from `svelte-sonner`
+- **THEN** it imports `toast()` directly from `svelte-sonner` rather than from `$lib/components/ui/sonner/`
 - **AND** the `<Toaster>` component is mounted at the application root
 
 #### Scenario: Raw button elements remain in some components

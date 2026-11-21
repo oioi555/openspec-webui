@@ -6,7 +6,7 @@ Defines how OpenSpec WebUI launches the OpenSpec CLI so a normal npm global inst
 ## Requirements
 
 ### Requirement: Reach an npm-installed OpenSpec CLI on Windows
-When the host operating system is Windows and the OpenSpec CLI is installed through npm (so the process PATH contains npm's `openspec.cmd` shim), every WebUI subprocess that runs the OpenSpec CLI SHALL succeed in launching that shim. The system SHALL NOT treat that install as missing solely because Node's `execFile` cannot run an extensionless `openspec` file or a `.cmd` file without a shell. POSIX hosts SHALL continue to launch `openspec` as a direct executable with an argument list and without a shell.
+On Windows with the OpenSpec CLI installed through npm (PATH contains npm's `openspec.cmd` shim), every WebUI subprocess that runs the OpenSpec CLI SHALL launch that shim successfully. The system SHALL NOT treat that install as missing solely because Node's `execFile` cannot run an extensionless `openspec` file or a `.cmd` file without a shell. POSIX hosts SHALL keep launching `openspec` directly with an argument list and no shell.
 
 #### Scenario: Windows npm global install is found
 - **WHEN** the host is Windows
