@@ -1,7 +1,12 @@
 <script lang="ts">
   import { CircleHelp, CircleOff, Copy, ExternalLink, FlaskConical, Info, Languages, ListChecks, Monitor, Moon, Network, RefreshCw, Search, Settings, Sun, Wrench } from '@lucide/svelte';
   import { toolReferenceStore } from '$lib/state/toolReference.svelte.ts';
-  import { buildProjectUpdateCommand } from '$lib/state/projectVersionStatusCore';
+  import {
+    PROJECT_UPDATE_COMMAND,
+    buildProjectForceUpdateCommand,
+    buildProjectUpdateCommand,
+    isOpenSpecV2OrLater,
+  } from '$lib/state/projectVersionStatusCore';
   import { projectVersionStatusStore } from '$lib/state/projectVersionStatus.svelte.ts';
   import { Callout } from '$lib/components/shared/callout';
   import ToolCompatibilityDialog from './ToolCompatibilityDialog.svelte';
@@ -37,7 +42,7 @@
   import { copyToClipboard } from '$lib/utils';
   import { versionStatusStore } from '$lib/state/versionStatus.svelte.ts';
   import { RELEASE_PAGE_URLS, UPDATE_COMMANDS, type VersionedToolId } from '$lib/state/versionStatusCore';
-  import type { DetectedIntegration, ProjectVersionUpdateStatus, ToolScopeKind, ToolVersionStatus } from '$lib/types/api';
+  import type { DetectedIntegration, MachineSkillsStatus, ProjectVersionUpdateStatus, ToolScopeKind, ToolVersionStatus } from '$lib/types/api';
   import type { WorkflowCommand } from '$lib/types/commandTypes';
   import {
     CORE_COMMANDS,
@@ -211,6 +216,7 @@
   });
   let versionSnapshot = $derived(versionStatusStore.snapshot);
   let projectVersionSnapshot = $derived(projectVersionStatusStore.snapshot);
+  let usesMachineSkills = $derived(isOpenSpecV2OrLater(projectVersionSnapshot?.currentCliVersion));
 
   let activeRepositoryPath = $derived(
     projectStore.projects.find((p) => p.id === projectStore.activeProjectId)?.path ?? null,
@@ -301,11 +307,12 @@
     return 'secondary';
   }
 
-  function getProjectStatusDotClass(status: ProjectVersionUpdateStatus): string {
+  function getProjectStatusDotClass(status: ProjectVersionUpdateStatus | MachineSkillsStatus): string {
     switch (status) {
       case 'up-to-date':
         return 'bg-emerald-500';
       case 'update-available':
+      case 'legacy-cleanup':
         return 'bg-amber-500';
       case 'unknown':
       default:
@@ -313,16 +320,25 @@
     }
   }
 
-  function getProjectStatusLabel(status: ProjectVersionUpdateStatus): string {
+  function getProjectStatusLabel(status: ProjectVersionUpdateStatus | MachineSkillsStatus): string {
     switch (status) {
       case 'up-to-date':
         return t(m.settings_versions_project_up_to_date);
       case 'update-available':
         return t(m.settings_versions_project_update_available);
+      case 'legacy-cleanup':
+        return t(m.settings_versions_project_legacy_cleanup);
       case 'unknown':
       default:
         return t(m.settings_versions_project_unknown);
     }
+  }
+
+  /** 2.x: only repositories with their own changes or leftover 1.x files get a command. */
+  function getProjectCommand(path: string, status: ProjectVersionUpdateStatus): string | null {
+    if (status === 'update-available') return buildProjectUpdateCommand(path);
+    if (status === 'legacy-cleanup') return buildProjectForceUpdateCommand(path);
+    return null;
   }
 
   function getReleasePageUrl(toolId: VersionedToolId) {
@@ -1080,6 +1096,74 @@
           </div>
 
           <InsetPanel class="space-y-3">
+          {#if usesMachineSkills}
+          {@const machineStatus = projectVersionSnapshot?.machineSkills.status ?? 'unknown'}
+          <div>
+            <h4 class="font-medium text-foreground">{t(m.settings_versions_after_updating)}</h4>
+            <p class="mt-1 text-sm text-muted-foreground">{t(m.settings_versions_post_update_description_v2)}</p>
+            <p class="mt-1 text-xs text-muted-foreground">{t(m.settings_versions_project_unknown_hint_v2)}</p>
+          </div>
+
+          <div>
+            <div class="text-xs uppercase tracking-wide text-muted-foreground">{t(m.settings_versions_machine_skills_label)}</div>
+            <div class="mt-2 flex items-center gap-2 rounded-md border border-border bg-secondary/50 px-4 py-3 text-sm">
+              <span class={`h-2 w-2 shrink-0 rounded-full ${getProjectStatusDotClass(machineStatus)}`} aria-hidden="true"></span>
+              <code class="min-w-0 flex-1 overflow-x-auto text-xs text-primary">{PROJECT_UPDATE_COMMAND}</code>
+              <span class="shrink-0 text-xs text-muted-foreground">{getProjectStatusLabel(machineStatus)}</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                class="size-7 shrink-0 text-muted-foreground hover:text-foreground"
+                aria-label={`${t(m.common_copy)} ${t(m.settings_versions_machine_skills_label)}`}
+                onclick={() => handleCopyCommand(PROJECT_UPDATE_COMMAND, t(m.settings_versions_machine_skills_label))}
+              >
+                <Copy class="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+
+          <div>
+            <div class="text-xs uppercase tracking-wide text-muted-foreground">{t(m.settings_versions_projects_to_update)}</div>
+            {#if projectStore.projects.length > 0}
+              <ul class="mt-2 divide-y divide-border overflow-hidden rounded-md border border-border bg-secondary/50">
+                {#each projectStore.projects as project (project.path)}
+                  {@const entry = projectVersionSnapshot?.projects.find((p: { path: string }) => p.path === project.path)}
+                  {@const status = entry?.status ?? 'unknown'}
+                  {@const command = getProjectCommand(project.path, status)}
+                  <li class="px-4 py-3 text-sm" title={project.path}>
+                    <div class="flex items-center gap-2">
+                      <span class={`h-2 w-2 shrink-0 rounded-full ${getProjectStatusDotClass(status)}`} aria-hidden="true"></span>
+                      <span class="min-w-0 flex-1 truncate text-foreground">{project.path}</span>
+                      <span class="shrink-0 text-xs text-muted-foreground">
+                        {#if status === 'update-available' && entry?.changedFiles !== undefined}
+                          {t(m.settings_versions_project_changed_files, { count: String(entry.changedFiles) })} · {getProjectStatusLabel(status)}
+                        {:else}
+                          {getProjectStatusLabel(status)}
+                        {/if}
+                      </span>
+                      {#if command}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          class="size-7 shrink-0 text-muted-foreground hover:text-foreground"
+                          aria-label={`${t(m.common_copy)} ${t(m.settings_versions_update_command)} ${project.path}`}
+                          onclick={() => handleCopyCommand(command, project.path)}
+                        >
+                          <Copy class="h-3.5 w-3.5" />
+                        </Button>
+                      {/if}
+                    </div>
+                    {#if status === 'legacy-cleanup'}
+                      <p class="mt-1 pl-4 text-xs text-muted-foreground">{t(m.settings_versions_legacy_cleanup_hint)}</p>
+                    {/if}
+                  </li>
+                {/each}
+              </ul>
+            {:else}
+              <p class="mt-2 text-sm text-muted-foreground">{t(m.settings_versions_no_registered_projects)}</p>
+            {/if}
+          </div>
+          {:else}
           <div>
             <h4 class="font-medium text-foreground">{t(m.settings_versions_after_updating)}</h4>
             <p class="mt-1 text-sm text-muted-foreground">{t(m.settings_versions_post_update_description)}</p>
@@ -1120,6 +1204,7 @@
               <p class="mt-2 text-sm text-muted-foreground">{t(m.settings_versions_no_registered_projects)}</p>
             {/if}
           </div>
+          {/if}
           </InsetPanel>
         {/if}
       </div>

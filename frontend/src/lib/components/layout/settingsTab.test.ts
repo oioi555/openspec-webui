@@ -473,7 +473,7 @@ test('SettingsView.svelte renders per-project status rows with status dot, gener
   assert.match(source, /import.*projectVersionStatusStore.*from '\$lib\/state\/projectVersionStatus\.svelte\.ts'/);
 
   // Imports buildProjectUpdateCommand from core
-  assert.match(source, /import.*buildProjectUpdateCommand.*from '\$lib\/state\/projectVersionStatusCore'/);
+  assert.match(source, /import \{[^}]*buildProjectUpdateCommand[^}]*\} from '\$lib\/state\/projectVersionStatusCore'/);
 
   // Imports ProjectVersionUpdateStatus type
   assert.match(source, /import.*ProjectVersionUpdateStatus.*from '\$lib\/types\/api'/);
@@ -914,4 +914,50 @@ test('uiText.ts delegates getWorkflowCommandLabel to workflowMetadata and no lon
 
   // No old workflowFormats
   assert.equal(source.includes('workflowFormats'), false, 'workflowFormats should be removed');
+});
+
+test('SettingsView.svelte separates machine-wide and repository updates for a 2.x CLI', async () => {
+  const source = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
+  const versionsStart = source.indexOf('id="settings-versions"');
+  const versionsBlock = source.slice(versionsStart, source.indexOf('</SurfaceCard>', versionsStart));
+
+  // 2.x branch is gated on the CLI major version; the 1.x branch remains.
+  assert.match(source, /usesMachineSkills = \$derived\(isOpenSpecV2OrLater\(projectVersionSnapshot\?\.currentCliVersion\)\)/);
+  assert.match(versionsBlock, /\{#if usesMachineSkills\}[\s\S]*\{:else\}[\s\S]*settings_versions_post_update_description\)/);
+
+  // Machine row: status plus a copyable `openspec update`.
+  assert.match(versionsBlock, /settings_versions_post_update_description_v2/);
+  assert.match(versionsBlock, /settings_versions_machine_skills_label/);
+  assert.match(versionsBlock, /projectVersionSnapshot\?\.machineSkills\.status/);
+  assert.match(versionsBlock, /handleCopyCommand\(PROJECT_UPDATE_COMMAND, /);
+
+  // Per-project copy only for update-available (with file count) and legacy-cleanup (--force + hint).
+  assert.match(source, /if \(status === 'update-available'\) return buildProjectUpdateCommand\(path\);/);
+  assert.match(source, /if \(status === 'legacy-cleanup'\) return buildProjectForceUpdateCommand\(path\);/);
+  assert.match(versionsBlock, /\{#if command\}[\s\S]*handleCopyCommand\(command, project\.path\)/);
+  assert.match(versionsBlock, /settings_versions_project_changed_files, \{ count: String\(entry\.changedFiles\) \}/);
+  assert.match(versionsBlock, /\{#if status === 'legacy-cleanup'\}[\s\S]*settings_versions_legacy_cleanup_hint/);
+});
+
+test('Versions 2.x and profile caption copy exists in every locale', async () => {
+  const keys = [
+    'settings_versions_post_update_description_v2',
+    'settings_versions_project_unknown_hint_v2',
+    'settings_versions_machine_skills_label',
+    'settings_versions_project_legacy_cleanup',
+    'settings_versions_project_changed_files',
+    'settings_versions_legacy_cleanup_hint',
+    'settings_commands_config_profile_caption',
+  ];
+  for (const locale of ['en', 'de', 'es', 'fr', 'ja', 'pt-BR', 'zh-CN'] as const) {
+    const catalog = await readMessageCatalog(locale);
+    for (const key of keys) {
+      assert.equal(typeof catalog[key], 'string', `${locale} missing ${key}`);
+    }
+  }
+  const en = await readMessageCatalog('en');
+  const ja = await readMessageCatalog('ja');
+  assert.match(en.settings_commands_config_profile_caption, /next `openspec update`.*this machine's skills.*repository that keeps its own/);
+  assert.match(ja.settings_commands_config_profile_caption, /次回の `openspec update`.*このマシンのスキル/);
+  assert.match(en.settings_versions_legacy_cleanup_hint, /openspec update --force/);
 });

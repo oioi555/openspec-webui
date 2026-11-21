@@ -1,4 +1,5 @@
 import type {
+  MachineSkillsStatus,
   ProjectVersionStatusEntry,
   ProjectVersionStatusResponse,
   ProjectVersionUpdateStatus,
@@ -8,7 +9,17 @@ export const PROJECT_UPDATE_COMMAND = 'openspec update';
 export const PROJECT_INIT_COMMAND = 'openspec init';
 
 export function isProjectVersionUpdateStatus(value: unknown): value is ProjectVersionUpdateStatus {
+  return value === 'up-to-date' || value === 'update-available' || value === 'legacy-cleanup' || value === 'unknown';
+}
+
+export function isMachineSkillsStatus(value: unknown): value is MachineSkillsStatus {
   return value === 'up-to-date' || value === 'update-available' || value === 'unknown';
+}
+
+/** True when the CLI version is OpenSpec 2.x or later (machine-wide skills model). */
+export function isOpenSpecV2OrLater(version: string | null | undefined): boolean {
+  const major = Number.parseInt((version ?? '').trim().replace(/^v/i, '').split('.')[0] ?? '', 10);
+  return Number.isFinite(major) && major >= 2;
 }
 
 /**
@@ -26,12 +37,16 @@ export function normalizeProjectVersionStatusEntry(value: unknown): ProjectVersi
     return null;
   }
 
-  return {
+  const entry: ProjectVersionStatusEntry = {
     path: candidate.path,
     generationVersion: typeof candidate.generationVersion === 'string' ? candidate.generationVersion : null,
     currentVersion: typeof candidate.currentVersion === 'string' ? candidate.currentVersion : null,
     status: isProjectVersionUpdateStatus(candidate.status) ? candidate.status : 'unknown',
   };
+  if (typeof candidate.changedFiles === 'number' && Number.isInteger(candidate.changedFiles) && candidate.changedFiles >= 0) {
+    entry.changedFiles = candidate.changedFiles;
+  }
+  return entry;
 }
 
 /**
@@ -41,7 +56,7 @@ export function normalizeProjectVersionStatusEntry(value: unknown): ProjectVersi
  */
 export function normalizeProjectVersionStatusResponse(value: unknown): ProjectVersionStatusResponse {
   if (!value || typeof value !== 'object') {
-    return { currentCliVersion: null, checkedAt: null, projects: [] };
+    return { currentCliVersion: null, checkedAt: null, projects: [], machineSkills: { status: 'unknown' } };
   }
 
   const candidate = value as Partial<ProjectVersionStatusResponse>;
@@ -53,6 +68,9 @@ export function normalizeProjectVersionStatusResponse(value: unknown): ProjectVe
           .map(normalizeProjectVersionStatusEntry)
           .filter((entry): entry is ProjectVersionStatusEntry => entry !== null)
       : [],
+    machineSkills: {
+      status: isMachineSkillsStatus(candidate.machineSkills?.status) ? candidate.machineSkills.status : 'unknown',
+    },
   };
 }
 
@@ -171,6 +189,12 @@ export function deriveProjectUpdateStatus(
 export function buildProjectUpdateCommand(path: string): string {
   const quotedPath = /\s/.test(path) ? `'${path}'` : path;
   return `${PROJECT_UPDATE_COMMAND} ${quotedPath}`;
+}
+
+/** Builds `openspec update --force <path>` for removing leftover 1.x files. */
+export function buildProjectForceUpdateCommand(path: string): string {
+  const quotedPath = /\s/.test(path) ? `'${path}'` : path;
+  return `${PROJECT_UPDATE_COMMAND} --force ${quotedPath}`;
 }
 
 /**

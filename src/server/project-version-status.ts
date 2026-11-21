@@ -1,21 +1,32 @@
+import { execOpenSpec } from './openspec-cli.js';
 import { createProjectRegistry, type ProjectEntry } from './project-registry.js';
 import { detectProjectGenerationVersion } from './skill-scanner.js';
 import { compareVersions, normalizeVersion } from './version-compare.js';
 import { createVersionSnapshotService, type VersionSnapshotService } from './version-status.js';
 
-export type ProjectVersionUpdateStatus = 'up-to-date' | 'update-available' | 'unknown';
+export type ProjectVersionUpdateStatus = 'up-to-date' | 'update-available' | 'legacy-cleanup' | 'unknown';
+export type MachineSkillsStatus = 'up-to-date' | 'update-available' | 'unknown';
 
 export interface ProjectVersionStatusEntry {
   path: string;
   generationVersion: string | null;
   currentVersion: string | null;
   status: ProjectVersionUpdateStatus;
+  /** 2.x only: number of project files the dry run would change. */
+  changedFiles?: number;
 }
 
 export interface ProjectVersionStatusSnapshot {
   currentCliVersion: string | null;
   checkedAt: string | null;
   projects: ProjectVersionStatusEntry[];
+  machineSkills: { status: MachineSkillsStatus };
+}
+
+/** Parsed `openspec update --dry-run --json` result, or null when the run failed. */
+export interface UpdateDryRunResult {
+  changedFiles: number;
+  notes: string[];
 }
 
 export interface ProjectVersionStatusService {
@@ -26,6 +37,7 @@ export interface ProjectVersionStatusService {
 export interface ProjectVersionStatusDependencies {
   listProjects: () => readonly ProjectEntry[];
   detectGenerationVersion: (projectRoot: string) => Promise<string | null>;
+  runUpdateDryRun: (projectRoot: string) => Promise<UpdateDryRunResult | null>;
   versionSnapshotService: Pick<VersionSnapshotService, 'getSnapshot' | 'refresh'>;
   now: () => Date;
 }
@@ -39,6 +51,90 @@ type VersionSnapshotSource = Pick<VersionSnapshotService, 'getSnapshot' | 'refre
 
 let defaultProjectRegistry: ReturnType<typeof createProjectRegistry> | null = null;
 let defaultVersionSnapshotService: VersionSnapshotService | null = null;
+
+const UPDATE_DRY_RUN_TIMEOUT_MS = 10_000;
+const UPDATE_DRY_RUN_CONCURRENCY = 3;
+
+/**
+ * Parse the stdout of `openspec update --dry-run --json`. stderr is never
+ * consulted; leading non-JSON stdout lines are skipped. Returns null for unparseable
+ * output or a run that reports failures.
+ */
+export function parseUpdateDryRunOutput(stdout: string): UpdateDryRunResult | null {
+  // The CLI can print warnings (e.g. `.codex` "Unable to check if directory
+  // exists") on stdout before the JSON; skip leading non-JSON lines.
+  const lines = stdout.split('\n');
+  const start = lines.findIndex((line) => line.trimStart().startsWith('{'));
+  if (start < 0) return null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(lines.slice(start).join('\n'));
+  } catch {
+    return null;
+  }
+  if (!parsed || typeof parsed !== 'object') return null;
+  const { changes, notes, failures } = parsed as Record<string, unknown>;
+  if (!Array.isArray(changes)) return null;
+  if (Array.isArray(failures) && failures.length > 0) return null;
+  const codes = Array.isArray(notes)
+    ? notes
+        .map((note) => (note && typeof note === 'object' ? (note as { code?: unknown }).code : undefined))
+        .filter((code): code is string => typeof code === 'string')
+    : [];
+  return { changedFiles: changes.length, notes: codes };
+}
+
+function runUpdateDryRunWithCli(projectRoot: string): Promise<UpdateDryRunResult | null> {
+  return new Promise((resolvePromise) => {
+    execOpenSpec(
+      ['update', '--dry-run', '--json'],
+      { cwd: projectRoot, timeout: UPDATE_DRY_RUN_TIMEOUT_MS },
+      (error, stdout) => {
+        if (error) {
+          resolvePromise(null);
+          return;
+        }
+        resolvePromise(parseUpdateDryRunOutput(stdout ?? ''));
+      }
+    );
+  });
+}
+
+async function mapWithConcurrency<T, R>(
+  items: readonly T[],
+  limit: number,
+  fn: (item: T) => Promise<R>
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let next = 0;
+  async function worker(): Promise<void> {
+    while (next < items.length) {
+      const index = next++;
+      results[index] = await fn(items[index]);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
+}
+
+function cliMajor(version: string | null): number | null {
+  if (version === null) return null;
+  const major = Number.parseInt(version.split('.')[0] ?? '', 10);
+  return Number.isFinite(major) ? major : null;
+}
+
+function resolveDryRunStatus(result: UpdateDryRunResult | null): ProjectVersionUpdateStatus {
+  if (result === null) return 'unknown';
+  if (result.changedFiles > 0) return 'update-available';
+  if (result.notes.includes('legacy-artifacts')) return 'legacy-cleanup';
+  return 'up-to-date';
+}
+
+function resolveMachineSkillsStatus(results: readonly (UpdateDryRunResult | null)[]): MachineSkillsStatus {
+  const succeeded = results.filter((result): result is UpdateDryRunResult => result !== null);
+  if (succeeded.some((result) => result.notes.includes('global-skills'))) return 'update-available';
+  return succeeded.length > 0 ? 'up-to-date' : 'unknown';
+}
 
 function readCurrentCliVersion(versionSnapshotService: VersionSnapshotSource): string | null {
   return normalizeVersion(versionSnapshotService.getSnapshot().tools.openspec.currentVersion);
@@ -66,6 +162,7 @@ function cloneSnapshot(snapshot: ProjectVersionStatusSnapshot): ProjectVersionSt
     currentCliVersion: snapshot.currentCliVersion,
     checkedAt: snapshot.checkedAt,
     projects: snapshot.projects.map((entry) => ({ ...entry })),
+    machineSkills: { ...snapshot.machineSkills },
   };
 }
 
@@ -92,6 +189,7 @@ export function createProjectVersionStatusService(
         return defaultProjectRegistry.listProjects();
       }),
     detectGenerationVersion: options.deps?.detectGenerationVersion ?? detectProjectGenerationVersion,
+    runUpdateDryRun: options.deps?.runUpdateDryRun ?? runUpdateDryRunWithCli,
     versionSnapshotService:
       options.deps?.versionSnapshotService ??
       (() => {
@@ -105,6 +203,7 @@ export function createProjectVersionStatusService(
     currentCliVersion: null,
     checkedAt: null,
     projects: [],
+    machineSkills: { status: 'unknown' },
   };
   let refreshPromise: Promise<ProjectVersionStatusSnapshot> | null = null;
 
@@ -129,6 +228,34 @@ export function createProjectVersionStatusService(
       currentCliVersion = null;
     }
 
+    const major = cliMajor(currentCliVersion);
+    if (major !== null && major >= 2) {
+      const results = await mapWithConcurrency(projects, UPDATE_DRY_RUN_CONCURRENCY, async (project) => {
+        try {
+          return await deps.runUpdateDryRun(project.path);
+        } catch {
+          return null;
+        }
+      });
+      snapshot = {
+        currentCliVersion,
+        checkedAt,
+        projects: projects.map((project, index) => {
+          const result = results[index];
+          const entry: ProjectVersionStatusEntry = {
+            path: project.path,
+            generationVersion: null,
+            currentVersion: currentCliVersion,
+            status: resolveDryRunStatus(result),
+          };
+          if (result) entry.changedFiles = result.changedFiles;
+          return entry;
+        }),
+        machineSkills: { status: resolveMachineSkillsStatus(results) },
+      };
+      return cloneSnapshot(snapshot);
+    }
+
     const entries = await Promise.all(
       projects.map(async (project): Promise<ProjectVersionStatusEntry> => {
         let generationVersion: string | null = null;
@@ -151,6 +278,7 @@ export function createProjectVersionStatusService(
       currentCliVersion,
       checkedAt,
       projects: entries,
+      machineSkills: { status: 'unknown' },
     };
     return cloneSnapshot(snapshot);
   }

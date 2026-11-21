@@ -135,6 +135,14 @@ if (process.argv[2] === 'validate') {
   process.exit(Number(process.env.VALIDATE_EXIT_CODE || '0'));
 }
 
+if (process.argv[2] === 'update' && process.argv.includes('--dry-run')) {
+  const outputs = JSON.parse(process.env.UPDATE_DRY_RUN_OUTPUTS || '{}');
+  process.stderr.write('Unable to check if directory exists\\n');
+  process.stdout.write('Unable to check if directory exists at ' + cwd + '/.codex/prompts: ENOTDIR\\n');
+  process.stdout.write(outputs[cwd] ?? '{"changes":[],"notes":[],"failures":[]}');
+  process.exit(0);
+}
+
 if (process.argv[2] === 'store' && process.argv[3] === 'list') {
   process.stdout.write(process.env.STORE_LIST_OUTPUT || '{"stores":[],"status":[]}');
   process.exit(Number(process.env.STORE_LIST_EXIT_CODE || '0'));
@@ -2312,6 +2320,50 @@ test('GET /api/project-version-status reports detected generation versions, base
     assert.equal(cached.body.projects[0].path, upToDateRoot);
     assert.equal(cached.body.projects[1].path, updateAvailableRoot);
   } finally {
+    await runtime.close();
+  }
+});
+
+test('GET /api/project-version-status derives 2.x statuses and machine skills from the update dry run', async () => {
+  const configHome = await createTempDir('openspec-webui-pvs-v2-cfg-');
+  process.env.XDG_CONFIG_HOME = configHome;
+  const staleRoot = await createProjectFixture('pvs-v2-stale-project');
+  const globalRoot = await createProjectFixture('pvs-v2-global-project');
+  await installFakeOpenSpecCommand({ readyProjectRoots: new Set([staleRoot, globalRoot]), version: '2.1.1' });
+  process.env.UPDATE_DRY_RUN_OUTPUTS = JSON.stringify({
+    [staleRoot]: JSON.stringify({
+      changes: [{ path: '.agents/skills/openspec-propose/SKILL.md', action: 'update', tool: 'openspec' }],
+      notes: [],
+      failures: [],
+    }),
+    [globalRoot]: JSON.stringify({
+      changes: [],
+      notes: [{ code: 'global-skills', message: 'Global skills would be refreshed' }],
+      failures: [],
+    }),
+  });
+  const versionSnapshotService = await createReadyVersionSnapshotService('2.1.1');
+  const runtime = await startServer({ versionSnapshotService });
+
+  try {
+    for (const path of [staleRoot, globalRoot]) {
+      const result = await apiJson(runtime.baseUrl, '/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path }),
+      });
+      assert.equal(result.response.status, 201);
+    }
+
+    const refreshed = await apiJson(runtime.baseUrl, '/api/project-version-status/refresh', { method: 'POST' });
+    assert.equal(refreshed.response.status, 200);
+    assert.deepEqual(refreshed.body.machineSkills, { status: 'update-available' });
+    assert.deepEqual(refreshed.body.projects, [
+      { path: staleRoot, generationVersion: null, currentVersion: '2.1.1', status: 'update-available', changedFiles: 1 },
+      { path: globalRoot, generationVersion: null, currentVersion: '2.1.1', status: 'up-to-date', changedFiles: 0 },
+    ]);
+  } finally {
+    delete process.env.UPDATE_DRY_RUN_OUTPUTS;
     await runtime.close();
   }
 });

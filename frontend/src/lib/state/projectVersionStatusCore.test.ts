@@ -4,7 +4,9 @@ import { test } from 'node:test';
 import {
   PROJECT_INIT_COMMAND,
   PROJECT_UPDATE_COMMAND,
+  buildProjectForceUpdateCommand,
   buildProjectUpdateCommand,
+  isOpenSpecV2OrLater,
   buildToolsInitCommand,
   compareVersions,
   deriveProjectUpdateStatus,
@@ -71,7 +73,7 @@ test('deriveProjectUpdateStatus returns unknown when either version is missing',
 });
 
 test('normalizeProjectVersionStatusResponse tolerates null and empty payloads', () => {
-  const emptySnapshot = { currentCliVersion: null, checkedAt: null, projects: [] };
+  const emptySnapshot = { currentCliVersion: null, checkedAt: null, projects: [], machineSkills: { status: 'unknown' } };
 
   assert.deepEqual(normalizeProjectVersionStatusResponse(null), emptySnapshot);
   assert.deepEqual(normalizeProjectVersionStatusResponse(undefined), emptySnapshot);
@@ -88,6 +90,7 @@ test('normalizeProjectVersionStatusResponse passes through a well-formed payload
       { path: '/b', generationVersion: '1.2.0', currentVersion: '1.4.0', status: 'update-available' },
       { path: '/c', generationVersion: null, currentVersion: '1.4.0', status: 'unknown' },
     ],
+    machineSkills: { status: 'unknown' },
   };
 
   assert.deepEqual(normalizeProjectVersionStatusResponse(response), response);
@@ -119,6 +122,42 @@ test('normalizeProjectVersionStatusResponse maps malformed entries to unknown an
     currentVersion: null,
     status: 'unknown',
   });
+});
+
+test('normalizeProjectVersionStatusResponse keeps 2.x fields and degrades unknown statuses', () => {
+  const response = normalizeProjectVersionStatusResponse({
+    currentCliVersion: '2.1.1',
+    checkedAt: null,
+    projects: [
+      { path: '/stale', generationVersion: null, currentVersion: '2.1.1', status: 'update-available', changedFiles: 3 },
+      { path: '/legacy', generationVersion: null, currentVersion: '2.1.1', status: 'legacy-cleanup', changedFiles: 0 },
+      { path: '/future', generationVersion: null, currentVersion: '2.1.1', status: 'needs-migration', changedFiles: 'x' },
+    ],
+    machineSkills: { status: 'update-available' },
+  });
+  assert.deepEqual(response.projects.map((entry) => [entry.status, entry.changedFiles]), [
+    ['update-available', 3],
+    ['legacy-cleanup', 0],
+    ['unknown', undefined],
+  ]);
+  assert.equal('changedFiles' in response.projects[2]!, false);
+  assert.deepEqual(response.machineSkills, { status: 'update-available' });
+  assert.deepEqual(normalizeProjectVersionStatusResponse({ machineSkills: { status: 'stale' } }).machineSkills, {
+    status: 'unknown',
+  });
+});
+
+test('isOpenSpecV2OrLater gates on the CLI major version', () => {
+  assert.equal(isOpenSpecV2OrLater('2.1.1'), true);
+  assert.equal(isOpenSpecV2OrLater('v3.0.0'), true);
+  assert.equal(isOpenSpecV2OrLater('1.3.1'), false);
+  assert.equal(isOpenSpecV2OrLater(null), false);
+  assert.equal(isOpenSpecV2OrLater('garbage'), false);
+});
+
+test('buildProjectForceUpdateCommand adds --force and quotes whitespace paths', () => {
+  assert.equal(buildProjectForceUpdateCommand('/work/app'), 'openspec update --force /work/app');
+  assert.equal(buildProjectForceUpdateCommand('/work/my app'), "openspec update --force '/work/my app'");
 });
 
 test('normalizeProjectVersionStatusEntry rejects entries without a string path', () => {

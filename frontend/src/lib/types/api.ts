@@ -381,7 +381,10 @@ export interface VersionStatusResponse {
   };
 }
 
-export type ProjectVersionUpdateStatus = 'up-to-date' | 'update-available' | 'unknown';
+export type ProjectVersionUpdateStatus = 'up-to-date' | 'update-available' | 'legacy-cleanup' | 'unknown';
+
+/** Machine-wide (`~/.agents/skills`) skill status, derived from the 2.x dry run. */
+export type MachineSkillsStatus = 'up-to-date' | 'update-available' | 'unknown';
 
 export interface ProjectVersionStatusEntry {
   /** Registered project root path. */
@@ -392,6 +395,8 @@ export interface ProjectVersionStatusEntry {
   currentVersion: string | null;
   /** Derived update status for the project. */
   status: ProjectVersionUpdateStatus;
+  /** 2.x only: number of project files `openspec update` would change. */
+  changedFiles?: number;
 }
 
 export interface ProjectVersionStatusResponse {
@@ -399,6 +404,7 @@ export interface ProjectVersionStatusResponse {
   currentCliVersion: string | null;
   checkedAt: string | null;
   projects: ProjectVersionStatusEntry[];
+  machineSkills: { status: MachineSkillsStatus };
 }
 
 export interface BrowseDirEntry {
