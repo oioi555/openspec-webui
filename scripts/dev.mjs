@@ -2,7 +2,7 @@
 
 import {
   ensureLocalBins,
-  resolveLocalBin,
+  spawnLocalBin,
   spawnInRepo,
   waitForExit,
   withFlag,
@@ -17,7 +17,7 @@ const devPort = resolveDevPort(forwardedArgs);
 const devHost = resolveDevHost(forwardedArgs);
 
 console.log('Building frontend once before starting dev watchers...');
-const initialFrontendBuild = spawnInRepo(resolveLocalBin('vite'), ['build', '--config', 'frontend/vite.config.ts']);
+const initialFrontendBuild = spawnLocalBin('vite', ['build', '--config', 'frontend/vite.config.ts']);
 const initialBuildResult = await waitForExit(initialFrontendBuild, 'vite build');
 
 if (initialBuildResult.code !== 0) {
@@ -30,7 +30,7 @@ console.log('Frontend source changes trigger rebuilds. Refresh the browser after
 const children = [
   {
     label: 'frontend build watch',
-    child: spawnInRepo(resolveLocalBin('vite'), ['build', '--watch', '--config', 'frontend/vite.config.ts']),
+    child: spawnLocalBin('vite', ['build', '--watch', '--config', 'frontend/vite.config.ts']),
   },
   {
     label: 'dev server',

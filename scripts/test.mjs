@@ -77,6 +77,16 @@ if (compileExitCode !== 0) {
   process.exit(compileExitCode);
 }
 
-const child = spawnInRepo(process.execPath, ['--import', 'tsx', '--test', ...testFiles]);
+// Fail a hung test fast instead of waiting for the CI job timeout. The limit
+// applies to each test; the slowest current tests finish in a few seconds.
+const TEST_TIMEOUT_MS = 60_000;
+
+const child = spawnInRepo(process.execPath, [
+  '--import',
+  'tsx',
+  '--test',
+  `--test-timeout=${TEST_TIMEOUT_MS}`,
+  ...testFiles,
+]);
 const result = await waitForExit(child, 'node --import tsx --test');
 process.exit(result.code);

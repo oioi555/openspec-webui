@@ -2,7 +2,7 @@
 
 import { pathToFileURL } from 'node:url';
 
-import { ensureLocalBins, resolveLocalBin, spawnInRepo, waitForExit } from './dev-utils.mjs';
+import { ensureLocalBins, spawnLocalBin, waitForExit } from './dev-utils.mjs';
 
 const compileArgs = [
   'compile',
@@ -23,7 +23,7 @@ const compileArgs = [
 export async function compileI18n() {
   ensureLocalBins(['paraglide-js']);
 
-  const child = spawnInRepo(resolveLocalBin('paraglide-js'), compileArgs);
+  const child = spawnLocalBin('paraglide-js', compileArgs);
   const result = await waitForExit(child, 'paraglide-js compile');
   return result.code;
 }

@@ -30,7 +30,8 @@ npm-debug.log*
 .codenomad/
 .codex
 .cursor/
-.github/
+.github/*
+!.github/workflows/
 .opencode*
 .opencode/
 .agents/skills/

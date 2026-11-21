@@ -3,7 +3,10 @@ import { createServer as createTcpServer } from 'node:net';
 import { afterEach, beforeEach, test } from 'node:test';
 import { chmod, cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { homedir, tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { delimiter, join, resolve } from 'node:path';
+// Node 20 has no global WebSocket (it is behind --experimental-websocket until
+// Node 22), so use the `ws` client on every supported runtime.
+import { WebSocket } from 'ws';
 
 import { createServer } from './index.js';
 import { createVersionSnapshotService, type VersionSnapshotService } from './version-status.js';
@@ -31,7 +34,7 @@ beforeEach(async () => {
   // every test starts with an empty config home and a PATH whose only
   // `openspec` is a stub that fails. Tests that need a CLI install the fake.
   process.env.XDG_CONFIG_HOME = await createTempDir('openspec-webui-default-config-');
-  process.env.PATH = `${await createMissingOpenSpecBin()}:${originalEnv.PATH ?? ''}`;
+  process.env.PATH = `${await createMissingOpenSpecBin()}${delimiter}${originalEnv.PATH ?? ''}`;
 });
 
 afterEach(async () => {
@@ -47,12 +50,35 @@ async function createTempDir(prefix: string): Promise<string> {
   return dir;
 }
 
+/** Prepend a directory to PATH using the platform's separator. */
+function prependPath(dir: string) {
+  process.env.PATH = `${dir}${delimiter}${process.env.PATH ?? ''}`;
+}
+
+/**
+ * Write a fake `openspec` implemented as a Node script. POSIX runs it through
+ * its shebang. Windows cannot, so an `openspec.cmd` shim runs it with this
+ * Node binary; there is no `openspec.exe`, so the server's direct launch
+ * misses and falls back to the `.cmd` shim, as with a real npm install.
+ */
+async function writeFakeOpenSpec(binDir: string, nodeSource: string) {
+  const scriptPath = join(binDir, 'openspec');
+  await writeFile(scriptPath, `#!/usr/bin/env node\n${nodeSource}`, 'utf8');
+  await chmod(scriptPath, 0o755);
+  await writeFile(
+    join(binDir, 'openspec.cmd'),
+    `@"${process.execPath}" "%~dp0openspec" %*\r\n`,
+    'utf8'
+  );
+}
+
 /** A PATH entry whose `openspec` always fails, shadowing any real CLI. */
 async function createMissingOpenSpecBin(): Promise<string> {
   const binDir = await createTempDir('openspec-webui-no-cli-bin-');
-  const scriptPath = join(binDir, 'openspec');
-  await writeFile(scriptPath, '#!/bin/sh\necho "openspec stub: real CLI is not used in tests" >&2\nexit 127\n', 'utf8');
-  await chmod(scriptPath, 0o755);
+  await writeFakeOpenSpec(
+    binDir,
+    "process.stderr.write('openspec stub: real CLI is not used in tests\\n');\nprocess.exit(127);\n"
+  );
   return binDir;
 }
 
@@ -146,15 +172,13 @@ async function installFakeOpenSpecCommand(config: {
   version?: string;
 }) {
   const binDir = await createTempDir('openspec-webui-fake-bin-');
-  const scriptPath = join(binDir, 'openspec');
   const readyRoots = JSON.stringify([...config.readyProjectRoots]);
   const unavailableRoots = JSON.stringify([...(config.unavailableProjectRoots ?? new Set())]);
   const version = JSON.stringify(config.version ?? '1.3.1');
 
-  await writeFile(
-    scriptPath,
-    `#!/usr/bin/env node
-const readyRoots = new Set(${readyRoots});
+  await writeFakeOpenSpec(
+    binDir,
+    `const readyRoots = new Set(${readyRoots});
 const unavailableRoots = new Set(${unavailableRoots});
 const version = ${version};
 const cwd = process.cwd();
@@ -219,11 +243,9 @@ if (key === 'workflows') {
 
 process.stderr.write('unsupported key:' + key);
 process.exit(1);
-`,
-    'utf8'
+`
   );
-  await chmod(scriptPath, 0o755);
-  process.env.PATH = `${binDir}:${process.env.PATH ?? ''}`;
+  prependPath(binDir);
   return binDir;
 }
 
@@ -431,9 +453,10 @@ test('server integration covers explicit websocket binding, scoped API routing, 
   });
 
   const runtime = await startServer();
-  const alphaClient = await openWsClient(runtime.baseUrl);
+  let alphaClient: Awaited<ReturnType<typeof openWsClient>> | undefined;
 
   try {
+    alphaClient = await openWsClient(runtime.baseUrl);
     const initMessage = await alphaClient.recorder.nextMessage();
     assert.deepEqual(initMessage, { type: 'connection:init', activeProjectId: null });
 
@@ -601,7 +624,9 @@ test('server integration covers explicit websocket binding, scoped API routing, 
     assert.deepEqual(registry.projects, []);
     assert.equal(registry.activeProjectId, null);
   } finally {
-    alphaClient.ws.close();
+    // Close the server even when the client failed to connect, so a failure
+    // cannot leave a listening socket that keeps the test process alive.
+    alphaClient?.ws.close();
     await runtime.close();
   }
 });
@@ -1807,8 +1832,8 @@ test('GET /api/stores returns registered stores without requiring a project head
     assert.equal(result.response.status, 200);
     assert.equal(result.body.status, 'stores');
     assert.deepEqual(result.body.stores, [
-      { id: 'store-a', root: '/store/a' },
-      { id: 'store-b', root: '/store/b' },
+      { id: 'store-a', root: resolve('/store/a') },
+      { id: 'store-b', root: resolve('/store/b') },
     ]);
     assert.equal(result.body.reason, null);
     assert.equal(typeof result.body.checkedAt, 'string');
@@ -1979,21 +2004,17 @@ test('command availability filters onboard from workflows even when the CLI repo
 
   // Override the workflows response to include onboard.
   const binDir = await createTempDir('openspec-webui-onboard-bin-');
-  const scriptPath = join(binDir, 'openspec');
-  await writeFile(
-    scriptPath,
-    `#!/usr/bin/env node
-const cwd = process.cwd();
+  await writeFakeOpenSpec(
+    binDir,
+    `const cwd = process.cwd();
 const key = process.argv[4];
 if (key === 'profile') { process.stdout.write('test-profile\\n'); process.exit(0); }
 if (key === 'workflows') { process.stdout.write('["new","onboard","verify"]\\n'); process.exit(0); }
 process.stderr.write('unsupported key:' + key);
 process.exit(1);
-`,
-    'utf8'
+`
   );
-  await chmod(scriptPath, 0o755);
-  process.env.PATH = `${binDir}:${process.env.PATH ?? ''}`;
+  prependPath(binDir);
 
   const runtime = await startServer();
 

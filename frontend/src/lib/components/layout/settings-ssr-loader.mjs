@@ -149,5 +149,14 @@ export async function load(url, context, nextLoad) {
     }
   }
 
+  if (url.startsWith('file:') && url.endsWith('.ts') && !url.includes('/node_modules/')) {
+    // Plain `.ts` modules this loader resolved above (e.g. extensionless
+    // `./localeCore`). Node 22.18+ strips types natively, but Node 20 does not
+    // and tsx's load hook passes these URLs through, so strip them here.
+    const source = await readFile(new URL(url), 'utf8');
+    const code = transformSync(source, { loader: 'ts', format: 'esm', target: 'es2022', sourcefile: url }).code;
+    return { format: 'module', source: code, shortCircuit: true };
+  }
+
   return nextLoad(url, context);
 }
