@@ -17,6 +17,21 @@ export interface ToolVersionSnapshot {
   status: VersionStatus;
   error: string | null;
   notInstalled: boolean;
+  /** Install manager reported by `openspec version --json` (e.g. `npm`), else null. */
+  installManager: string | null;
+  /** Install scope reported by `openspec version --json` (e.g. `global`), else null. */
+  installScope: string | null;
+  /** CLI-suggested update command from `openspec version --check --json`, else null. */
+  updateCommand: string | null;
+}
+
+/** Parsed `openspec version --check --json` output. */
+export interface OpenSpecInstallInfo {
+  version: string;
+  installManager: string | null;
+  installScope: string | null;
+  latestVersion: string | null;
+  updateCommand: string | null;
 }
 
 export interface VersionSnapshot {
@@ -38,6 +53,8 @@ interface VersionSnapshotDependencies {
   getWebUiCurrentVersion: () => string;
   now: () => Date;
   readOpenSpecVersion: () => Promise<string>;
+  /** Resolves null when the CLI does not support `version --check --json`. */
+  readOpenSpecInstallInfo: () => Promise<OpenSpecInstallInfo | null>;
 }
 
 interface CreateVersionSnapshotServiceOptions {
@@ -48,6 +65,7 @@ interface CreateVersionSnapshotServiceOptions {
 const WEBUI_PACKAGE_NAME = 'openspec-webui';
 const OPENSPEC_PACKAGE_NAME = '@fission-ai/openspec';
 const LOOKUP_TIMEOUT_MS = 3000;
+const INSTALL_CHECK_TIMEOUT_MS = 5000;
 
 function createDefaultToolVersionSnapshot(currentVersion: string | null = null): ToolVersionSnapshot {
   return {
@@ -57,6 +75,9 @@ function createDefaultToolVersionSnapshot(currentVersion: string | null = null):
     status: currentVersion ? 'unknown' : 'unavailable',
     error: null,
     notInstalled: false,
+    installManager: null,
+    installScope: null,
+    updateCommand: null,
   };
 }
 
@@ -91,6 +112,9 @@ function resolveToolVersionSnapshot(options: {
       status: 'unavailable',
       error,
       notInstalled,
+      installManager: null,
+      installScope: null,
+      updateCommand: null,
     };
   }
 
@@ -102,6 +126,9 @@ function resolveToolVersionSnapshot(options: {
       status: 'unknown',
       error,
       notInstalled,
+      installManager: null,
+      installScope: null,
+      updateCommand: null,
     };
   }
 
@@ -114,6 +141,9 @@ function resolveToolVersionSnapshot(options: {
     status: updateAvailable ? 'update-available' : 'up-to-date',
     error,
     notInstalled,
+    installManager: null,
+    installScope: null,
+    updateCommand: null,
   };
 }
 
@@ -166,6 +196,71 @@ async function readOpenSpecVersion(): Promise<string> {
   });
 }
 
+function withInstallInfo(
+  snapshot: ToolVersionSnapshot,
+  installInfo: OpenSpecInstallInfo | null,
+): ToolVersionSnapshot {
+  if (!installInfo) return snapshot;
+  return {
+    ...snapshot,
+    installManager: installInfo.installManager,
+    installScope: installInfo.installScope,
+    updateCommand: installInfo.updateCommand,
+  };
+}
+
+function optionalString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+/**
+ * Parse `openspec version --check --json`. Leading non-JSON lines are
+ * skipped; any unrecognised shape yields null so callers fall back to the
+ * `--version` + npm registry path. Manager and scope strings are kept
+ * verbatim, never mapped to a guessed command.
+ */
+export function parseOpenSpecVersionCheckOutput(stdout: string): OpenSpecInstallInfo | null {
+  const lines = stdout.split('\n');
+  const start = lines.findIndex((line) => line.trimStart().startsWith('{'));
+  if (start < 0) return null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(lines.slice(start).join('\n'));
+  } catch {
+    return null;
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+  const body = parsed as Record<string, unknown>;
+  const version = normalizeVersion(typeof body.version === 'string' ? body.version : null);
+  if (!version) return null;
+  const install = body.install && typeof body.install === 'object'
+    ? body.install as Record<string, unknown>
+    : null;
+  if (!install) return null;
+  const update = body.update && typeof body.update === 'object'
+    ? body.update as Record<string, unknown>
+    : null;
+  return {
+    version,
+    installManager: optionalString(install.packageManager),
+    installScope: optionalString(install.scope),
+    latestVersion: normalizeVersion(typeof update?.latest === 'string' ? update.latest : null),
+    updateCommand: optionalString(update?.command),
+  };
+}
+
+async function readOpenSpecInstallInfo(): Promise<OpenSpecInstallInfo | null> {
+  return new Promise((resolve) => {
+    execOpenSpec(['version', '--check', '--json'], { timeout: INSTALL_CHECK_TIMEOUT_MS }, (error, stdout) => {
+      if (error) {
+        resolve(null);
+        return;
+      }
+      resolve(parseOpenSpecVersionCheckOutput(stdout ?? ''));
+    });
+  });
+}
+
 function isCommandNotFoundError(error: unknown): boolean {
   return Boolean(
     error &&
@@ -187,6 +282,10 @@ export function createVersionSnapshotService(
     getWebUiCurrentVersion: options.deps?.getWebUiCurrentVersion ?? (() => normalizeVersion(packageJson.version) ?? '0.0.0'),
     now: options.deps?.now ?? (() => new Date()),
     readOpenSpecVersion: options.deps?.readOpenSpecVersion ?? readOpenSpecVersion,
+    // An injected `readOpenSpecVersion` without an install reader means the
+    // caller stubs the CLI; do not spawn the real one for the install check.
+    readOpenSpecInstallInfo: options.deps?.readOpenSpecInstallInfo
+      ?? (options.deps?.readOpenSpecVersion ? async () => null : readOpenSpecInstallInfo),
   };
 
   let refreshPromise: Promise<VersionSnapshot> | null = null;
@@ -224,11 +323,25 @@ export function createVersionSnapshotService(
     refreshPromise = (async () => {
       const currentWebUiVersion = deps.getWebUiCurrentVersion();
 
-      const [webUiLatestResult, openSpecVersionResult, openSpecLatestResult] = await Promise.allSettled([
+      const openSpecLookup = (async () => {
+        const installInfo = await deps.readOpenSpecInstallInfo().catch(() => null);
+        const [versionResult, latestResult] = await Promise.allSettled([
+          installInfo ? Promise.resolve(installInfo.version) : deps.readOpenSpecVersion(),
+          installInfo?.latestVersion
+            ? Promise.resolve(installInfo.latestVersion)
+            : deps.fetchLatestPackageVersion(OPENSPEC_PACKAGE_NAME),
+        ]);
+        return { installInfo, versionResult, latestResult };
+      })();
+
+      const [webUiLatestResult] = await Promise.allSettled([
         deps.fetchLatestPackageVersion(WEBUI_PACKAGE_NAME),
-        deps.readOpenSpecVersion(),
-        deps.fetchLatestPackageVersion(OPENSPEC_PACKAGE_NAME),
       ]);
+      const {
+        installInfo,
+        versionResult: openSpecVersionResult,
+        latestResult: openSpecLatestResult,
+      } = await openSpecLookup;
 
       const webUiLatestVersion = webUiLatestResult.status === 'fulfilled'
         ? normalizeVersion(webUiLatestResult.value)
@@ -263,12 +376,12 @@ export function createVersionSnapshotService(
             latestVersion: webUiLatestVersion,
             error: webUiError,
           }),
-          openspec: resolveToolVersionSnapshot({
+          openspec: withInstallInfo(resolveToolVersionSnapshot({
             currentVersion: openSpecCurrentVersion,
             latestVersion: openSpecLatestVersion,
             error: openSpecCurrentError ?? openSpecLatestError,
             notInstalled: openSpecNotInstalled,
-          }),
+          }), installInfo),
         },
       };
 

@@ -20,6 +20,7 @@
   import {
     OPENSPEC_COMMANDS_DOCS_URL,
     OPENSPEC_INIT_DOCS_URL,
+    OPENSPEC_INSTALL_DOCS_URL,
     OPENSPEC_MULTI_LANGUAGE_DOCS_URL,
     OPENSPEC_SUPPORTED_TOOLS_DOCS_URL,
     OPENSPEC_WORKFLOWS_DOCS_URL,
@@ -41,7 +42,7 @@
   import { getWorkflowMetadata } from '$lib/workflowMetadata';
   import { copyToClipboard } from '$lib/utils';
   import { versionStatusStore } from '$lib/state/versionStatus.svelte.ts';
-  import { RELEASE_PAGE_URLS, UPDATE_COMMANDS, type VersionedToolId } from '$lib/state/versionStatusCore';
+  import { RELEASE_PAGE_URLS, resolveUpdateCommand, UPDATE_COMMANDS, type VersionedToolId } from '$lib/state/versionStatusCore';
   import type { DetectedIntegration, MachineSkillsStatus, ProjectVersionUpdateStatus, ToolScopeKind, ToolVersionStatus } from '$lib/types/api';
   import type { WorkflowCommand } from '$lib/types/commandTypes';
   import {
@@ -345,8 +346,8 @@
     return RELEASE_PAGE_URLS[toolId];
   }
 
-  function getUpdateCommand(toolId: VersionedToolId) {
-    return UPDATE_COMMANDS[toolId];
+  function getUpdateCommand(toolId: VersionedToolId, status: ToolVersionStatus) {
+    return resolveUpdateCommand(toolId, status);
   }
 
   async function handleCopyCommand(command: string, label: string) {
@@ -1028,7 +1029,9 @@
               {
                 id: 'openspec' as const,
                 title: t(m.settings_versions_openspec_label),
-                description: t(m.settings_versions_openspec_description),
+                description: resolveUpdateCommand('openspec', versionSnapshot.tools.openspec) === UPDATE_COMMANDS.openspec
+                  ? t(m.settings_versions_openspec_description)
+                  : t(m.settings_versions_openspec_description_install_aware),
                 status: versionSnapshot.tools.openspec,
               },
             ] as const as Array<{
@@ -1076,20 +1079,36 @@
                 </div>
               </dl>
 
+              {@const updateCommand = getUpdateCommand(tool.id, tool.status)}
               <div>
                 <div class="text-xs uppercase tracking-wide text-muted-foreground">{t(m.settings_versions_update_command)}</div>
+                {#if updateCommand}
                 <div class="mt-1 flex items-center gap-2 rounded-sm border border-border bg-background px-3 py-2">
-                  <code class="min-w-0 flex-1 overflow-x-auto text-xs text-primary">{getUpdateCommand(tool.id)}</code>
+                  <code class="min-w-0 flex-1 overflow-x-auto text-xs text-primary">{updateCommand}</code>
                   <Button
                     variant="ghost"
                     size="icon"
                     class="size-8 shrink-0 text-muted-foreground hover:text-foreground"
                     aria-label={`${t(m.common_copy)} ${tool.title}`}
-                    onclick={() => handleCopyCommand(getUpdateCommand(tool.id), tool.title)}
+                    onclick={() => handleCopyCommand(updateCommand, tool.title)}
                   >
                     <Copy class="h-4 w-4" />
                   </Button>
                 </div>
+                {:else}
+                <p class="mt-1 text-sm text-muted-foreground">
+                  {t(m.settings_versions_update_manager_hint, { manager: tool.status.installManager ?? '' })}
+                  <a
+                    href={OPENSPEC_INSTALL_DOCS_URL}
+                    target="_blank"
+                    rel="noreferrer"
+                    class="ml-1 inline-flex items-center gap-1 underline hover:text-foreground"
+                  >
+                    {t(m.settings_versions_install_docs)}
+                    <ExternalLink class="h-3.5 w-3.5" />
+                  </a>
+                </p>
+                {/if}
               </div>
               </InsetPanel>
             {/each}

@@ -1,4 +1,4 @@
-import type { VersionStatusResponse } from '$lib/types/api';
+import type { ToolVersionStatus, VersionStatusResponse } from '$lib/types/api';
 
 export type VersionedToolId = 'webui' | 'openspec';
 
@@ -23,6 +23,33 @@ export const UPDATE_COMMANDS = {
   openspec: 'npm install -g @fission-ai/openspec@latest',
   project: 'openspec update',
 } as const;
+
+/**
+ * The update command to show for a tool. For OpenSpec, a CLI-suggested
+ * command wins; otherwise npm (or an unknown manager from an older CLI)
+ * gets the npm command. Any other install manager returns null so the UI
+ * names the manager and links the installation docs instead.
+ */
+export function resolveUpdateCommand(
+  toolId: VersionedToolId,
+  status: Pick<ToolVersionStatus, 'installManager' | 'updateCommand'> | null | undefined
+): string | null {
+  if (toolId === 'webui') {
+    return UPDATE_COMMANDS.webui;
+  }
+
+  const suggested = status?.updateCommand?.trim();
+  if (suggested) {
+    return suggested;
+  }
+
+  const manager = status?.installManager?.trim();
+  if (!manager || manager.toLowerCase() === 'npm') {
+    return UPDATE_COMMANDS.openspec;
+  }
+
+  return null;
+}
 
 export function createDefaultVersionNotificationState(): VersionNotificationState {
   return {

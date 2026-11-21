@@ -370,6 +370,12 @@ export interface ToolVersionStatus {
   status: VersionToolStatus;
   error: string | null;
   notInstalled: boolean;
+  /** Install manager from `openspec version --json` (e.g. `npm`, `homebrew`); null for older CLIs. */
+  installManager?: string | null;
+  /** Install scope from `openspec version --json` (e.g. `global`); null for older CLIs. */
+  installScope?: string | null;
+  /** CLI-suggested update command from `openspec version --check --json`, else null. */
+  updateCommand?: string | null;
 }
 
 export interface VersionStatusResponse {

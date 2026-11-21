@@ -961,3 +961,22 @@ test('Versions 2.x and profile caption copy exists in every locale', async () =>
   assert.match(ja.settings_commands_config_profile_caption, /次回の `openspec update`.*このマシンのスキル/);
   assert.match(en.settings_versions_legacy_cleanup_hint, /openspec update --force/);
 });
+
+test('SettingsView.svelte shows the install-aware OpenSpec update command or the install docs link', async () => {
+  const source = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
+
+  assert.match(source, /import \{[^}]*resolveUpdateCommand[^}]*\} from '\$lib\/state\/versionStatusCore'/);
+  assert.match(source, /\{@const updateCommand = getUpdateCommand\(tool\.id, tool\.status\)\}/);
+  assert.match(source, /\{#if updateCommand\}[\s\S]*handleCopyCommand\(updateCommand, tool\.title\)[\s\S]*\{:else\}[\s\S]*m\.settings_versions_update_manager_hint, \{ manager: tool\.status\.installManager[\s\S]*href=\{OPENSPEC_INSTALL_DOCS_URL\}[\s\S]*m\.settings_versions_install_docs[\s\S]*\{\/if\}/);
+  assert.match(source, /description: resolveUpdateCommand\('openspec', versionSnapshot\.tools\.openspec\) === UPDATE_COMMANDS\.openspec\s*\? t\(m\.settings_versions_openspec_description\)\s*: t\(m\.settings_versions_openspec_description_install_aware\)/);
+  assert.match(source, /description: t\(m\.settings_versions_webui_description\)/);
+  assert.equal(source.includes('UPDATE_COMMANDS[toolId]'), false, 'Update command should follow the install method');
+
+  for (const locale of ['en', 'ja', 'de', 'es', 'fr', 'pt-BR', 'zh-CN']) {
+    const catalog = await readMessageCatalog(locale);
+    assert.match(catalog.settings_versions_update_manager_hint, /\{manager\}/, `${locale} hint names the manager`);
+    assert.ok(catalog.settings_versions_install_docs, `${locale} has install docs label`);
+    assert.ok(catalog.settings_versions_openspec_description_install_aware, `${locale} has install-aware description`);
+    assert.doesNotMatch(catalog.settings_versions_openspec_description_install_aware, /npm/);
+  }
+});

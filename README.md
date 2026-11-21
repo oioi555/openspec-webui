@@ -41,6 +41,11 @@ OpenSpec WebUI is a local browser interface for projects that use OpenSpec. Your
 
 ## Install
 
+### Prerequisites
+
+- OpenSpec WebUI runs on Node.js 20.19 or later.
+- The [OpenSpec CLI](https://openspec.dev/docs/installation) on your PATH. OpenSpec 2.x installed through npm needs Node.js 22.20 or later; standalone installs (the `openspec install` binary or Homebrew) need no Node.js.
+
 ```bash
 npm install -g openspec-webui
 ```
@@ -91,7 +96,7 @@ openspec-webui --no-open
 
 ### Requirements
 
-- Node.js >= 20
+- Node.js >= 20.19
 
 ### Commands
 

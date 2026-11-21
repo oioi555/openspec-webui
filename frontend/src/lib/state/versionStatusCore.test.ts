@@ -7,6 +7,7 @@ import {
   createVersionNotificationStoreWithAdapter,
   getToolsWithAvailableUpdates,
   RELEASE_PAGE_URLS,
+  resolveUpdateCommand,
 } from './versionStatusCore';
 import type { VersionStatusResponse } from '$lib/types/api';
 
@@ -105,4 +106,18 @@ test('release page urls and update commands expose representative constants', ()
   assert.equal(UPDATE_COMMANDS.webui, 'npm install -g openspec-webui@latest');
   assert.equal(UPDATE_COMMANDS.openspec, 'npm install -g @fission-ai/openspec@latest');
   assert.equal(UPDATE_COMMANDS.project, 'openspec update');
+});
+
+test('resolveUpdateCommand follows the OpenSpec install method', () => {
+  const npmCommand = 'npm install -g @fission-ai/openspec@latest';
+  assert.equal(resolveUpdateCommand('webui', { installManager: 'homebrew', updateCommand: 'x' }), 'npm install -g openspec-webui@latest');
+  assert.equal(resolveUpdateCommand('openspec', { installManager: 'standalone', updateCommand: 'openspec install' }), 'openspec install');
+  assert.equal(resolveUpdateCommand('openspec', { installManager: 'npm', updateCommand: null }), npmCommand);
+  assert.equal(resolveUpdateCommand('openspec', { installManager: 'NPM', updateCommand: '  ' }), npmCommand);
+  // Older CLIs report no install manager and keep the npm command.
+  assert.equal(resolveUpdateCommand('openspec', { installManager: null, updateCommand: null }), npmCommand);
+  assert.equal(resolveUpdateCommand('openspec', {}), npmCommand);
+  assert.equal(resolveUpdateCommand('openspec', null), npmCommand);
+  // Other managers without a suggestion get the docs link, never a guessed command.
+  assert.equal(resolveUpdateCommand('openspec', { installManager: 'homebrew', updateCommand: null }), null);
 });

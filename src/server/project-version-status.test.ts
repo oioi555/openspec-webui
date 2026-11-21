@@ -57,6 +57,9 @@ function makeToolSnapshot(currentVersion: string | null) {
     status: currentVersion ? 'unknown' : 'unavailable',
     error: null,
     notInstalled: currentVersion === null,
+    installManager: null,
+    installScope: null,
+    updateCommand: null,
   } as const;
 }
 

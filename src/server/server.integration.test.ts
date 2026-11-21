@@ -17,14 +17,27 @@ const originalEnv = {
   PATH: process.env.PATH,
 };
 
-beforeEach(() => {
-  delete process.env.XDG_CONFIG_HOME;
+function restoreEnv(name: keyof typeof originalEnv): void {
+  const value = originalEnv[name];
+  if (value === undefined) {
+    delete process.env[name];
+  } else {
+    process.env[name] = value;
+  }
+}
+
+beforeEach(async () => {
+  // Never read the user's real project registry or spawn their real CLI:
+  // every test starts with an empty config home and a PATH whose only
+  // `openspec` is a stub that fails. Tests that need a CLI install the fake.
+  process.env.XDG_CONFIG_HOME = await createTempDir('openspec-webui-default-config-');
+  process.env.PATH = `${await createMissingOpenSpecBin()}:${originalEnv.PATH ?? ''}`;
 });
 
 afterEach(async () => {
   process.chdir(originalCwd);
-  process.env.XDG_CONFIG_HOME = originalEnv.XDG_CONFIG_HOME;
-  process.env.PATH = originalEnv.PATH;
+  restoreEnv('XDG_CONFIG_HOME');
+  restoreEnv('PATH');
   await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
 });
 
@@ -32,6 +45,15 @@ async function createTempDir(prefix: string): Promise<string> {
   const dir = await mkdtemp(join(tmpdir(), prefix));
   tempDirs.push(dir);
   return dir;
+}
+
+/** A PATH entry whose `openspec` always fails, shadowing any real CLI. */
+async function createMissingOpenSpecBin(): Promise<string> {
+  const binDir = await createTempDir('openspec-webui-no-cli-bin-');
+  const scriptPath = join(binDir, 'openspec');
+  await writeFile(scriptPath, '#!/bin/sh\necho "openspec stub: real CLI is not used in tests" >&2\nexit 127\n', 'utf8');
+  await chmod(scriptPath, 0o755);
+  return binDir;
 }
 
 function createProjectConfigYaml(name: string, options: { context?: string; schema?: string } = {}) {
@@ -82,6 +104,22 @@ function skillMarkdown(generatedBy: string): string {
   ].join('\n');
 }
 
+/** A version service that never spawns the CLI or hits the npm registry. */
+function createStubVersionSnapshotService(): VersionSnapshotService {
+  return createVersionSnapshotService({
+    autoStart: false,
+    deps: {
+      getWebUiCurrentVersion: () => '0.1.0',
+      fetchLatestPackageVersion: async () => {
+        throw new Error('registry disabled in tests');
+      },
+      readOpenSpecVersion: async () => '1.3.1',
+      readOpenSpecInstallInfo: async () => null,
+      now: () => new Date('2026-04-29T00:00:00.000Z'),
+    },
+  });
+}
+
 async function createReadyVersionSnapshotService(version = '1.3.1'): Promise<VersionSnapshotService> {
   const service = createVersionSnapshotService({
     autoStart: false,
@@ -121,6 +159,12 @@ const unavailableRoots = new Set(${unavailableRoots});
 const version = ${version};
 const cwd = process.cwd();
 const key = process.argv[4];
+
+if (process.argv[2] === 'version') {
+  // Behave like a pre-2.x CLI without \`version --json\` support.
+  process.stderr.write("error: unknown command 'version'\\n");
+  process.exit(1);
+}
 
 if (process.argv.includes('--version')) {
   process.stdout.write(version + '\\n');
@@ -194,6 +238,8 @@ async function startServer(options: {
     cwd = await createTempDir('openspec-webui-server-cwd-'),
     // Never scan the real home folder: default to an empty temporary home.
     toolDetection = { homeDir: await createTempDir('openspec-webui-empty-home-'), claudeConfigDir: undefined },
+    // Never spawn the CLI or query npm for the startup version check.
+    versionSnapshotService = createStubVersionSnapshotService(),
     ...serverOptions
   } = options;
   const previousCwd = process.cwd();
@@ -205,6 +251,7 @@ async function startServer(options: {
       port: 0,
       host: '127.0.0.1',
       ...serverOptions,
+      versionSnapshotService,
       toolDetection,
     });
   } finally {
@@ -863,7 +910,11 @@ test('server reports a helpful error when the port is already in use', async () 
 
   try {
     await assert.rejects(
-      () => createServer({ port: address.port, host: '127.0.0.1' }),
+      () => createServer({
+        port: address.port,
+        host: '127.0.0.1',
+        versionSnapshotService: createStubVersionSnapshotService(),
+      }),
       new RegExp(`Port ${address.port} is already in use`)
     );
   } finally {
