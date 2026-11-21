@@ -320,3 +320,25 @@ test('delta parser gives CRLF and BOM files the same operations as LF', async ()
   assert.deepEqual(crlfOps, lfOps);
   assert.deepEqual(lfOps.map((op) => [op.type, op.name]), [['added', 'One'], ['removed', 'Two']]);
 });
+
+test('delta parser ends a requirement at a non-delta ## header', async () => {
+  const ops = await parseDeltaOps('## ADDED Requirements\n\n### Requirement: A\nBody\n\n## Notes\nStray\n### Requirement: Orphan\n');
+  assert.deepEqual(ops.map((op) => [op.type, op.name, op.content]), [['added', 'A', '### Requirement: A\nBody']]);
+});
+
+test('delta parser blanks leading frontmatter and keeps line numbers', async () => {
+  const ops = await parseDeltaOps('---\nowner: a\n---\n## ADDED Requirements\n### Requirement: A\nBody\n');
+  assert.deepEqual(ops.map((op) => [op.name, op.startLine, op.content]), [['A', 5, '### Requirement: A\nBody']]);
+  const rule = await parseDeltaOps('---\n## ADDED Requirements\n### Requirement: B\n');
+  assert.deepEqual(rule.map((op) => op.name), ['B']);
+});
+
+test('delta parser trims trailing whitespace from requirement content', async () => {
+  const ops = await parseDeltaOps('## ADDED Requirements\n### Requirement: A\nBody  \n\n\n### Requirement: B\nEnd\t\n\n');
+  assert.deepEqual(ops.map((op) => op.content), ['### Requirement: A\nBody', '### Requirement: B\nEnd']);
+});
+
+test('delta parser keeps accepting a singular section header', async () => {
+  const ops = await parseDeltaOps('## ADDED Requirement\n### Requirement: A\n');
+  assert.deepEqual(ops.map((op) => [op.type, op.name]), [['added', 'A']]);
+});

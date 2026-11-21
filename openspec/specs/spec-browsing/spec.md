@@ -150,11 +150,14 @@ The SpecViewer SHALL highlight matching rendered markdown text for the current c
 - **THEN** the SpecViewer renders its markdown content without in-page highlight marks
 
 ### Requirement: Parse delta operations with OpenSpec header rules
-When parsing a change spec delta into operations, the system SHALL use the requirement header rules of OpenSpec 2.1:
+When parsing a change spec delta into operations, the system SHALL follow OpenSpec 2.1:
 - A requirement header SHALL match `###`, optional whitespace, then `Requirement:`.
-- A closing run of `#` characters preceded by a space or tab SHALL be removed from requirement names and SHALL be allowed on delta section headers.
-- Lines inside fenced code blocks SHALL NOT be treated as headers.
-- A leading byte-order mark and CRLF line endings SHALL NOT change the result.
+- A closing `#` run after a space or tab SHALL be dropped from names.
+- Fenced lines SHALL NOT be headers.
+- A BOM and CRLF endings SHALL NOT change the result.
+- Any `##` header SHALL end the current section.
+- A leading YAML frontmatter block SHALL be ignored.
+- Requirement content SHALL have no trailing whitespace.
 
 #### Scenario: Header without a space
 - **WHEN** an ADDED section contains `###Requirement: Compact header`
@@ -172,3 +175,20 @@ When parsing a change spec delta into operations, the system SHALL use the requi
 #### Scenario: CRLF file
 - **WHEN** a delta file uses CRLF line endings
 - **THEN** its operations equal those of the same file with LF line endings
+
+#### Scenario: Non-delta section
+- **WHEN** a requirement is followed by `## Notes` and text
+- **THEN** that text is not in the requirement's content
+
+#### Scenario: Frontmatter
+- **WHEN** a delta starts with a `---` block holding `owner: a`
+- **THEN** no frontmatter text appears in any requirement content
+- **AND** line numbers still match the file
+
+#### Scenario: Trailing blank lines
+- **WHEN** a requirement block ends with blank lines
+- **THEN** its content ends at its last non-blank line
+
+#### Scenario: Singular section header
+- **WHEN** a delta uses `## ADDED Requirement`
+- **THEN** its requirements are still parsed as added

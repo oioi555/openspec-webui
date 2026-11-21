@@ -479,23 +479,51 @@ function buildCodeFenceMask(lines: string[]): boolean[] {
   return mask;
 }
 
+/** Mirrors OpenSpec 2.1.1 `FRONTMATTER_KEY_REGEX`. */
+const FRONTMATTER_KEY_REGEX = /^(?:"[^"]+"|'[^']+'|[\p{L}\p{N}_.-]+)\s*:(?:\s|$)/u;
+
+/**
+ * The line after a leading frontmatter block, or 0 when there is none.
+ * Port of OpenSpec 2.1.1 `findFrontmatterEnd` (`requirement-blocks.js`).
+ */
+function findFrontmatterEnd(lines: string[], requirementRegex: RegExp): number {
+  if (lines[0].trimEnd() !== '---') return 0;
+  let sawKey = false;
+  let sawComment = false;
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (/^#{2,6}(?:\s|$)/.test(line) || requirementRegex.test(line)) return 0;
+    if (line.trimEnd() === '---') return sawKey || !sawComment ? i + 1 : 0;
+    if (sawKey || !line.trim()) continue;
+    if (line.trimStart().startsWith('#')) {
+      sawComment = true;
+      continue;
+    }
+    if (!FRONTMATTER_KEY_REGEX.test(line)) return 0;
+    sawKey = true;
+  }
+  return 0;
+}
+
 /**
  * Parse delta operations (ADDED, MODIFIED, REMOVED, RENAMED) from spec content.
  *
  * Header rules mirror OpenSpec 2.1.1 `dist/core/parsers/requirement-blocks.js`:
  * - requirement header `/^###\s*Requirement:\s*(.+)\s*$/i`;
- * - closing run stripped by `stripClosingSequence` (`/[ \t]+#+[ \t]*$/`);
- * - fenced lines are never headers; BOM and CRLF/CR are normalized first.
+ * - closing run stripped as upstream `stripClosingSequence` does (`/[ \t]+#+[ \t]*$/`, inline below);
+ * - fenced lines are never headers; BOM and CRLF/CR are normalized first;
+ * - leading frontmatter is blanked (line numbers kept), any non-fenced `##`
+ *   header ends the section, and block content is `trimEnd()`ed.
  * The section regex stays deliberately more lenient than upstream (singular
  * `Requirement` accepted; unanchored, so a closing `##` run is allowed).
  */
 function parseDeltaOperations(content: string): DeltaOperation[] {
   const operations: DeltaOperation[] = [];
   const lines = content.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n').split('\n');
-  const fenceMask = buildCodeFenceMask(lines);
-
   const sectionRegex = /^##\s+(ADDED|MODIFIED|REMOVED|RENAMED)\s+Requirements?/i;
   const requirementRegex = /^###\s*Requirement:\s*(.+)\s*$/i;
+  lines.fill('', 0, findFrontmatterEnd(lines, requirementRegex));
+  const fenceMask = buildCodeFenceMask(lines);
 
   let currentSection: 'added' | 'modified' | 'removed' | 'renamed' | null = null;
   let currentRequirement: { name: string; startLine: number; content: string[] } | null = null;
@@ -511,20 +539,22 @@ function parseDeltaOperations(content: string): DeltaOperation[] {
       continue;
     }
 
-    // Check for section headers
-    const sectionMatch = line.match(sectionRegex);
-    if (sectionMatch) {
+    // Any `##` header ends the current section; only delta headers start one
+    if (/^##\s+/.test(line)) {
+      const sectionMatch = line.match(sectionRegex);
       // Save previous requirement if exists
       if (currentRequirement && currentSection) {
         operations.push({
           type: currentSection,
           name: currentRequirement.name,
-          content: currentRequirement.content.join('\n'),
+          content: currentRequirement.content.join('\n').trimEnd(),
           startLine: currentRequirement.startLine,
           endLine: i,
         });
       }
-      currentSection = sectionMatch[1].toLowerCase() as 'added' | 'modified' | 'removed' | 'renamed';
+      currentSection = sectionMatch
+        ? (sectionMatch[1].toLowerCase() as 'added' | 'modified' | 'removed' | 'renamed')
+        : null;
       currentRequirement = null;
       continue;
     }
@@ -537,7 +567,7 @@ function parseDeltaOperations(content: string): DeltaOperation[] {
         operations.push({
           type: currentSection,
           name: currentRequirement.name,
-          content: currentRequirement.content.join('\n'),
+          content: currentRequirement.content.join('\n').trimEnd(),
           startLine: currentRequirement.startLine,
           endLine: i,
         });
@@ -561,7 +591,7 @@ function parseDeltaOperations(content: string): DeltaOperation[] {
     operations.push({
       type: currentSection,
       name: currentRequirement.name,
-      content: currentRequirement.content.join('\n'),
+      content: currentRequirement.content.join('\n').trimEnd(),
       startLine: currentRequirement.startLine,
       endLine: lines.length,
     });
