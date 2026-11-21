@@ -14,6 +14,7 @@ export default defineConfig({
       project: path.resolve(import.meta.dirname, './project.inlang'),
       outdir: path.resolve(import.meta.dirname, './src/lib/paraglide'),
       strategy: ['custom-openspec-locale', 'preferredLanguage', 'baseLocale'],
+      // paraglide 3 defaults the Vite plugin to virtual modules; tests and typecheck read the generated files on disk.
       outputStructure: 'message-modules',
       emitTsDeclarations: true,
       emitGitIgnore: false,
