@@ -10,7 +10,7 @@ Local-first browser UI for exploring, reviewing, and iterating on OpenSpec-compa
 
 ## Technology Stack
 
-- Node.js 20+
+- Node.js 22.22+
 - TypeScript
 - Fastify
 - Svelte 5

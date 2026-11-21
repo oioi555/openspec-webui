@@ -33,7 +33,7 @@
   },
   "homepage": "https://github.com/oioi555/openspec-webui#readme",
   "engines": {
-    "node": ">=20.19.0"
+    "node": ">=22.22.0"
   },
   "files": [
     "README.md",
@@ -46,7 +46,7 @@
   "dependencies": {
     "@fastify/static": "^10.1.5",
     "@fastify/websocket": "^11.3.1",
-    "chokidar": "^5.0.0",
+    "chokidar": "^6.0.0",
     "commander": "^15.0.0",
     "fastify": "^5.12.5",
     "open": "^11.0.4",

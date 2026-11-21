@@ -1,7 +1,7 @@
 ---
 name: update-tool-reference
 description: Update pinned OpenSpec tool definitions, per-tool skill scope support, and the .agents/skills mapping from official release data and vercel-labs/skills. Use for OpenSpec releases and reference refreshes. Never detect releases or schedule itself.
-compatibility: Requires network for official sources, Node.js 20+, and this repository's scripts/update-tool-reference.mjs.
+compatibility: Requires network for official sources, Node.js 22.22+, and this repository's scripts/update-tool-reference.mjs.
 ---
 
 # Update Tool Reference

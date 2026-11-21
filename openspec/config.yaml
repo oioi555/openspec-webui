@@ -3,7 +3,7 @@ schema: spec-driven
 context: |
   OpenSpec WebUI: local-first browser UI for exploring and iterating on OpenSpec-compatible directories.
 
-  Tech stack: Node.js 20+, TypeScript, Fastify, Svelte 5, Vite, chokidar.
+  Tech stack: Node.js 22.22+, TypeScript, Fastify, Svelte 5, Vite, chokidar.
 
   Directory conventions:
   - src/ → CLI, server, parser, shared types, watcher logic

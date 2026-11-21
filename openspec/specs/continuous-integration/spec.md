@@ -7,7 +7,7 @@ Defines the automated checks that run for every change to the repository, so tha
 ## Requirements
 
 ### Requirement: Run repository checks on every push and pull request
-The repository SHALL run its unit tests, type checks, and production build automatically for every push to `main` and every pull request, on both Linux and Windows, using a Node.js version within the supported `engines` range. The workflow SHALL use read-only repository permissions and bounded job timeouts.
+The repository SHALL run its unit tests, type checks, and production build automatically for every push to `main` and every pull request, on both Linux and Windows, using a Node.js version within the supported `engines` range. At least one Linux job SHALL use exactly the minimum version declared in `engines` (currently `22.22.0`). The workflow SHALL use read-only repository permissions and bounded job timeouts.
 
 #### Scenario: Pull request is opened
 - **WHEN** a pull request is opened or updated
@@ -16,7 +16,8 @@ The repository SHALL run its unit tests, type checks, and production build autom
 
 #### Scenario: Minimum supported Node.js
 - **WHEN** the checks run
-- **THEN** at least one Linux job uses the minimum Node.js version declared in `engines`
+- **THEN** at least one Linux job uses exactly the minimum Node.js version declared in `engines`
+- **AND** every other job uses a Node.js version that satisfies `engines`
 
 ### Requirement: Smoke-test the packaged CLI on Windows with an npm OpenSpec install
 CI SHALL install OpenSpec from npm on Windows, install this repository's packed tarball globally, start `openspec-webui` without opening a browser, and verify that `/api/version-status` finishes loading and reports OpenSpec as installed with a semver `currentVersion` and `installManager` equal to `npm`. The job SHALL confirm that only the `openspec.cmd` shim is on PATH so success proves the shim fallback.

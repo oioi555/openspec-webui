@@ -4,6 +4,7 @@
 Define release packaging rules so the published npm package stays consistent, minimal, and verifiable.
 
 ## Requirements
+
 ### Requirement: Package metadata remains release-consistent
 The system SHALL define the published package version in one authoritative metadata source, SHALL use that version for CLI `--version` output and npm package metadata, SHALL publish package metadata that points to the current `openspec-webui` repository, homepage, bug tracker, and license rather than an outdated upstream package identity, and SHALL use a description that accurately reflects the tool's local-first nature without implying remote server infrastructure.
 
@@ -82,3 +83,14 @@ The system SHALL keep the npm dependency tree updated so known npm audit finding
 #### Scenario: Maintainer verifies package after dependency updates
 - **WHEN** dependency metadata or lockfile entries are updated
 - **THEN** the existing test, typecheck, build, and package verification workflows pass before publishing
+
+### Requirement: Supported Node.js runtime floor
+The published package SHALL declare `engines.node` as `>=22.22.0`, which is not lower than the Node.js floor of the supported OpenSpec 2.x CLI (`>=22.20.0`) and satisfies the file-watching dependency. The root entry of the lockfile SHALL declare the same range, and the README SHALL state the same minimum Node.js version.
+
+#### Scenario: Engines match the documented floor
+- **WHEN** a user inspects the package metadata, lockfile root, and README prerequisites
+- **THEN** each states Node.js 22.22.0 as the minimum
+
+#### Scenario: Floor is not below OpenSpec's
+- **WHEN** the supported OpenSpec CLI raises its Node.js floor
+- **THEN** the WebUI floor is not lower than it
