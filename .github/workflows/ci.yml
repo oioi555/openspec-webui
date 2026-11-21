@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: checks (${{ matrix.os }}, node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: ['22']
+        include:
+          # Minimum supported runtime from package.json engines.
+          - os: ubuntu-latest
+            node: '20.19'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run typecheck
+      - run: npm run build
+
+  smoke-windows-npm:
+    name: smoke (windows, OpenSpec via npm)
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # OpenSpec 2.x from npm needs Node >= 22.20; '22' resolves to the latest 22.x.
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Install OpenSpec from npm
+        run: npm i -g @fission-ai/openspec@latest
+      - name: Pack and install openspec-webui globally
+        shell: pwsh
+        run: |
+          $tgz = (npm pack --silent | Select-Object -Last 1).Trim()
+          npm i -g "./$tgz"
+      - name: Smoke test (expects openspec.cmd shim fallback)
+        run: node scripts/ci-smoke.mjs --expect-manager npm --expect-shim
+
+  smoke-windows-standalone:
+    name: smoke (windows, standalone OpenSpec)
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Install standalone OpenSpec (official installer)
+        shell: pwsh
+        env:
+          OPENSPEC_INSTALL_DIR: ${{ runner.temp }}\openspec-standalone
+        run: |
+          irm https://openspec.dev/cli/install.ps1 | iex
+          Add-Content -Path $env:GITHUB_PATH -Value $env:OPENSPEC_INSTALL_DIR
+      - name: Show OpenSpec install
+        run: |
+          where.exe openspec
+          openspec version --check --json
+      - name: Pack and install openspec-webui globally
+        shell: pwsh
+        run: |
+          $tgz = (npm pack --silent | Select-Object -Last 1).Trim()
+          npm i -g "./$tgz"
+      - name: Smoke test
+        run: node scripts/ci-smoke.mjs
