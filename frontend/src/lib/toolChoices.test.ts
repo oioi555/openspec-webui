@@ -596,6 +596,14 @@ test('ToolChoice carries text, stable key, and tools[]', () => {
 // 9. OpenSpec 2.x multi-line shared targets and global scope
 // ---------------------------------------------------------------------------
 
+/** Display names as served by the tool-reference API. */
+const SERVED_TOOL_NAMES = {
+  codex: 'Codex',
+  cursor: 'Cursor',
+  kimi: 'Kimi Code',
+  codeassistant: 'SourceCraft Code Assistant',
+};
+
 function withScope(integration: DetectedIntegration, scope: DetectedIntegration['scope']): DetectedIntegration {
   return { ...integration, scope };
 }
@@ -610,7 +618,7 @@ test('2.1.1 fixture: Claude Code plus multi-target shared tree yields labelled p
     shared,
   ];
 
-  assert.deepEqual(buildGroupedToolChoices(integrations, 'propose'), [
+  assert.deepEqual(buildGroupedToolChoices(integrations, 'propose', { toolNames: SERVED_TOOL_NAMES }), [
     { key: '/openspec-propose', text: '/openspec-propose', tools: ['Claude Code', 'Cursor'] },
     { key: '$openspec-propose', text: '$openspec-propose', tools: ['Codex'] },
     { key: '/skill:openspec-propose', text: '/skill:openspec-propose', tools: ['Kimi Code'] },
@@ -622,9 +630,21 @@ test('multi-target list maps codeassistant to the prompt form and unknown ids to
     ...skillsIntegration(AGENTS_TOOL_NAME, 'skill-slash', ['openspec-propose'], '.agents/', undefined, 'multi'),
     sharedSkillTargets: ['codeassistant', 'future-tool'],
   };
-  const choices = buildGroupedToolChoices([shared], 'propose');
-  assert.deepEqual(choices.map((c) => c.tools), [['SourceCraft Code Assistant for VS Code'], ['future-tool']]);
+  const choices = buildGroupedToolChoices([shared], 'propose', { toolNames: SERVED_TOOL_NAMES });
+  assert.deepEqual(choices.map((c) => c.tools), [['SourceCraft Code Assistant'], ['future-tool']]);
   assert.equal(choices[1]!.text, '/openspec-propose');
+});
+
+test('multi-target labels fall back to ids until served names are available', () => {
+  const shared: DetectedIntegration = {
+    ...skillsIntegration(AGENTS_TOOL_NAME, 'skill-slash', ['openspec-propose'], '.agents/', undefined, 'multi'),
+    sharedSkillTargets: ['kimi', 'cursor'],
+  };
+  assert.deepEqual(buildGroupedToolChoices([shared], 'propose').map((c) => c.tools), [['kimi'], ['cursor']]);
+  assert.deepEqual(
+    buildGroupedToolChoices([shared], 'propose', { toolNames: { kimi: 'Kimi Code' } }).map((c) => c.tools),
+    [['Kimi Code'], ['cursor']]
+  );
 });
 
 test('multi without a target list falls back to the legacy slash + Codex dollar split', () => {

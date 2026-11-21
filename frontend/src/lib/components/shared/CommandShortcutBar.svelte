@@ -8,6 +8,7 @@
   import * as m from '$lib/paraglide/messages.js';
   import { t } from '$lib/i18n';
   import { commandPreferencesStore } from '$lib/state/commandPreferences.svelte.ts';
+  import { toolReferenceStore } from '$lib/state/toolReference.svelte.ts';
   import { getCommandShortcutCopyTitle } from '$lib/uiText';
   import {
     buildGroupedToolChoices,
@@ -21,9 +22,19 @@
 
   let { commands = [], changeName = null }: Props = $props();
 
+  // Served display names label per-tool candidates from a shared `.agents` marker.
+  $effect(() => {
+    if (commandPreferencesStore.availability.integrations.some((integration) => integration.sharedSkillTargets?.length)) {
+      void toolReferenceStore.load();
+    }
+  });
+
   function getChoices(command: WorkflowCommand): ToolChoice[] {
     const { integrations } = commandPreferencesStore.availability;
-    return buildGroupedToolChoices(integrations, command, { changeName: changeName ?? undefined });
+    return buildGroupedToolChoices(integrations, command, {
+      changeName: changeName ?? undefined,
+      toolNames: toolReferenceStore.toolNames,
+    });
   }
 
   /** Strip the trailing change-name suffix for menu preview display only. */

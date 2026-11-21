@@ -17,7 +17,8 @@
     },
     {
       "id": "antigravity-cli",
-      "name": "Antigravity CLI"
+      "name": "Antigravity CLI",
+      "openSpecToolId": "antigravity-cli"
     },
     {
       "id": "auggie",
@@ -55,7 +56,8 @@
     },
     {
       "id": "dexto",
-      "name": "Dexto"
+      "name": "Dexto",
+      "openSpecToolId": "dexto"
     },
     {
       "id": "factory",
@@ -64,7 +66,8 @@
     },
     {
       "id": "firebender",
-      "name": "Firebender"
+      "name": "Firebender",
+      "openSpecToolId": "firebender"
     },
     {
       "id": "forgecode",
@@ -107,7 +110,8 @@
     {
       "id": "loaf",
       "name": "Loaf",
-      "note": "Agent Skills format only (shared path not verified)"
+      "note": "Agent Skills format only (shared path not verified)",
+      "openSpecToolId": "loaf"
     },
     {
       "id": "opencode",
@@ -121,7 +125,8 @@
     },
     {
       "id": "promptscript",
-      "name": "PromptScript"
+      "name": "PromptScript",
+      "openSpecToolId": "promptscript"
     },
     {
       "id": "qoder",
@@ -135,7 +140,8 @@
     },
     {
       "id": "replit",
-      "name": "Replit"
+      "name": "Replit",
+      "openSpecToolId": "replit"
     },
     {
       "id": "roocode",
@@ -166,8 +172,8 @@
   "schemaVersion": 1,
   "source": {
     "revision": "435076e78988e1e6ec40d00b0b1d76bdbbc5419a",
-    "updatedAt": "2026-10-02",
+    "updatedAt": "2026-11-21",
     "url": "https://github.com/vercel-labs/skills"
   },
-  "updatedAt": "2026-10-02"
+  "updatedAt": "2026-11-21"
 }

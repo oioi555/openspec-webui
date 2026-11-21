@@ -60,24 +60,11 @@ const AGENTS_SPLIT_LABELS: Partial<Record<InvocationFormId, string>> = {
 };
 
 /**
- * Official OpenSpec tool id -> display name (mirrors the server tool
- * reference). Used to label per-tool candidates derived from a 2.x
- * multi-line shared `.agents` marker. Unknown ids fall back to the id.
+ * Official OpenSpec tool id -> display name, served by the tool-reference API.
+ * Used to label per-tool candidates derived from a 2.x multi-line shared
+ * `.agents` marker. Ids missing from the served names fall back to the id.
  */
-const OPENSPEC_TOOL_NAMES: Readonly<Record<string, string>> = {
-  'amazon-q': 'Amazon Q Developer', amp: 'Amp', antigravity: 'Antigravity', atomcode: 'AtomCode',
-  auggie: 'Auggie', bob: 'IBM Bob', claude: 'Claude Code', cline: 'Cline', 'command-code': 'Command Code',
-  codeartsagent: 'CodeArts', codebuddy: 'CodeBuddy', codestudio: 'Code Studio', codex: 'Codex',
-  dsh: 'DeepSeek Harness', devin: 'Devin Desktop, formerly Windsurf', forgecode: 'ForgeCode',
-  continue: 'Continue', costrict: 'CoStrict', crush: 'Crush', cursor: 'Cursor', easycode: 'EasyCode',
-  factory: 'Factory Droid', gemini: 'Gemini CLI', 'github-copilot': 'GitHub Copilot', gigacode: 'GigaCode',
-  grok: 'Grok Build', gsd: 'GSD', hermes: 'Hermes Agent', iflow: 'iFlow', junie: 'Junie',
-  kilocode: 'Kilo Code', kimi: 'Kimi Code', kiro: 'Kiro', lingma: 'Lingma', 'minimax-code': 'MiniMax Code',
-  vibe: 'Mistral Vibe', 'oh-my-pi': 'Oh My Pi', opencode: 'OpenCode', pi: 'Pi',
-  codeassistant: 'SourceCraft Code Assistant for VS Code', qoder: 'Qoder', qwen: 'Qwen Code',
-  rovodev: 'Rovo Dev CLI', roocode: 'Zoo Code', trae: 'Trae', veai: 'Veai', warp: 'Warp',
-  zed: 'Zed Agent', zcode: 'ZCode', agents: 'Shared .agents',
-};
+export type ToolNames = Readonly<Record<string, string>>;
 
 /** Documented skill invocation form for a tool reading the shared `.agents/skills` tree. */
 function sharedTargetForm(toolId: string): InvocationFormId {
@@ -94,8 +81,11 @@ function sharedTargetForm(toolId: string): InvocationFormId {
 }
 
 /** Labelled (form, tool name) pairs for a shared integration with a multi-line target list. */
-function sharedTargetCandidates(targets: readonly string[]): Array<{ form: InvocationFormId; label: string }> {
-  return targets.map((id) => ({ form: sharedTargetForm(id), label: OPENSPEC_TOOL_NAMES[id] ?? id }));
+function sharedTargetCandidates(
+  targets: readonly string[],
+  toolNames: ToolNames,
+): Array<{ form: InvocationFormId; label: string }> {
+  return targets.map((id) => ({ form: sharedTargetForm(id), label: toolNames[id] ?? id }));
 }
 
 function toolLabelFor(integration: DetectedIntegration, form: InvocationFormId): string {
@@ -171,9 +161,9 @@ function addToolToGroup(groups: Map<string, string[]>, text: string, tool: strin
 export function buildGroupedToolChoices(
   integrations: readonly DetectedIntegration[],
   workflow: WorkflowCommand,
-  options: { changeName?: string } = {},
+  options: { changeName?: string; toolNames?: ToolNames } = {},
 ): ToolChoice[] {
-  const { changeName } = options;
+  const { changeName, toolNames = {} } = options;
   const skillName = getWorkflowMetadata(workflow).skillName;
   const groups = new Map<string, string[]>();
 
@@ -193,7 +183,7 @@ export function buildGroupedToolChoices(
     const skills = integration.skills;
     if (skills && skills.items.some((item) => item.skillName === skillName)) {
       if (integration.sharedSkillTargets?.length) {
-        for (const { form, label } of sharedTargetCandidates(integration.sharedSkillTargets)) {
+        for (const { form, label } of sharedTargetCandidates(integration.sharedSkillTargets, toolNames)) {
           addToolToGroup(groups, generateText(form, workflow, changeName), label);
         }
         continue;

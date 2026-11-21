@@ -1,0 +1,611 @@
+{
+  "commands": [
+    {
+      "commands": {
+        "invocation": "@opsx-<id>",
+        "path": ".amazonq/prompts/opsx-<id>.md"
+      },
+      "id": "amazon-q"
+    },
+    {
+      "commands": {
+        "invocation": "/opsx-<id>",
+        "path": ".agents/workflows/opsx-<id>.md"
+      },
+      "id": "antigravity"
+    },
+    {
+      "commands": {
+        "invocation": "/opsx-<id>",
+        "path": ".atomcode/commands/opsx-<id>.md"
+      },
+      "id": "atomcode"
+    },
+    {
+      "commands": {
+        "invocation": "/opsx-<id>",
+        "path": ".augment/commands/opsx-<id>.md"
+      },
+      "id": "auggie"
+    },
+    {
+      "commands": {
+        "invocation": "/opsx-<id>",
+        "path": ".bob/commands/opsx-<id>.md"
+      },
+      "id": "bob"
+    },
+    {
+      "commands": {
+        "invocation": "/opsx:<id>",
+        "path": ".claude/commands/opsx/<id>.md"
+      },
+      "id": "claude"
+    },
+    {
+      "commands": {
+        "invocation": "/opsx-<id>",
+        "path": ".clinerules/workflows/opsx-<id>.md"
+      },
+      "id": "cline"
+    },
+    {
+      "commands": {
+        "invocation": "/opsx-<id>",
+        "path": ".commandcode/commands/opsx-<id>.md"
+      },
+      "id": "command-code"
+    },
+    {
+      "commands": {
+        "invocation": "/opsx:<id>",
+        "path": ".codebuddy/commands/opsx/<id>.md"
+      },
+      "id": "codebuddy"
+    },
+    {
+      "commands": {
+        "invocation": "/opsx-<id>",
+        "path": ".codestudio/prompts/opsx-<id>.prompt.md"
+      },
+      "id": "codestudio"
+    },
+    {
+      "commands": {
+        "invocation": "/opsx-<id>",
+        "path": ".devin/workflows/opsx-<id>.md"
+      },
+      "id": "devin"
+    },
+    {
+      "commands": {
+        "invocation": "/opsx-<id>",
+        "path": ".continue/prompts/opsx-<id>.prompt"
+      },
+      "id": "continue"
+    },
+    {
+      "commands": {
+        "invocation": "/opsx-<id>",
+        "path": ".cospec/openspec/commands/opsx-<id>.md"
+      },
+      "id": "costrict"
+    },
+    {
+      "commands": {
+        "invocation": "/opsx:<id>",
+        "path": ".crush/commands/opsx/<id>.md"
+      },
+      "id": "crush"
+    },
+    {
+      "commands": {
+        "invocation": "/opsx-<id>",
+        "path": ".cursor/commands/opsx-<id>.md"
+      },
+      "id": "cursor"
+    },
+    {
+      "commands": {
+        "invocation": "/opsx:<id>",
+        "path": ".easycode/commands/opsx/<id>.toml"
+      },
+      "id": "easycode"
+    },
+    {
+      "commands": {
+        "invocation": "/opsx-<id>",
+        "path": ".factory/commands/opsx-<id>.md"
+      },
+      "id": "factory"
+    },
+    {
+      "commands": {
+        "invocation": "/opsx:<id>",
+        "path": ".gemini/commands/opsx/<id>.toml"
+      },
+      "id": "gemini"
+    },
+    {
+      "commands": {
+        "invocation": "/opsx-<id>",
+        "path": ".github/prompts/opsx-<id>.prompt.md"
+      },
+      "id": "github-copilot"
+    },
+    {
+      "commands": {
+        "invocation": "/opsx-<id>",
+        "path": ".gigacode/commands/opsx-<id>.md"
+      },
+      "id": "gigacode"
+    },
+    {
+      "commands": {
+        "invocation": "/opsx-<id>",
+        "path": ".iflow/commands/opsx-<id>.md"
+      },
+      "id": "iflow"
+    },
+    {
+      "commands": {
+        "invocation": "/opsx-<id>",
+        "path": ".junie/commands/opsx-<id>.md"
+      },
+      "id": "junie"
+    },
+    {
+      "commands": {
+        "invocation": "/opsx-<id>",
+        "path": ".kilo/command/opsx-<id>.md"
+      },
+      "id": "kilocode"
+    },
+    {
+      "commands": {
+        "invocation": "/opsx-<id>",
+        "path": ".kiro/prompts/opsx-<id>.prompt.md"
+      },
+      "id": "kiro"
+    },
+    {
+      "commands": {
+        "invocation": "/opsx:<id>",
+        "path": ".lingma/commands/opsx/<id>.md"
+      },
+      "id": "lingma"
+    },
+    {
+      "commands": {
+        "invocation": "/opsx-<id>",
+        "path": ".omp/commands/opsx-<id>.md"
+      },
+      "id": "oh-my-pi"
+    },
+    {
+      "commands": {
+        "invocation": "/opsx-<id>",
+        "path": ".opencode/commands/opsx-<id>.md"
+      },
+      "id": "opencode"
+    },
+    {
+      "commands": {
+        "invocation": "/opsx-<id>",
+        "path": ".pi/prompts/opsx-<id>.md"
+      },
+      "id": "pi"
+    },
+    {
+      "commands": {
+        "invocation": "/opsx-<id>",
+        "path": ".codeassistant/commands/opsx-<id>.md"
+      },
+      "id": "codeassistant"
+    },
+    {
+      "commands": {
+        "invocation": "/opsx:<id>",
+        "path": ".qoder/commands/opsx/<id>.md"
+      },
+      "id": "qoder"
+    },
+    {
+      "commands": {
+        "invocation": "/opsx-<id>",
+        "path": ".qwen/commands/opsx-<id>.md"
+      },
+      "id": "qwen"
+    },
+    {
+      "commands": {
+        "invocation": "/opsx-<id>",
+        "path": ".roo/commands/opsx-<id>.md"
+      },
+      "id": "roocode"
+    },
+    {
+      "commands": {
+        "invocation": "/opsx-<id>",
+        "path": ".trae/commands/opsx-<id>.md"
+      },
+      "id": "trae"
+    },
+    {
+      "commands": {
+        "invocation": "/opsx:<id>",
+        "path": ".zcode/commands/opsx/<id>.md"
+      },
+      "id": "zcode"
+    }
+  ],
+  "retiredTools": [
+    {
+      "id": "amazon-q",
+      "name": "Amazon Q Developer",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".amazonq/skills/openspec-*/SKILL.md"
+      }
+    }
+  ],
+  "schemaVersion": 1,
+  "skills": [
+    {
+      "id": "amazon-q",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".amazonq/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "amp",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".agents/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "antigravity",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".agents/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "atomcode",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".atomcode/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "auggie",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".augment/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "bob",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".bob/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "claude",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".claude/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "cline",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".cline/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "command-code",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".commandcode/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "codeartsagent",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".codeartsdoer/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "codebuddy",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".codebuddy/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "codestudio",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".codestudio/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "codex",
+      "skills": {
+        "invocation": "$openspec-<skill>",
+        "path": ".agents/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "dsh",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".dsh/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "devin",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".devin/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "forgecode",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".forge/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "continue",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".continue/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "costrict",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".cospec/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "crush",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".crush/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "cursor",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".cursor/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "easycode",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".easycode/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "factory",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".factory/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "gemini",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".gemini/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "github-copilot",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".github/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "gigacode",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".gigacode/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "grok",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".grok/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "gsd",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".agents/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "hermes",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".hermes/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "iflow",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".iflow/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "junie",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".junie/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "kilocode",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".kilocode/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "kimi",
+      "skills": {
+        "invocation": "/skill:openspec-<skill>",
+        "path": ".kimi-code/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "kiro",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".kiro/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "lingma",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".lingma/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "minimax-code",
+      "skills": {
+        "invocation": null,
+        "path": "~/.minimax/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "vibe",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".vibe/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "oh-my-pi",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".omp/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "opencode",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".opencode/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "pi",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".pi/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "codeassistant",
+      "skills": {
+        "invocation": "use the openspec-<skill> skill",
+        "path": ".codeassistant/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "qoder",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".qoder/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "qwen",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".qwen/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "rovodev",
+      "skills": {
+        "invocation": "use the openspec-<skill> skill",
+        "path": ".rovodev/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "roocode",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".roo/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "trae",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".trae/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "veai",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".veai/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "warp",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".warp/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "zed",
+      "skills": {
+        "invocation": "/openspec-<skill> or @openspec-<skill>",
+        "path": ".agents/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "zcode",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".zcode/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "id": "agents",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".agents/skills/openspec-*/SKILL.md"
+      }
+    }
+  ],
+  "source": {
+    "note": "Frozen WebUI-owned OpenSpec 1.x detection data. Not maintained by update-tool-reference.",
+    "revision": "94ca9c1eb15d1b49c06c988419b75c3d95f8b2b5",
+    "url": "https://github.com/Fission-AI/OpenSpec/blob/v1.14.0/docs/supported-tools.md",
+    "version": "v1.14.0"
+  }
+}

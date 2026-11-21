@@ -4,9 +4,13 @@ import type {
   SharedSkillsCompatibility,
   SharedSkillsSource,
   ToolCompatibilityReferenceResponse,
+  ToolScopeSupport,
+  ToolScopeSupportData,
 } from '../shared/types.js';
+import legacyDataJson from './data/tool-reference/openspec-legacy-v1.json' with { type: 'json' };
 import officialDataJson from './data/tool-reference/openspec-tools.json' with { type: 'json' };
 import researchDataJson from './data/tool-reference/shared-agents-research.json' with { type: 'json' };
+import scopeDataJson from './data/tool-reference/tool-scope-support.json' with { type: 'json' };
 
 export interface OfficialToolDataset {
   schemaVersion: 1;
@@ -145,9 +149,67 @@ export function validateResearchDataset(
   return { schemaVersion: 1, updatedAt, source, clients };
 }
 
+const SCOPE_KINDS = new Set(['universal', 'linked', 'project-only']);
+
+/** Validate the maintained scope support data: one well-formed entry per official tool id. */
+export function validateToolScopeSupport(value: unknown, official: OfficialToolDataset): ToolScopeSupportData {
+  const data = requireRecord(value, 'scope support');
+  const source = requireRecord(data.source, 'scope support source');
+  const openspecTag = requireString(source.openspecTag, 'scope support source.openspecTag');
+  const skillsVersion = requireString(source.skillsVersion, 'scope support source.skillsVersion');
+  if (!/^\d+\.\d+\.\d+$/.test(skillsVersion)) throw new Error('scope support skillsVersion must be an exact version');
+  const toolsRaw = requireRecord(data.tools, 'scope support tools');
+  const tools: Record<string, ToolScopeSupport> = {};
+  for (const [id, raw] of Object.entries(toolsRaw)) {
+    const entry = requireRecord(raw, `scope support ${id}`);
+    const kind = entry.kind;
+    if (typeof kind !== 'string' || !SCOPE_KINDS.has(kind)) throw new Error(`scope support ${id} has unknown kind`);
+    if (kind !== 'linked') {
+      if (entry.globalDir !== undefined || entry.env !== undefined) {
+        throw new Error(`scope support ${id} has a global folder but is not linked`);
+      }
+      tools[id] = { kind: kind as ToolScopeSupport['kind'] };
+      continue;
+    }
+    const globalDir = requireString(entry.globalDir, `scope support ${id}.globalDir`);
+    if (globalDir.startsWith('/') || globalDir.split('/').includes('..')) {
+      throw new Error(`scope support ${id}.globalDir must stay inside the home folder`);
+    }
+    let env: ToolScopeSupport['env'];
+    if (entry.env !== undefined) {
+      const envRaw = requireRecord(entry.env, `scope support ${id}.env`);
+      env = {
+        name: requireString(envRaw.name, `scope support ${id}.env.name`),
+        path: requireString(envRaw.path, `scope support ${id}.env.path`),
+      };
+    }
+    tools[id] = { kind: 'linked', globalDir, ...(env ? { env } : {}) };
+  }
+  const officialIds = official.tools.map((tool) => tool.id);
+  const missing = officialIds.filter((id) => !(id in tools));
+  const extra = Object.keys(tools).filter((id) => !officialIds.includes(id));
+  if (missing.length > 0 || extra.length > 0) {
+    throw new Error(`scope support ids differ from official ids (missing: ${missing.join(', ') || '-'}; extra: ${extra.join(', ') || '-'})`);
+  }
+  return { source: { openspecTag, skillsVersion }, tools };
+}
+
+/** Retired 1.x tools kept for display names (frozen WebUI legacy table). */
+export const RETIRED_TOOL_NAMES: Readonly<Record<string, string>> = Object.fromEntries(
+  (legacyDataJson.retiredTools as Array<{ id: string; name: string }>).map((tool) => [tool.id, tool.name])
+);
+
+export function projectToolNames(official: OfficialToolDataset): Record<string, string> {
+  return {
+    ...RETIRED_TOOL_NAMES,
+    ...Object.fromEntries(official.tools.map((tool) => [tool.id, tool.name])),
+  };
+}
+
 export function projectToolCompatibilityReference(
   official: OfficialToolDataset,
-  research: SharedAgentsResearchDataset
+  research: SharedAgentsResearchDataset,
+  scopeSupport: ToolScopeSupportData = TOOL_SCOPE_SUPPORT
 ): ToolCompatibilityReferenceResponse {
   const sharedCompatibility: SharedSkillsCompatibility[] = research.clients.map((client) => ({
     clientId: client.id,
@@ -165,6 +227,8 @@ export function projectToolCompatibilityReference(
     },
     sharedSource: research.source,
     sharedCompatibility,
+    toolNames: projectToolNames(official),
+    scopeSupport,
   };
 }
 
@@ -199,11 +263,19 @@ export function validateToolCompatibilityReference(
     }
     if (record.note !== undefined && !record.note.trim()) throw new Error(`Compatibility record ${record.clientId} has an empty note`);
   }
+  for (const [id, name] of Object.entries(reference.toolNames)) {
+    if (!id.trim() || !name.trim()) throw new Error('Tool names require non-empty id and name');
+  }
+  for (const id of officialIds) {
+    if (!reference.toolNames[id]) throw new Error(`Tool names are missing official tool ${id}`);
+    if (!reference.scopeSupport.tools[id]) throw new Error(`Scope support is missing official tool ${id}`);
+  }
   return reference;
 }
 
 export const OFFICIAL_TOOL_DATASET = validateOfficialToolDataset(officialDataJson);
 export const SHARED_AGENTS_RESEARCH_DATASET = validateResearchDataset(researchDataJson, OFFICIAL_TOOL_DATASET);
+export const TOOL_SCOPE_SUPPORT = validateToolScopeSupport(scopeDataJson, OFFICIAL_TOOL_DATASET);
 
 export const OPEN_SPEC_TOOL_DEFINITION_SOURCE: OpenSpecToolDefinitionSource = {
   version: OFFICIAL_TOOL_DATASET.source.version,

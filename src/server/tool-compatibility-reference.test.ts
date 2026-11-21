@@ -13,50 +13,30 @@ function cloneReference(): ToolCompatibilityReferenceResponse {
   return structuredClone(TOOL_COMPATIBILITY_REFERENCE);
 }
 
-test('v1.14.0 official definition snapshot contains every upstream tool row', () => {
-  assert.equal(TOOL_COMPATIBILITY_REFERENCE.officialSource.version, 'v1.14.0');
-  assert.equal(TOOL_COMPATIBILITY_REFERENCE.officialSource.verifiedAt, '2026-10-02');
-  assert.equal(OFFICIAL_TOOL_DATASET.source.revision, '94ca9c1eb15d1b49c06c988419b75c3d95f8b2b5');
-  assert.equal(OFFICIAL_TOOL_DATASET.source.checkedAt, '2026-10-02');
-  assert.equal(OPEN_SPEC_TOOL_DEFINITIONS.length, 50);
-  assert.deepEqual(
-    OPEN_SPEC_TOOL_DEFINITIONS.map((definition) => definition.id),
-    [
-      'amazon-q', 'amp', 'antigravity', 'atomcode', 'auggie', 'bob', 'claude',
-      'cline', 'command-code', 'codeartsagent', 'codebuddy', 'codestudio',
-      'codex', 'dsh', 'devin', 'forgecode', 'continue', 'costrict', 'crush',
-      'cursor', 'easycode', 'factory', 'gemini', 'github-copilot', 'gigacode',
-      'grok', 'gsd', 'hermes', 'iflow', 'junie', 'kilocode', 'kimi', 'kiro',
-      'lingma', 'minimax-code', 'vibe', 'oh-my-pi', 'opencode', 'pi',
-      'codeassistant', 'qoder', 'qwen', 'rovodev', 'roocode', 'trae', 'veai',
-      'warp', 'zed', 'zcode', 'agents',
-    ]
+test('v2.1.1 official definition snapshot is skills-only and drops the retired tool', () => {
+  assert.equal(TOOL_COMPATIBILITY_REFERENCE.officialSource.version, 'v2.1.1');
+  assert.equal(
+    TOOL_COMPATIBILITY_REFERENCE.officialSource.url,
+    'https://github.com/Fission-AI/OpenSpec/blob/v2.1.1/docs-lab/reference/supported-tools.md'
   );
+  assert.equal(OFFICIAL_TOOL_DATASET.source.revision, '0c737dc1b543249b38b0f4716816fcf493d894dd');
+  assert.equal(OFFICIAL_TOOL_DATASET.source.checkedAt, '2026-11-21');
+  assert.equal(OPEN_SPEC_TOOL_DEFINITIONS.length, 87);
+  assert.ok(OPEN_SPEC_TOOL_DEFINITIONS.every((definition) => definition.commands === null && definition.skills));
 
   const byId = new Map(OPEN_SPEC_TOOL_DEFINITIONS.map((definition) => [definition.id, definition]));
-  assert.equal(byId.get('claude')?.commands?.invocation, '/opsx:<id>');
-  assert.equal(byId.get('antigravity')?.commands?.path, '.agents/workflows/opsx-<id>.md');
-  assert.equal(byId.get('antigravity')?.skills?.path, '.agents/skills/openspec-*/SKILL.md');
-  assert.equal(byId.get('codeassistant')?.commands?.path, '.codeassistant/commands/opsx-<id>.md');
-  assert.equal(byId.get('codeassistant')?.skills?.path, '.codeassistant/skills/openspec-*/SKILL.md');
-  assert.equal(byId.get('kilocode')?.commands?.path, '.kilo/command/opsx-<id>.md');
-  assert.equal(byId.get('kilocode')?.skills?.path, '.kilocode/skills/openspec-*/SKILL.md');
-  assert.equal(byId.get('kilocode')?.commands?.invocation, '/opsx-<id>');
+  assert.equal(byId.has('amazon-q'), false);
+  for (const id of ['eve', 'promptscript', 'openclaw', 'goose']) assert.ok(byId.has(id), id);
+  assert.equal(byId.get('claude')?.skills?.path, '.claude/skills/openspec-*/SKILL.md');
+  assert.equal(byId.get('cursor')?.skills?.path, '.agents/skills/openspec-*/SKILL.md');
+  assert.equal(byId.get('codex')?.skills?.invocation, '$openspec-<skill>');
+  assert.equal(byId.get('kimi')?.skills?.invocation, '/skill:openspec-<skill>');
+  assert.equal(byId.get('gsd')?.skills?.invocation, 'use the openspec-<skill> skill');
+  // Not on the 2.x page: keeps its v1.14.0 invocation.
+  assert.equal(byId.get('codeassistant')?.skills?.invocation, 'use the openspec-<skill> skill');
+  assert.equal(byId.get('eve')?.skills?.path, 'agent/skills/openspec-*/SKILL.md');
   assert.equal(byId.get('bob')?.name, 'IBM Bob');
-  assert.equal(byId.get('amp')?.skills?.path, '.agents/skills/openspec-*/SKILL.md');
-  assert.equal(byId.get('atomcode')?.commands?.path, '.atomcode/commands/opsx-<id>.md');
-  assert.equal(byId.get('codestudio')?.commands?.path, '.codestudio/prompts/opsx-<id>.prompt.md');
-  assert.equal(byId.get('easycode')?.commands?.invocation, '/opsx:<id>');
-  assert.equal(byId.get('easycode')?.commands?.path, '.easycode/commands/opsx/<id>.toml');
-  assert.equal(byId.get('github-copilot')?.commands?.path, '.github/prompts/opsx-<id>.prompt.md');
-  assert.equal(byId.get('kiro')?.commands?.path, '.kiro/prompts/opsx-<id>.prompt.md');
-  assert.equal(byId.get('warp')?.skills?.path, '.warp/skills/openspec-*/SKILL.md');
-  assert.equal(byId.get('agents')?.name, 'Shared .agents skills');
-  assert.equal(byId.get('codex')?.commands, null);
-  assert.equal(byId.get('codex')?.skills?.path, '.agents/skills/openspec-*/SKILL.md');
-  assert.equal(byId.get('rovodev')?.commands, null);
-  assert.equal(byId.get('zed')?.skills?.invocation, '/openspec-<skill> or @openspec-<skill>');
-  assert.equal(byId.get('minimax-code')?.skills?.path.startsWith('~/'), true);
+  assert.equal(byId.get('agents')?.name, 'Other / Universal');
 });
 
 test('shared compatibility is a minimal reference snapshot', () => {
@@ -96,8 +76,7 @@ test('shared clients retain OpenSpec linkage and minimal notes', () => {
       .map((record) => record.clientId)
       .sort(),
     [
-      'antigravity-cli', 'deep-agents', 'dexto', 'firebender',
-      'loaf', 'promptscript', 'replit',
+      'deep-agents',
     ]
   );
   assert.equal(byId.get('qwen')?.openSpecToolId, 'qwen');

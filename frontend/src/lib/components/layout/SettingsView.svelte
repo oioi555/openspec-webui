@@ -1,6 +1,6 @@
 <script lang="ts">
   import { CircleHelp, CircleOff, Copy, ExternalLink, FlaskConical, Info, Languages, ListChecks, Monitor, Moon, Network, RefreshCw, Settings, Sun, Wrench } from '@lucide/svelte';
-  import { getApiErrorMessage, getToolCompatibilityReference } from '$lib/api';
+  import { toolReferenceStore } from '$lib/state/toolReference.svelte.ts';
   import { buildProjectUpdateCommand, buildToolsInitCommand } from '$lib/state/projectVersionStatusCore';
   import { projectVersionStatusStore } from '$lib/state/projectVersionStatus.svelte.ts';
   import { Callout } from '$lib/components/shared/callout';
@@ -27,7 +27,7 @@
   import { copyToClipboard } from '$lib/utils';
   import { versionStatusStore } from '$lib/state/versionStatus.svelte.ts';
   import { RELEASE_PAGE_URLS, UPDATE_COMMANDS, type VersionedToolId } from '$lib/state/versionStatusCore';
-  import type { DetectedIntegration, ProjectVersionUpdateStatus, ToolCompatibilityReferenceResponse, ToolVersionStatus } from '$lib/types/api';
+  import type { DetectedIntegration, ProjectVersionUpdateStatus, ToolVersionStatus } from '$lib/types/api';
   import type { WorkflowCommand } from '$lib/types/commandTypes';
   import {
     CORE_COMMANDS,
@@ -93,31 +93,17 @@
   let activeSection = $state<Section>('general');
   let contentEl: HTMLDivElement | undefined = $state();
   let toolReferenceOpen = $state(false);
-  let toolReference = $state<ToolCompatibilityReferenceResponse | null>(null);
-  let toolReferenceLoading = $state(false);
-  let toolReferenceError = $state<string | null>(null);
-
-  async function loadToolReference() {
-    if (toolReferenceLoading || toolReference) return;
-    toolReferenceLoading = true;
-    toolReferenceError = null;
-    try {
-      toolReference = await getToolCompatibilityReference();
-    } catch (error) {
-      toolReferenceError = getApiErrorMessage(error);
-    } finally {
-      toolReferenceLoading = false;
-    }
-  }
+  const toolReference = $derived(toolReferenceStore.reference);
+  const toolReferenceLoading = $derived(toolReferenceStore.loading);
+  const toolReferenceError = $derived(toolReferenceStore.error);
 
   function openToolReference() {
     toolReferenceOpen = true;
-    void loadToolReference();
+    void toolReferenceStore.load();
   }
 
   function retryToolReference() {
-    toolReference = null;
-    void loadToolReference();
+    void toolReferenceStore.retry();
   }
 
   function setTheme(theme: Theme) {

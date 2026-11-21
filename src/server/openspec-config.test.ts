@@ -120,14 +120,14 @@ test('inspectCommandAvailability exposes SourceCraft inventories and preferred c
 
   const availability = await inspectCommandAvailability(cwd, createReader({}));
   const sourceCraft = availability.integrations.find(
-    (integration) => integration.tool === 'SourceCraft Code Assistant for VS Code',
+    (integration) => integration.tool === 'SourceCraft Code Assistant',
   );
 
   assert.equal(sourceCraft?.delivery, 'both');
   assert.equal(sourceCraft?.commands?.items[0]?.workflowId, 'propose');
   assert.equal(sourceCraft?.skills?.form, 'skill-prompt');
   assert.ok(availability.toolOptions.some(
-    (option) => option.tool === 'SourceCraft Code Assistant for VS Code' && option.form === 'opsx-dash',
+    (option) => option.tool === 'SourceCraft Code Assistant' && option.form === 'opsx-dash',
   ));
 });
 

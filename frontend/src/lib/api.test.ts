@@ -3,6 +3,8 @@ import { afterEach, test } from 'node:test';
 
 import {
   getToolCompatibilityReference,
+  normalizeScopeSupport,
+  normalizeToolNames,
   normalizeCommandAvailability,
   setActiveProjectContext,
 } from './api';
@@ -199,6 +201,15 @@ test('getToolCompatibilityReference loads project-independent reference data', a
       verifiedAt: '2026-08-20',
     },
     sharedCompatibility: [],
+    toolNames: { claude: 'Claude Code', kimi: 'Kimi Code' },
+    scopeSupport: {
+      source: { openspecTag: 'v2.1.1', skillsVersion: '1.8.1' },
+      tools: {
+        claude: { kind: 'linked', globalDir: '.claude/skills', env: { name: 'CLAUDE_CONFIG_DIR', path: 'skills' } },
+        eve: { kind: 'project-only' },
+        cursor: { kind: 'universal' },
+      },
+    },
   };
   globalThis.fetch = async (input, init) => {
     requests.push(new Request(new URL(String(input), 'http://localhost'), init));
@@ -212,6 +223,27 @@ test('getToolCompatibilityReference loads project-independent reference data', a
   assert.deepEqual(await getToolCompatibilityReference(), fixture);
   assert.equal(requests[0]?.url.endsWith('/api/tool-reference'), true);
   assert.equal(requests[0]?.headers.has('X-Project-Id'), false);
+});
+
+test('tool-reference guards drop malformed names and scope entries', () => {
+  assert.deepEqual(normalizeToolNames({ claude: 'Claude Code', bad: '', worse: 3 }), { claude: 'Claude Code' });
+  assert.deepEqual(normalizeToolNames(null), {});
+  assert.deepEqual(
+    normalizeScopeSupport({
+      source: { openspecTag: 'v2.1.1', skillsVersion: '1.8.1' },
+      tools: {
+        claude: { kind: 'linked', globalDir: '.claude/skills', env: { name: 'CLAUDE_CONFIG_DIR' } },
+        lost: { kind: 'linked' },
+        odd: { kind: 'global' },
+        eve: { kind: 'project-only', globalDir: 'ignored' },
+      },
+    }),
+    {
+      source: { openspecTag: 'v2.1.1', skillsVersion: '1.8.1' },
+      tools: { claude: { kind: 'linked', globalDir: '.claude/skills' }, eve: { kind: 'project-only' } },
+    }
+  );
+  assert.deepEqual(normalizeScopeSupport(undefined), { source: { openspecTag: '', skillsVersion: '' }, tools: {} });
 });
 
 test('normalizeCommandAvailability normalizes scope and sharedSkillTargets', () => {

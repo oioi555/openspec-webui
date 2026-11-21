@@ -277,11 +277,36 @@ export type SharedSkillsScope = string;
 /** @deprecated */
 export type SharedSkillsEvidenceKind = string;
 
+/**
+ * How a tool takes machine-wide (global) skills, from the `skills` package the
+ * pinned OpenSpec release bundles: it reads the universal `~/.agents/skills`
+ * folder, uses its own global folder (relative to home, optionally relocated by
+ * an environment variable), or has no global folder and needs a project install.
+ */
+export type ToolScopeKind = 'universal' | 'linked' | 'project-only';
+
+export interface ToolScopeSupport {
+  kind: ToolScopeKind;
+  /** Home-relative global skills folder; only for `linked`. */
+  globalDir?: string;
+  /** Environment variable that relocates the folder's base, and the path under it. */
+  env?: { name: string; path: string };
+}
+
+export interface ToolScopeSupportData {
+  source: { openspecTag: string; skillsVersion: string };
+  tools: Record<string, ToolScopeSupport>;
+}
+
 export interface ToolCompatibilityReferenceResponse {
   officialDefinitions: OpenSpecToolDefinition[];
   officialSource: OpenSpecToolDefinitionSource;
   sharedSource: SharedSkillsSource;
   sharedCompatibility: SharedSkillsCompatibility[];
+  /** OpenSpec tool id -> display name (official snapshot plus retired 1.x tools). */
+  toolNames: Record<string, string>;
+  /** Per-tool skill scope support for the pinned release. */
+  scopeSupport: ToolScopeSupportData;
 }
 
 // WebSocket Event Types

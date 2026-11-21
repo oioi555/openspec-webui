@@ -25,6 +25,7 @@ const testFiles = [
   'src/cli/program.test.ts',
   'scripts/dev-args.test.mjs',
   'scripts/tool-reference-maintenance.test.mjs',
+  'scripts/tool-reference-sources.test.mjs',
   'scripts/tool-reference-skill.test.mjs',
   'frontend/src/lib/state/theme.test.ts',
   'frontend/src/lib/state/uiPreferences.test.ts',

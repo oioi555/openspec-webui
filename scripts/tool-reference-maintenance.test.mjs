@@ -1,12 +1,11 @@
 import assert from 'node:assert/strict';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { test } from 'node:test';
 
 import {
-  OFFICIAL_TOOL_DATASET,
-  SHARED_AGENTS_RESEARCH_DATASET,
   validateOfficialToolDataset,
   validateResearchDataset,
 } from '../src/server/tool-compatibility-reference.ts';
@@ -19,6 +18,12 @@ import {
 } from './update-tool-reference.mjs';
 
 const clone = (value) => structuredClone(value);
+
+// Frozen 1.x line datasets: these cases exercise the docs/supported-tools.md
+// release line independently of the currently pinned snapshot.
+const readFixture = (name) => JSON.parse(readFileSync(new URL(`./fixtures/tool-reference/${name}`, import.meta.url), 'utf8'));
+const OFFICIAL_TOOL_DATASET = validateOfficialToolDataset(readFixture('openspec-tools-v1.14.0.json'));
+const SHARED_AGENTS_RESEARCH_DATASET = validateResearchDataset(readFixture('shared-agents-research-v1.14.0.json'), OFFICIAL_TOOL_DATASET);
 
 function vercelCandidates(research = SHARED_AGENTS_RESEARCH_DATASET) {
   return research.clients.map((client) => ({ id: client.id, name: client.name }));
@@ -185,6 +190,8 @@ test('official sources for a different target release fail closed', () => {
   assert.deepEqual(result.report.unavailableSources, [
     'openspec-supported-tools',
     'openspec-release-notes',
+    // v9.9.9 is a skills-bundling release line, so its scope source is required too.
+    'skills-scope-support',
   ]);
   assert.deepEqual(result.report.missing, []);
 });
@@ -267,10 +274,10 @@ test('default analysis does not write and explicit writes require the reviewed h
     const analysis = analyzeToolReferenceUpdate(nextInput, OFFICIAL_TOOL_DATASET, SHARED_AGENTS_RESEARCH_DATASET);
     assert.deepEqual(await Promise.all([readFile(officialPath, 'utf8'), readFile(researchPath, 'utf8')]), before);
     await assert.rejects(
-      runCli(['--input', inputPath, '--official-path', officialPath, '--research-path', researchPath, '--write', '--review-hash', 'wrong-hash']),
+      runCli(['--input', inputPath, '--official-path', officialPath, '--research-path', researchPath, '--scope-path', join(root, 'tool-scope-support.json'), '--write', '--review-hash', 'wrong-hash']),
       /Reviewed input hash does not match/
     );
-    await runCli(['--input', inputPath, '--official-path', officialPath, '--research-path', researchPath, '--write', '--review-hash', analysis.reviewHash]);
+    await runCli(['--input', inputPath, '--official-path', officialPath, '--research-path', researchPath, '--scope-path', join(root, 'tool-scope-support.json'), '--write', '--review-hash', analysis.reviewHash]);
     const officialText = await readFile(officialPath, 'utf8');
     const researchText = await readFile(researchPath, 'utf8');
     const writtenOfficial = JSON.parse(officialText);

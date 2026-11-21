@@ -68,7 +68,7 @@ test('Settings opens the static reference without refreshing repository detectio
 
   assert.match(source, /settings_tools_reference_button/);
   assert.match(source, /<ToolCompatibilityDialog/);
-  assert.match(source, /getToolCompatibilityReference/);
+  assert.match(source, /toolReferenceStore\.load\(\)/);
   assert.match(openHandler, /toolReferenceOpen = true/);
   assert.doesNotMatch(openHandler, /refreshAvailability/);
   assert.doesNotMatch(openHandler, /openspec init/);
@@ -81,4 +81,30 @@ test('dialog interactions stay isolated from project and command side effects', 
   assert.match(source, /query = event\.currentTarget\.value/);
   assert.match(source, /view = value as ReferenceView/);
   assert.match(source, /!nextOpen && onClose\(\)/);
+});
+
+test('a 2.x snapshot shows one Commands-retired note and a scope support column', async () => {
+  const source = await readFile(dialogUrl, 'utf8');
+  assert.match(source, /isCommandsRetiredSnapshot\(reference\?\.officialSource\.version\)/);
+  assert.equal(source.match(/tool_reference_commands_retired/g)?.length, 1);
+  // The retired note sits outside the per-row loop, and the Commands cell is hidden for 2.x rows.
+  assert.ok(source.indexOf('tool_reference_commands_retired') < source.indexOf('{#each officialDefinitions'));
+  assert.match(source, /\{#if !commandsRetired\}\s*<div role="cell"[\s\S]*?deliveryDetails\(definition\.commands\)/);
+  assert.match(source, /scopeDetails\(definition\.id\)/);
+  for (const key of ['tool_reference_scope_universal', 'tool_reference_scope_linked', 'tool_reference_scope_project_only']) {
+    assert.match(source, new RegExp(key));
+  }
+  assert.match(source, /globalFolderLabel\(entry\)/);
+});
+
+test('scope support messages exist in all seven locales', async () => {
+  for (const locale of ['en', 'ja', 'de', 'es', 'fr', 'pt-BR', 'zh-CN']) {
+    const messages = JSON.parse(await readFile(new URL(`../../../../messages/${locale}.json`, import.meta.url), 'utf8'));
+    for (const key of [
+      'tool_reference_commands_retired', 'tool_reference_scope', 'tool_reference_scope_universal',
+      'tool_reference_scope_linked', 'tool_reference_scope_project_only',
+    ]) {
+      assert.ok(typeof messages[key] === 'string' && messages[key].trim(), `${locale} lacks ${key}`);
+    }
+  }
 });

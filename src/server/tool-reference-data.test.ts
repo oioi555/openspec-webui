@@ -7,6 +7,9 @@ import {
   SHARED_AGENTS_RESEARCH_DATASET,
   SHARED_SKILLS_COMPATIBILITY,
   projectToolCompatibilityReference,
+  projectToolNames,
+  TOOL_SCOPE_SUPPORT,
+  validateToolScopeSupport,
   validateOfficialToolDataset,
   validateResearchDataset,
   type OfficialToolDataset,
@@ -18,11 +21,11 @@ const cloneResearch = (): SharedAgentsResearchDataset => structuredClone(SHARED_
 
 test('external datasets project the current public reference without semantic changes', () => {
   assert.equal(OFFICIAL_TOOL_DATASET.schemaVersion, 1);
-  assert.equal(OFFICIAL_TOOL_DATASET.source.version, 'v1.14.0');
-  assert.equal(OFFICIAL_TOOL_DATASET.source.revision, '94ca9c1eb15d1b49c06c988419b75c3d95f8b2b5');
-  assert.equal(OFFICIAL_TOOL_DATASET.source.checkedAt, '2026-10-02');
+  assert.equal(OFFICIAL_TOOL_DATASET.source.version, 'v2.1.1');
+  assert.equal(OFFICIAL_TOOL_DATASET.source.revision, '0c737dc1b543249b38b0f4716816fcf493d894dd');
+  assert.equal(OFFICIAL_TOOL_DATASET.source.checkedAt, '2026-11-21');
   assert.equal(SHARED_AGENTS_RESEARCH_DATASET.schemaVersion, 1);
-  assert.equal(OPEN_SPEC_TOOL_DEFINITIONS.length, 50);
+  assert.equal(OPEN_SPEC_TOOL_DEFINITIONS.length, 87);
   assert.equal(SHARED_SKILLS_COMPATIBILITY.length, 33);
   assert.equal(SHARED_AGENTS_RESEARCH_DATASET.source.url, 'https://github.com/vercel-labs/skills');
   assert.deepEqual(
@@ -30,14 +33,44 @@ test('external datasets project the current public reference without semantic ch
     {
       officialDefinitions: OPEN_SPEC_TOOL_DEFINITIONS,
       officialSource: {
-        version: 'v1.14.0',
-        url: 'https://github.com/Fission-AI/OpenSpec/blob/v1.14.0/docs/supported-tools.md',
-        verifiedAt: '2026-10-02',
+        version: 'v2.1.1',
+        url: 'https://github.com/Fission-AI/OpenSpec/blob/v2.1.1/docs-lab/reference/supported-tools.md',
+        verifiedAt: '2026-11-21',
       },
       sharedSource: SHARED_AGENTS_RESEARCH_DATASET.source,
       sharedCompatibility: SHARED_SKILLS_COMPATIBILITY,
+      toolNames: projectToolNames(OFFICIAL_TOOL_DATASET),
+      scopeSupport: TOOL_SCOPE_SUPPORT,
     }
   );
+});
+
+test('scope support data covers every official id with the bundled skills version', () => {
+  assert.deepEqual(TOOL_SCOPE_SUPPORT.source, { openspecTag: 'v2.1.1', skillsVersion: '1.8.1' });
+  assert.deepEqual(Object.keys(TOOL_SCOPE_SUPPORT.tools).sort(), OPEN_SPEC_TOOL_DEFINITIONS.map((tool) => tool.id).sort());
+  assert.deepEqual(TOOL_SCOPE_SUPPORT.tools.eve, { kind: 'project-only' });
+  assert.deepEqual(TOOL_SCOPE_SUPPORT.tools.promptscript, { kind: 'project-only' });
+  assert.deepEqual(TOOL_SCOPE_SUPPORT.tools.cursor, { kind: 'universal' });
+
+  const missing = structuredClone(TOOL_SCOPE_SUPPORT);
+  delete missing.tools.cursor;
+  assert.throws(() => validateToolScopeSupport(missing, OFFICIAL_TOOL_DATASET), /missing: cursor/);
+  const badKind = structuredClone(TOOL_SCOPE_SUPPORT) as unknown as { tools: Record<string, unknown> };
+  badKind.tools.cursor = { kind: 'global' };
+  assert.throws(() => validateToolScopeSupport(badKind, OFFICIAL_TOOL_DATASET), /unknown kind/);
+  const escape = structuredClone(TOOL_SCOPE_SUPPORT);
+  escape.tools.claude = { kind: 'linked', globalDir: '../etc/skills' };
+  assert.throws(() => validateToolScopeSupport(escape, OFFICIAL_TOOL_DATASET), /inside the home folder/);
+  const universalWithDir = structuredClone(TOOL_SCOPE_SUPPORT);
+  universalWithDir.tools.cursor = { kind: 'universal', globalDir: '.cursor/skills' };
+  assert.throws(() => validateToolScopeSupport(universalWithDir, OFFICIAL_TOOL_DATASET), /not linked/);
+});
+
+test('served tool names include retired 1.x tools and official names win', () => {
+  const names = projectToolNames(OFFICIAL_TOOL_DATASET);
+  assert.equal(names['amazon-q'], 'Amazon Q Developer');
+  assert.equal(names.kimi, 'Kimi Code');
+  assert.equal(Object.keys(names).length, OPEN_SPEC_TOOL_DEFINITIONS.length + 1);
 });
 
 test('official dataset validation rejects malformed schema and deliveries', () => {

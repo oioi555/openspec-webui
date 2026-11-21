@@ -1,7 +1,9 @@
 import { readFile, readdir, realpath, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { isAbsolute, join, relative } from 'node:path';
-import { OPEN_SPEC_TOOL_DEFINITIONS } from './tool-compatibility-reference.js';
+import type { OpenSpecToolDefinition, ToolScopeSupport, ToolScopeSupportData } from '../shared/types.js';
+import legacyV1Json from './data/tool-reference/openspec-legacy-v1.json' with { type: 'json' };
+import { OPEN_SPEC_TOOL_DEFINITIONS, TOOL_SCOPE_SUPPORT } from './tool-compatibility-reference.js';
 
 /**
  * The seven official OpenSpec invocation forms (docs/supported-tools.md).
@@ -38,6 +40,10 @@ export interface ToolIntegrationDetectionDependencies {
   homeDir?: string;
   /** Claude Code config folder. Defaults to `process.env.CLAUDE_CONFIG_DIR`. */
   claudeConfigDir?: string;
+  /** Environment for other global-folder overrides. Defaults to the process only for the real home. */
+  env?: Readonly<Record<string, string | undefined>>;
+  /** Scope support data for the global pass. Defaults to the packaged data. */
+  scopeSupport?: ToolScopeSupportData;
 }
 
 /**
@@ -188,13 +194,13 @@ async function resolveSharedSkillTargets(
   }
 }
 
-type SkillSpec = readonly [
+export type SkillSpec = readonly [
   dir: string,
   form: InvocationFormId,
   alternateForms?: readonly InvocationFormId[],
 ];
 
-type ToolSpec = readonly [
+export type ToolSpec = readonly [
   tool: string,
   commands: ReadonlyArray<readonly [dir: string, shape: CommandShape, form: InvocationFormId]>,
   skills: ReadonlyArray<SkillSpec>,
@@ -254,25 +260,63 @@ function skillSignature(path: string, invocation: string | null): SkillSpec | nu
  * and ordering. Global-only and unsupported detector shapes remain reference
  * rows rather than becoming repository evidence.
  */
-type DetectedToolId = (typeof DETECTED_TOOL_IDS)[number];
+export type DetectedToolId = (typeof DETECTED_TOOL_IDS)[number];
 
-const DETECTED_TOOL_SIGNATURES: ReadonlyArray<readonly [DetectedToolId, ToolSpec]> = DETECTED_TOOL_IDS.map(
-  (id): readonly [DetectedToolId, ToolSpec] => [id, buildToolSpec(id)]
-);
+/**
+ * Frozen OpenSpec 1.x detection data owned by the WebUI. Command-file
+ * signatures, v1.14.0 per-tool skill folders and retired tools (`amazon-q`)
+ * come from here, never from the
+ * pinned official snapshot, so 1.x repositories keep being recognized after
+ * the snapshot moves to a release that no longer lists them.
+ */
+export interface LegacyV1ToolTable {
+  commands: ReadonlyArray<{ id: string; commands: NonNullable<OpenSpecToolDefinition['commands']> }>;
+  skills: ReadonlyArray<{ id: string; skills: NonNullable<OpenSpecToolDefinition['skills']> }>;
+  retiredTools: ReadonlyArray<Pick<OpenSpecToolDefinition, 'id' | 'name' | 'skills'>>;
+}
 
-function buildToolSpec(id: DetectedToolId): ToolSpec {
-    const definition = OPEN_SPEC_TOOL_DEFINITIONS.find((candidate) => candidate.id === id);
+export const LEGACY_V1_TOOL_TABLE: LegacyV1ToolTable = legacyV1Json as LegacyV1ToolTable;
+
+export function buildDetectedToolSignatures(
+  officialDefinitions: readonly OpenSpecToolDefinition[],
+  legacy: LegacyV1ToolTable = LEGACY_V1_TOOL_TABLE
+): ReadonlyArray<readonly [DetectedToolId, ToolSpec]> {
+  return DETECTED_TOOL_IDS.map(
+    (id): readonly [DetectedToolId, ToolSpec] => [id, buildToolSpec(id, officialDefinitions, legacy)]
+  );
+}
+
+const DETECTED_TOOL_SIGNATURES = buildDetectedToolSignatures(OPEN_SPEC_TOOL_DEFINITIONS);
+
+function buildToolSpec(
+  id: DetectedToolId,
+  officialDefinitions: readonly OpenSpecToolDefinition[],
+  legacy: LegacyV1ToolTable
+): ToolSpec {
+    const definition = officialDefinitions.find((candidate) => candidate.id === id)
+      ?? legacy.retiredTools.find((candidate) => candidate.id === id);
     if (!definition) {
-      throw new Error(`Missing official definition for detected tool ${id}`);
+      throw new Error(`Missing official or legacy definition for detected tool ${id}`);
     }
-    const command = definition.commands
-      ? commandSignature(definition.commands.path, definition.commands.invocation)
+    const commands = legacy.commands.find((candidate) => candidate.id === id)?.commands ?? null;
+    const command = commands
+      ? commandSignature(commands.path, commands.invocation)
       : null;
-    const skill = definition.skills
+    const officialSkill = definition.skills
       ? skillSignature(definition.skills.path, definition.skills.invocation)
       : null;
-    if (definition.commands && !command) throw new Error(`Unsupported command signature for detected tool ${id}`);
-    if (definition.skills && !skill) throw new Error(`Unsupported skill signature for detected tool ${id}`);
+    const legacySkills = legacy.skills.find((candidate) => candidate.id === id)?.skills ?? null;
+    const legacySkill = legacySkills ? skillSignature(legacySkills.path, legacySkills.invocation) : null;
+    if (commands && !command) throw new Error(`Unsupported command signature for detected tool ${id}`);
+    if (definition.skills && !officialSkill) throw new Error(`Unsupported skill signature for detected tool ${id}`);
+    if (legacySkills && !legacySkill) throw new Error(`Unsupported legacy skill signature for detected tool ${id}`);
+    // Union of official and frozen 1.x skill folders. The shared `.agents/skills`
+    // tree is reported by the shared-agents row, never as tool-specific evidence.
+    const skillSpecs: SkillSpec[] = [];
+    for (const candidate of [officialSkill, legacySkill]) {
+      if (!candidate || candidate[0] === '.agents/skills') continue;
+      if (!skillSpecs.some(([dir]) => dir === candidate[0])) skillSpecs.push(candidate);
+    }
     if (id === 'antigravity') {
       return [
         definition.name,
@@ -288,13 +332,13 @@ function buildToolSpec(id: DetectedToolId): ToolSpec {
         command
           ? [command, ['.kilocode/workflows', 'filename', 'opsx-dash']]
           : [['.kilocode/workflows', 'filename', 'opsx-dash']],
-        skill ? [skill] : [],
+        skillSpecs,
       ];
     }
     return [
       DETECTION_DISPLAY_NAMES[id] ?? definition.name,
       command ? [command] : [],
-      skill ? [skill] : [],
+      skillSpecs,
     ];
 }
 
@@ -622,34 +666,32 @@ export async function detectToolIntegrations(
   return integrations;
 }
 
+/** A detected tool's own global skills folder, from the maintained scope support data. */
+export interface GlobalSkillFolder {
+  /** Home-relative folder. */
+  dir: string;
+  /** Environment variable that relocates the folder's base, and the path under it. */
+  env?: NonNullable<ToolScopeSupport['env']>;
+}
+
 /**
- * Global (per-user) skill folders for non-universal agents, keyed by detected
- * OpenSpec tool id. Source: Vercel `skills@1.9.0` `getSupportedAgents()`
- * `globalSkillsDir`, restricted to agents that map to a detected tool id.
- * Paths are relative to the home folder; `claude` honours CLAUDE_CONFIG_DIR.
+ * Global (per-user) skill folders for detected tools that the pinned release's
+ * bundled `skills` package records as `linked`. Universal and project-only
+ * tools get no tool-specific global scan.
  */
-export const GLOBAL_SKILL_DIRS: Readonly<Partial<Record<DetectedToolId, string>>> = {
-  claude: '.claude/skills',
-  crush: '.config/crush/skills',
-  devin: '.config/devin/skills',
-  lingma: '.lingma/skills',
-  qoder: '.qoder/skills',
-  qwen: '.qwen/skills',
-  trae: '.trae/skills',
-  kiro: '.kiro/skills',
-  junie: '.junie/skills',
-  roocode: '.roo/skills',
-  continue: '.continue/skills',
-  codebuddy: '.codebuddy/skills',
-  auggie: '.augment/skills',
-  bob: '.bob/skills',
-  codeartsagent: '.codeartsdoer/skills',
-  'command-code': '.commandcode/skills',
-  forgecode: '.forge/skills',
-  grok: '.grok/skills',
-  hermes: '.hermes/skills',
-  iflow: '.iflow/skills',
-};
+export function globalSkillFoldersFrom(
+  scope: ToolScopeSupportData
+): Readonly<Partial<Record<DetectedToolId, GlobalSkillFolder>>> {
+  const folders: Partial<Record<DetectedToolId, GlobalSkillFolder>> = {};
+  for (const id of DETECTED_TOOL_IDS) {
+    const entry = scope.tools[id];
+    if (entry?.kind !== 'linked' || !entry.globalDir) continue;
+    folders[id] = { dir: entry.globalDir, ...(entry.env ? { env: entry.env } : {}) };
+  }
+  return folders;
+}
+
+export const GLOBAL_SKILL_FOLDERS = globalSkillFoldersFrom(TOOL_SCOPE_SUPPORT);
 
 /** Universal global skills folder read by every universal agent. */
 const GLOBAL_UNIVERSAL_SKILLS_DIR = '.agents/skills';
@@ -692,6 +734,21 @@ function skillOnlyIntegration(
   };
 }
 
+/**
+ * The value of an environment override for a global folder. `CLAUDE_CONFIG_DIR`
+ * uses the injectable `claudeConfigDir` seam; other variables are read from
+ * `dependencies.env`, or from the process only when the real home is scanned.
+ */
+function envOverride(
+  name: string,
+  dependencies: ToolIntegrationDetectionDependencies,
+  claudeConfigDir: string | undefined
+): string | undefined {
+  if (name === 'CLAUDE_CONFIG_DIR') return claudeConfigDir || undefined;
+  const env = dependencies.env ?? (dependencies.homeDir === undefined ? process.env : {});
+  return env[name]?.trim() || undefined;
+}
+
 async function detectGlobalIntegrations(
   projectRoot: string,
   dependencies: ToolIntegrationDetectionDependencies
@@ -722,12 +779,16 @@ async function detectGlobalIntegrations(
       );
     }
 
+    const folders = dependencies.scopeSupport
+      ? globalSkillFoldersFrom(dependencies.scopeSupport)
+      : GLOBAL_SKILL_FOLDERS;
     for (const [id, [tool, , skillSpecs]] of DETECTED_TOOL_SIGNATURES) {
-      const relDir = GLOBAL_SKILL_DIRS[id];
-      if (!relDir) continue;
-      const absoluteDir = id === 'claude' && claudeConfigDir
-        ? join(claudeConfigDir, 'skills')
-        : join(homeDir, relDir);
+      const folder = folders[id];
+      if (!folder) continue;
+      const envBase = folder.env ? envOverride(folder.env.name, dependencies, claudeConfigDir) : undefined;
+      const absoluteDir = envBase && folder.env
+        ? join(envBase, folder.env.path)
+        : join(homeDir, folder.dir);
       const items = await findGlobalSkillFiles(homeDir, absoluteDir);
       if (items.length === 0) continue;
       const form = skillSpecs[0]?.[1] ?? 'skill-slash';

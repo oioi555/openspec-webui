@@ -12,6 +12,8 @@ import {
   type SkillInventoryItem,
   type ToolInvocationOption,
   type ToolCompatibilityReferenceResponse,
+  type ToolScopeSupport,
+  type ToolScopeSupportData,
   type Project,
   type ProjectListResponse,
   type ProjectSelectionResponse,
@@ -49,6 +51,8 @@ export type {
   SkillInventoryItem,
   ToolInvocationOption,
   ToolCompatibilityReferenceResponse,
+  ToolScopeSupport,
+  ToolScopeSupportData,
   FileGroup,
   Project,
   ProjectEntry,
@@ -481,6 +485,54 @@ export async function getStores(): Promise<StoreDiscoveryResult> {
   return fetchApi<StoreDiscoveryResult>('/stores');
 }
 
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isNonEmptyText(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+/** Keep only well-formed id -> name entries. */
+export function normalizeToolNames(value: unknown): Record<string, string> {
+  if (!isPlainRecord(value)) return {};
+  return Object.fromEntries(Object.entries(value).filter(([id, name]) => id.trim() && isNonEmptyText(name))) as Record<string, string>;
+}
+
+function normalizeScopeEntry(value: unknown): ToolScopeSupport | null {
+  if (!isPlainRecord(value)) return null;
+  if (value.kind === 'universal' || value.kind === 'project-only') return { kind: value.kind };
+  if (value.kind !== 'linked' || !isNonEmptyText(value.globalDir)) return null;
+  const env = isPlainRecord(value.env) && isNonEmptyText(value.env.name) && isNonEmptyText(value.env.path)
+    ? { name: value.env.name, path: value.env.path }
+    : undefined;
+  return { kind: 'linked', globalDir: value.globalDir, ...(env ? { env } : {}) };
+}
+
+/** Keep only well-formed scope entries; a malformed payload yields an empty table. */
+export function normalizeScopeSupport(value: unknown): ToolScopeSupportData {
+  const source = isPlainRecord(value) && isPlainRecord(value.source) ? value.source : {};
+  const tools: Record<string, ToolScopeSupport> = {};
+  if (isPlainRecord(value) && isPlainRecord(value.tools)) {
+    for (const [id, entry] of Object.entries(value.tools)) {
+      const normalized = normalizeScopeEntry(entry);
+      if (normalized && id.trim()) tools[id] = normalized;
+    }
+  }
+  return {
+    source: {
+      openspecTag: isNonEmptyText(source.openspecTag) ? source.openspecTag : '',
+      skillsVersion: isNonEmptyText(source.skillsVersion) ? source.skillsVersion : '',
+    },
+    tools,
+  };
+}
+
 export async function getToolCompatibilityReference(): Promise<ToolCompatibilityReferenceResponse> {
-  return fetchApi<ToolCompatibilityReferenceResponse>('/tool-reference');
+  const reference = await fetchApi<ToolCompatibilityReferenceResponse>('/tool-reference');
+  return {
+    ...reference,
+    toolNames: normalizeToolNames((reference as Partial<ToolCompatibilityReferenceResponse>).toolNames),
+    scopeSupport: normalizeScopeSupport((reference as Partial<ToolCompatibilityReferenceResponse>).scopeSupport),
+  };
 }

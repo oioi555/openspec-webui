@@ -1,6 +1,8 @@
 import type {
   OpenSpecToolDefinition,
   SharedSkillsCompatibility,
+  ToolScopeSupport,
+  ToolScopeSupportData,
 } from './types/api';
 
 const SHARED_AGENTS_SKILLS_MARKER = '.agents/skills';
@@ -93,4 +95,23 @@ export function filterSharedSkillsCompatibility(
     record.openSpecToolId,
     record.note,
   ], query));
+}
+
+/** Whether the pinned official snapshot is from OpenSpec 2.0 or later, where Commands were retired. */
+export function isCommandsRetiredSnapshot(version: string | null | undefined): boolean {
+  const major = /^v?(\d+)\./.exec((version ?? '').trim())?.[1];
+  return major !== undefined && Number(major) >= 2;
+}
+
+/** The served scope support for a tool, or null when the data has no entry for it. */
+export function scopeSupportFor(
+  scopeSupport: ToolScopeSupportData | null | undefined,
+  toolId: string,
+): ToolScopeSupport | null {
+  return scopeSupport?.tools[toolId] ?? null;
+}
+
+/** Display path for a linked tool's global folder (home-relative). */
+export function globalFolderLabel(entry: ToolScopeSupport): string | null {
+  return entry.kind === 'linked' && entry.globalDir ? `~/${entry.globalDir}` : null;
 }

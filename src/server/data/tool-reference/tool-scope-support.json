@@ -1,0 +1,356 @@
+{
+  "source": {
+    "openspecTag": "v2.1.1",
+    "skillsVersion": "1.8.1"
+  },
+  "tools": {
+    "adal": {
+      "globalDir": ".adal/skills",
+      "kind": "linked"
+    },
+    "agents": {
+      "kind": "universal"
+    },
+    "aider-desk": {
+      "globalDir": ".aider-desk/skills",
+      "kind": "linked"
+    },
+    "amp": {
+      "kind": "universal"
+    },
+    "antigravity": {
+      "globalDir": ".gemini/config/skills",
+      "kind": "linked"
+    },
+    "antigravity-cli": {
+      "globalDir": ".gemini/config/skills",
+      "kind": "linked"
+    },
+    "astrbot": {
+      "globalDir": ".astrbot/data/skills",
+      "kind": "linked"
+    },
+    "atomcode": {
+      "kind": "universal"
+    },
+    "auggie": {
+      "globalDir": ".augment/skills",
+      "kind": "linked"
+    },
+    "autohand-code": {
+      "env": {
+        "name": "AUTOHAND_HOME",
+        "path": "skills"
+      },
+      "globalDir": ".autohand/skills",
+      "kind": "linked"
+    },
+    "bob": {
+      "globalDir": ".bob/skills",
+      "kind": "linked"
+    },
+    "claude": {
+      "env": {
+        "name": "CLAUDE_CONFIG_DIR",
+        "path": "skills"
+      },
+      "globalDir": ".claude/skills",
+      "kind": "linked"
+    },
+    "cline": {
+      "kind": "universal"
+    },
+    "codeartsagent": {
+      "globalDir": ".codeartsdoer/skills",
+      "kind": "linked"
+    },
+    "codeassistant": {
+      "kind": "universal"
+    },
+    "codebuddy": {
+      "globalDir": ".codebuddy/skills",
+      "kind": "linked"
+    },
+    "codemaker": {
+      "globalDir": ".codemaker/skills",
+      "kind": "linked"
+    },
+    "codestudio": {
+      "globalDir": ".codestudio/skills",
+      "kind": "linked"
+    },
+    "codex": {
+      "kind": "universal"
+    },
+    "command-code": {
+      "globalDir": ".commandcode/skills",
+      "kind": "linked"
+    },
+    "continue": {
+      "globalDir": ".continue/skills",
+      "kind": "linked"
+    },
+    "cortex": {
+      "globalDir": ".snowflake/cortex/skills",
+      "kind": "linked"
+    },
+    "costrict": {
+      "kind": "universal"
+    },
+    "crush": {
+      "globalDir": ".config/crush/skills",
+      "kind": "linked"
+    },
+    "cursor": {
+      "kind": "universal"
+    },
+    "deepagents": {
+      "kind": "universal"
+    },
+    "devin": {
+      "env": {
+        "name": "XDG_CONFIG_HOME",
+        "path": "devin/skills"
+      },
+      "globalDir": ".config/devin/skills",
+      "kind": "linked"
+    },
+    "dexto": {
+      "kind": "universal"
+    },
+    "dsh": {
+      "kind": "universal"
+    },
+    "easycode": {
+      "kind": "universal"
+    },
+    "eve": {
+      "kind": "project-only"
+    },
+    "factory": {
+      "kind": "universal"
+    },
+    "firebender": {
+      "kind": "universal"
+    },
+    "forgecode": {
+      "globalDir": ".forge/skills",
+      "kind": "linked"
+    },
+    "fx": {
+      "kind": "universal"
+    },
+    "gemini": {
+      "kind": "universal"
+    },
+    "gigacode": {
+      "kind": "universal"
+    },
+    "github-copilot": {
+      "kind": "universal"
+    },
+    "goose": {
+      "env": {
+        "name": "XDG_CONFIG_HOME",
+        "path": "goose/skills"
+      },
+      "globalDir": ".config/goose/skills",
+      "kind": "linked"
+    },
+    "grok": {
+      "env": {
+        "name": "GROK_HOME",
+        "path": "skills"
+      },
+      "globalDir": ".grok/skills",
+      "kind": "linked"
+    },
+    "gsd": {
+      "kind": "universal"
+    },
+    "hermes": {
+      "env": {
+        "name": "HERMES_HOME",
+        "path": "skills"
+      },
+      "globalDir": ".hermes/skills",
+      "kind": "linked"
+    },
+    "iflow": {
+      "globalDir": ".iflow/skills",
+      "kind": "linked"
+    },
+    "inference-sh": {
+      "globalDir": ".inferencesh/skills",
+      "kind": "linked"
+    },
+    "jazz": {
+      "globalDir": ".jazz/skills",
+      "kind": "linked"
+    },
+    "junie": {
+      "globalDir": ".junie/skills",
+      "kind": "linked"
+    },
+    "kilocode": {
+      "kind": "universal"
+    },
+    "kimchi": {
+      "globalDir": ".config/kimchi/harness/skills",
+      "kind": "linked"
+    },
+    "kimi": {
+      "kind": "universal"
+    },
+    "kiro": {
+      "globalDir": ".kiro/skills",
+      "kind": "linked"
+    },
+    "kode": {
+      "globalDir": ".kode/skills",
+      "kind": "linked"
+    },
+    "lingma": {
+      "globalDir": ".lingma/skills",
+      "kind": "linked"
+    },
+    "loaf": {
+      "kind": "universal"
+    },
+    "mcpjam": {
+      "globalDir": ".mcpjam/skills",
+      "kind": "linked"
+    },
+    "minimax-code": {
+      "globalDir": ".minimax/skills",
+      "kind": "linked"
+    },
+    "moxby": {
+      "globalDir": ".moxby/skills",
+      "kind": "linked"
+    },
+    "mux": {
+      "globalDir": ".mux/skills",
+      "kind": "linked"
+    },
+    "neovate": {
+      "globalDir": ".neovate/skills",
+      "kind": "linked"
+    },
+    "oh-my-pi": {
+      "kind": "universal"
+    },
+    "ona": {
+      "globalDir": ".ona/skills",
+      "kind": "linked"
+    },
+    "openclaw": {
+      "globalDir": ".openclaw/skills",
+      "kind": "linked"
+    },
+    "opencode": {
+      "kind": "universal"
+    },
+    "openhands": {
+      "globalDir": ".openhands/skills",
+      "kind": "linked"
+    },
+    "pi": {
+      "kind": "universal"
+    },
+    "pochi": {
+      "globalDir": ".pochi/skills",
+      "kind": "linked"
+    },
+    "posit-assistant": {
+      "globalDir": ".posit/assistant/skills",
+      "kind": "linked"
+    },
+    "promptscript": {
+      "kind": "project-only"
+    },
+    "qoder": {
+      "globalDir": ".qoder/skills",
+      "kind": "linked"
+    },
+    "qoder-cn": {
+      "globalDir": ".qoder-cn/skills",
+      "kind": "linked"
+    },
+    "qwen": {
+      "globalDir": ".qwen/skills",
+      "kind": "linked"
+    },
+    "reasonix": {
+      "env": {
+        "name": "REASONIX_HOME",
+        "path": "skills"
+      },
+      "globalDir": ".reasonix/skills",
+      "kind": "linked"
+    },
+    "replit": {
+      "kind": "universal"
+    },
+    "roocode": {
+      "globalDir": ".roo/skills",
+      "kind": "linked"
+    },
+    "rovodev": {
+      "globalDir": ".rovodev/skills",
+      "kind": "linked"
+    },
+    "sarvam-code": {
+      "kind": "universal"
+    },
+    "tabnine-cli": {
+      "globalDir": ".tabnine/agent/skills",
+      "kind": "linked"
+    },
+    "terramind": {
+      "globalDir": ".terramind/skills",
+      "kind": "linked"
+    },
+    "tinycloud": {
+      "globalDir": ".tinycloud/skills",
+      "kind": "linked"
+    },
+    "trae": {
+      "globalDir": ".trae/skills",
+      "kind": "linked"
+    },
+    "trae-cn": {
+      "globalDir": ".trae-cn/skills",
+      "kind": "linked"
+    },
+    "veai": {
+      "kind": "universal"
+    },
+    "vibe": {
+      "env": {
+        "name": "VIBE_HOME",
+        "path": "skills"
+      },
+      "globalDir": ".vibe/skills",
+      "kind": "linked"
+    },
+    "warp": {
+      "kind": "universal"
+    },
+    "zcode": {
+      "globalDir": ".zcode/skills",
+      "kind": "linked"
+    },
+    "zed": {
+      "kind": "universal"
+    },
+    "zencoder": {
+      "globalDir": ".zencoder/skills",
+      "kind": "linked"
+    },
+    "zenflow": {
+      "globalDir": ".zencoder/skills",
+      "kind": "linked"
+    }
+  }
+}

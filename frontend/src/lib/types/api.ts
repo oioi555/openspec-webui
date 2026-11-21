@@ -7,6 +7,9 @@ export type {
   SharedSkillsCompatibility,
   SharedSkillsSource,
   ToolCompatibilityReferenceResponse,
+  ToolScopeKind,
+  ToolScopeSupport,
+  ToolScopeSupportData,
 } from '../../../../src/shared/types.ts';
 
 export type ApiErrorCode =

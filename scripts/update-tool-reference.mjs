@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Analyze-first official-source reconciliation + shared-client JOIN updater.
-// Input: { targetRelease, checkedAt, openspec, releaseNotes, vercelSkills }
+// Input: { targetRelease, checkedAt, openspec, releaseNotes, vercelSkills, skillScope? }
 // Output: reviewable source status, official conflicts, dataset proposals and hash.
+// `--prepare <tag>` assembles the input for a 2.x release from GitHub (see tool-reference-sources.mjs).
 
 import { createHash } from 'node:crypto';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
@@ -12,10 +13,57 @@ import {
   validateOfficialToolDataset,
   validateResearchDataset,
 } from '../src/server/tool-compatibility-reference.ts';
+import {
+  buildToolScopeSupport,
+  diffToolScopeSupport,
+  prepareAnalysisInput,
+  releaseBundlesSkills,
+  supportedToolsPage,
+} from './tool-reference-sources.mjs';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const DEFAULT_OFFICIAL_PATH = resolve(repoRoot, 'src/server/data/tool-reference/openspec-tools.json');
 export const DEFAULT_RESEARCH_PATH = resolve(repoRoot, 'src/server/data/tool-reference/shared-agents-research.json');
+export const DEFAULT_LEGACY_PATH = resolve(repoRoot, 'src/server/data/tool-reference/openspec-legacy-v1.json');
+export const DEFAULT_SCOPE_PATH = resolve(repoRoot, 'src/server/data/tool-reference/tool-scope-support.json');
+
+const SCOPE_KINDS = new Set(['universal', 'linked', 'project-only']);
+
+/** Validate `tool-scope-support.json` and require one entry per official tool id. */
+export function validateToolScopeSupport(value, official) {
+  if (!value || typeof value !== 'object') throw new Error('scope support must be an object');
+  const { source, tools } = value;
+  if (!isNonEmptyString(source?.openspecTag) || !/^\d+\.\d+\.\d+$/.test(String(source?.skillsVersion))) {
+    throw new Error('scope support source requires openspecTag and an exact skillsVersion');
+  }
+  if (!tools || typeof tools !== 'object' || Array.isArray(tools)) throw new Error('scope support tools must be an object');
+  for (const [id, entry] of Object.entries(tools)) {
+    if (!SCOPE_KINDS.has(entry?.kind)) throw new Error(`scope support ${id} has unknown kind`);
+    if (entry.kind === 'linked' && !isNonEmptyString(entry.globalDir)) throw new Error(`scope support ${id} requires globalDir`);
+    if (entry.kind !== 'linked' && (entry.globalDir !== undefined || entry.env !== undefined)) {
+      throw new Error(`scope support ${id} has a globalDir but is not linked`);
+    }
+    if (entry.env !== undefined && (!isNonEmptyString(entry.env?.name) || !isNonEmptyString(entry.env?.path))) {
+      throw new Error(`scope support ${id} env requires name and path`);
+    }
+  }
+  const officialIds = official.tools.map((tool) => tool.id);
+  const missing = officialIds.filter((id) => !(id in tools));
+  const extra = Object.keys(tools).filter((id) => !officialIds.includes(id));
+  if (missing.length || extra.length) {
+    throw new Error(`scope support ids differ from official ids (missing: ${missing.join(', ') || '-'}; extra: ${extra.join(', ') || '-'})`);
+  }
+  return value;
+}
+
+function isScopeInputAvailable(scope, targetRelease) {
+  return scope?.available === true
+    && scope.openspecTag === targetRelease
+    && /^\d+\.\d+\.\d+$/.test(String(scope.skillsVersion))
+    && Array.isArray(scope.agents)
+    && scope.agents.some((agent) => agent?.id === 'universal')
+    && Boolean(scope.installerAliases) && typeof scope.installerAliases === 'object';
+}
 
 export const REVIEWED_CLIENT_ALIASES = Object.freeze({
   'grok-build': 'grok',
@@ -101,18 +149,19 @@ function normalizeOfficialSourceConflicts(conflicts) {
   });
 }
 
-export function analyzeToolReferenceUpdate(input, official, previous) {
+export function analyzeToolReferenceUpdate(input, official, previous, previousScope = null) {
   if (!input || typeof input !== 'object') throw new Error('Update input must be an object');
   if (!isNonEmptyString(input.targetRelease)) throw new Error('Caller must supply targetRelease');
   const targetRelease = input.targetRelease.trim();
   requireDate(input.checkedAt, 'checkedAt');
+  const page = supportedToolsPage(targetRelease);
 
   const documentation = input.openspec;
   const releaseNotes = input.releaseNotes;
   const documentationDataset = documentation?.dataset;
   const documentationAvailable = documentation?.available === true
     && Boolean(documentationDataset)
-    && isNonEmptyString(documentation.url)
+    && documentation.url === page.url
     && isNonEmptyString(documentation.revision)
     && documentationDataset?.source?.version === targetRelease
     && documentation.url === documentationDataset.source.url
@@ -131,6 +180,7 @@ export function analyzeToolReferenceUpdate(input, official, previous) {
     {
       id: 'openspec-supported-tools',
       available: documentationAvailable,
+      expectedUrl: page.url,
       url: documentation?.url ?? null,
       revision: documentation?.revision ?? null,
     },
@@ -149,17 +199,49 @@ export function analyzeToolReferenceUpdate(input, official, previous) {
   const candidates = vercelAvailable ? (vercel.candidates ?? []) : [];
 
   const officialIds = new Set(proposedOfficial.tools.map((tool) => tool.id));
+  const previousOfficialIds = new Set(official.tools.map((tool) => tool.id));
+
+  const scopeApplicable = releaseBundlesSkills(targetRelease);
+  const scopeAvailable = scopeApplicable && isScopeInputAvailable(input.skillScope, targetRelease);
+  const proposedScope = scopeAvailable && officialAvailable
+    ? buildToolScopeSupport({
+      openspecTag: targetRelease,
+      skillsVersion: input.skillScope.skillsVersion,
+      toolIds: [...officialIds],
+      agents: input.skillScope.agents,
+      installerAliases: input.skillScope.installerAliases,
+    })
+    : (previousScope ? clone(previousScope) : null);
+  if (scopeAvailable && officialAvailable) validateToolScopeSupport(proposedScope, proposedOfficial);
+  const scopeDiff = diffToolScopeSupport(previousScope, proposedScope);
+  const scopeHasChanges = scopeDiff.sourceChanged || scopeDiff.added.length > 0
+    || scopeDiff.removed.length > 0 || scopeDiff.changed.length > 0;
+
   const previousById = new Map(previous.clients.map((client) => [client.id, client]));
   const report = {
     hasChanges: false,
-    writeAllowed: officialAvailable && vercelAvailable && conflictsResolved,
+    writeAllowed: officialAvailable && vercelAvailable && conflictsResolved && (!scopeApplicable || scopeAvailable),
     unavailableSources: officialSources.filter((source) => !source.available).map((source) => source.id),
     officialSources,
     officialSourceConflicts,
+    officialTools: {
+      added: [...officialIds].filter((id) => !previousOfficialIds.has(id)).sort(),
+      removed: [...previousOfficialIds].filter((id) => !officialIds.has(id)).sort(),
+      withCommands: proposedOfficial.tools.filter((tool) => tool.commands).map((tool) => tool.id),
+      ...(Array.isArray(documentation?.notListedOnPage) ? { notListedOnPage: documentation.notListedOnPage } : {}),
+    },
+    scopeSupport: {
+      applicable: scopeApplicable,
+      available: scopeAvailable,
+      skillsVersion: scopeAvailable ? input.skillScope.skillsVersion : null,
+      ...scopeDiff,
+    },
     researchQueue: [],
     added: [],
     missing: [],
   };
+
+  if (scopeApplicable && !scopeAvailable) report.unavailableSources.push('skills-scope-support');
 
   let proposedResearch;
   if (!officialAvailable || !vercelAvailable) {
@@ -210,49 +292,89 @@ export function analyzeToolReferenceUpdate(input, official, previous) {
     || report.added.length > 0
     || report.missing.length > 0
     || researchSourceChanged
-    || officialSourceConflicts.length > 0;
-  const reviewHash = sha256({ input, proposedOfficial, proposedResearch });
+    || officialSourceConflicts.length > 0
+    || scopeHasChanges;
+  const reviewHash = sha256({ input, proposedOfficial, proposedResearch, proposedScope });
 
-  return { proposedOfficial, proposedResearch, report, reviewHash };
+  return { proposedOfficial, proposedResearch, proposedScope, report, reviewHash };
 }
 
-export async function writeDatasetsAtomically({ officialPath, researchPath, official, research, failAfterOfficial = false }) {
-  // Minimal atomic write — no lock, just validate and write both
+export async function writeDatasetsAtomically({ officialPath, researchPath, scopePath, official, research, scope = null, failAfterOfficial = false }) {
+  // Minimal atomic write — no lock, just validate and write all datasets
   validateOfficialToolDataset(official);
   // need official to validate research
   validateResearchDataset(research, official);
+  if (scope) validateToolScopeSupport(scope, official);
   await mkdir(dirname(officialPath), { recursive: true });
   await mkdir(dirname(researchPath), { recursive: true });
   await writeFile(officialPath, prettyJson(official));
   if (failAfterOfficial) throw new Error('Injected failure after official write');
   await writeFile(researchPath, prettyJson(research));
+  if (scope) {
+    await mkdir(dirname(scopePath), { recursive: true });
+    await writeFile(scopePath, prettyJson(scope));
+  }
+}
+
+async function readOptionalJson(path) {
+  try {
+    return JSON.parse(await readFile(path, 'utf8'));
+  } catch (error) {
+    if (error?.code === 'ENOENT') return null;
+    throw error;
+  }
 }
 
 export async function runCli(args) {
-  // Minimal CLI: --input <path> [--write --review-hash <hash>] [--official-path <p> --research-path <p>]
+  // Minimal CLI: --input <path> [--write --review-hash <hash>] [--official-path <p> --research-path <p> --scope-path <p>]
+  //              --prepare <tag> --checked-at <YYYY-MM-DD> --out <path>
   const getArg = (name) => {
     const idx = args.indexOf(name);
     return idx !== -1 ? args[idx + 1] : null;
   };
+  const prepareTag = getArg('--prepare');
+  if (prepareTag) {
+    const outPath = getArg('--out');
+    if (!outPath) throw new Error('--prepare requires --out <path>');
+    const previousResearch = JSON.parse(await readFile(getArg('--research-path') ?? DEFAULT_RESEARCH_PATH, 'utf8'));
+    const prepared = await prepareAnalysisInput({
+      tag: prepareTag,
+      checkedAt: requireDate(getArg('--checked-at'), '--checked-at'),
+      previousResearch,
+      legacyTable: JSON.parse(await readFile(DEFAULT_LEGACY_PATH, 'utf8')),
+    });
+    await writeFile(outPath, prettyJson(prepared));
+    console.log(JSON.stringify({ wrote: outPath, notes: prepared.notes }, null, 2));
+    return prepared;
+  }
   const inputPath = getArg('--input');
   if (!inputPath) throw new Error('--input is required');
   const input = JSON.parse(await readFile(inputPath, 'utf8'));
   const officialPath = getArg('--official-path') ?? DEFAULT_OFFICIAL_PATH;
   const researchPath = getArg('--research-path') ?? DEFAULT_RESEARCH_PATH;
+  const scopePath = getArg('--scope-path') ?? DEFAULT_SCOPE_PATH;
   const officialRaw = JSON.parse(await readFile(officialPath, 'utf8'));
   const researchRaw = JSON.parse(await readFile(researchPath, 'utf8'));
   const official = validateOfficialToolDataset(officialRaw);
   const previous = validateResearchDataset(researchRaw, official);
-  const analysis = analyzeToolReferenceUpdate(input, official, previous);
+  const previousScope = await readOptionalJson(scopePath);
+  const analysis = analyzeToolReferenceUpdate(input, official, previous, previousScope);
   const wantWrite = args.includes('--write');
   if (!wantWrite) {
-    console.log(JSON.stringify({ report: analysis.report, reviewHash: analysis.reviewHash }, null, 2));
+    console.log(JSON.stringify({ report: analysis.report, proposedScope: analysis.proposedScope, reviewHash: analysis.reviewHash }, null, 2));
     return analysis;
   }
   const reviewHash = getArg('--review-hash');
   if (reviewHash !== analysis.reviewHash) throw new Error('Reviewed input hash does not match current analysis');
   if (!analysis.report.writeAllowed) throw new Error('Source unavailable, write not allowed');
-  await writeDatasetsAtomically({ officialPath, researchPath, official: analysis.proposedOfficial, research: analysis.proposedResearch });
+  await writeDatasetsAtomically({
+    officialPath,
+    researchPath,
+    scopePath,
+    official: analysis.proposedOfficial,
+    research: analysis.proposedResearch,
+    scope: analysis.proposedScope,
+  });
   console.log('Wrote datasets');
   return analysis;
 }
@@ -261,7 +383,7 @@ if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith
   // called directly
   const args = process.argv.slice(2);
   if (args.length === 0) {
-    console.error('Usage: update-tool-reference.mjs --input <path> [--write --review-hash <hash>]');
+    console.error('Usage: update-tool-reference.mjs --input <path> [--write --review-hash <hash>] | --prepare <tag> --checked-at <date> --out <path>');
     process.exit(1);
   }
   runCli(args).catch((e) => { console.error(e.message); process.exit(1); });

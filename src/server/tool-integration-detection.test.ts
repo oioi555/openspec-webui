@@ -6,8 +6,10 @@ import { join } from 'node:path';
 
 import {
   AGENTS_SHARED_TOOL,
+  buildDetectedToolSignatures,
+  LEGACY_V1_TOOL_TABLE,
   DETECTED_TOOL_ID_LIST,
-  GLOBAL_SKILL_DIRS,
+  GLOBAL_SKILL_FOLDERS,
   deriveSharedSkillTarget,
   detectToolIntegrations,
   parseSharedSkillTargetMarker,
@@ -15,6 +17,7 @@ import {
   getSupportedToolOptions,
   type DetectedIntegration,
 } from './tool-integration-detection.js';
+import { OPEN_SPEC_TOOL_DEFINITIONS, TOOL_SCOPE_SUPPORT } from './tool-compatibility-reference.js';
 
 // Never scan the developer's real home folder for global skills: point the
 // default seams at an empty temporary home.
@@ -137,7 +140,7 @@ test('detects SourceCraft commands and skills with Commands-first evidence', asy
 
   const integrations = await detectToolIntegrations(root);
   assert.deepEqual(integrations, [{
-    tool: 'SourceCraft Code Assistant for VS Code',
+    tool: 'SourceCraft Code Assistant',
     scope: 'project',
     delivery: 'both',
     form: 'opsx-dash',
@@ -167,7 +170,7 @@ test('detects SourceCraft skill-only repositories and ignores empty directories'
 
   const integrations = await detectToolIntegrations(root);
   assert.deepEqual(integrations, [{
-    tool: 'SourceCraft Code Assistant for VS Code',
+    tool: 'SourceCraft Code Assistant',
     scope: 'project',
     delivery: 'skills',
     form: 'skill-prompt',
@@ -723,7 +726,7 @@ test('getSupportedToolOptions prefers the first command form per tool', () => {
   assert.equal(byTool.get('Claude Code'), 'opsx-colon');
   assert.equal(byTool.get('Cursor'), 'opsx-dash');
   assert.equal(byTool.get('Amazon Q Developer'), 'opsx-at');
-  assert.equal(byTool.get('SourceCraft Code Assistant for VS Code'), 'opsx-dash');
+  assert.equal(byTool.get('SourceCraft Code Assistant'), 'opsx-dash');
   // Skill-only tools use their skill form.
   assert.equal(byTool.get('ForgeCode'), 'skill-slash');
   assert.equal(byTool.get('Kimi Code'), 'skill-colon');
@@ -762,12 +765,12 @@ test('getSupportedToolOptions catalog includes representative official tools', (
 
   for (const expected of [
     'Claude Code',
-    'CodeBuddy',
+    'CodeBuddy Code (CLI)',
     'Crush',
     'Gemini CLI',
     'Lingma',
     'Qoder',
-    'Auggie',
+    'Auggie (Augment CLI)',
     'IBM Bob',
     'Command Code',
     'Cursor',
@@ -794,7 +797,7 @@ test('getSupportedToolOptions catalog includes representative official tools', (
     'Hermes Agent',
     'Mistral Vibe',
     'Kimi Code',
-    'SourceCraft Code Assistant for VS Code',
+    'SourceCraft Code Assistant',
     'AtomCode',
     'Code Studio',
     'DeepSeek Harness',
@@ -1117,12 +1120,44 @@ test('own-files-only marker falls back to legacy without targets', async () => {
 
 // --- Global skills ---
 
-test('GLOBAL_SKILL_DIRS keys are all detected tool ids', () => {
-  const keys = Object.keys(GLOBAL_SKILL_DIRS);
-  assert.ok(keys.length > 0);
-  for (const key of keys) {
-    assert.ok(DETECTED_TOOL_ID_LIST.includes(key), `${key} is not a detected tool id`);
+test('global skill folders come from the scope data for linked detected tools only', () => {
+  for (const id of DETECTED_TOOL_ID_LIST) {
+    const entry = TOOL_SCOPE_SUPPORT.tools[id];
+    if (id === 'amazon-q') {
+      assert.equal(entry, undefined);
+      continue;
+    }
+    assert.ok(entry, `${id} has no scope support entry`);
+    const folder = (GLOBAL_SKILL_FOLDERS as Record<string, { dir: string } | undefined>)[id];
+    assert.equal(folder?.dir, entry.kind === 'linked' ? entry.globalDir : undefined, id);
   }
+  assert.deepEqual(GLOBAL_SKILL_FOLDERS.claude, { dir: '.claude/skills', env: { name: 'CLAUDE_CONFIG_DIR', path: 'skills' } });
+  assert.equal(GLOBAL_SKILL_FOLDERS.cursor, undefined);
+});
+
+test('a re-pinned global folder is scanned without a code change', async () => {
+  const root = await makeProjectRoot();
+  const home = await makeHome();
+  await write(home, '.crush-next/skills/openspec-propose/SKILL.md');
+  const scopeSupport = structuredClone(TOOL_SCOPE_SUPPORT);
+  scopeSupport.tools.crush = { kind: 'linked', globalDir: '.crush-next/skills' };
+  scopeSupport.tools.claude = { kind: 'universal' };
+  const integrations = await detectToolIntegrations(root, { homeDir: home, claudeConfigDir: undefined, scopeSupport });
+  assert.deepEqual(integrations.map((i) => [i.tool, i.scope, i.source]), [
+    ['Crush', 'global', '~/.crush-next/skills/openspec-propose/SKILL.md'],
+  ]);
+});
+
+test('env overrides from the scope data relocate a global folder', async () => {
+  const root = await makeProjectRoot();
+  const home = await makeHome();
+  await write(home, 'vibe-home/skills/openspec-propose/SKILL.md');
+  const integrations = await detectToolIntegrations(root, {
+    homeDir: home, claudeConfigDir: undefined, env: { VIBE_HOME: join(home, 'vibe-home') },
+  });
+  assert.deepEqual(integrations.map((i) => [i.tool, i.source]), [
+    ['Mistral Vibe', '~/vibe-home/skills/openspec-propose/SKILL.md'],
+  ]);
 });
 
 test('detects global universal ~/.agents/skills as ambiguous shared evidence', async () => {
@@ -1230,4 +1265,53 @@ test('project and global rows coexist with project rows first', async () => {
     ['Claude Code', 'global'],
   ]);
   assert.deepEqual(deriveDistinctForms(integrations), ['skill-slash', 'skill-dollar']);
+});
+
+test('detector signatures do not depend on the official snapshot keeping Commands or retired tools', () => {
+  const stripped = structuredClone(OPEN_SPEC_TOOL_DEFINITIONS)
+    .filter((definition) => definition.id !== 'amazon-q')
+    .map((definition) => ({ ...definition, commands: null }));
+  assert.ok(stripped.every((definition) => definition.skills), 'stripped copy must stay skill-delivered');
+  const fromOfficial = buildDetectedToolSignatures(OPEN_SPEC_TOOL_DEFINITIONS);
+  const fromStripped = buildDetectedToolSignatures(stripped);
+  assert.deepEqual(fromStripped, fromOfficial);
+  const signatures = new Map(fromStripped);
+  assert.deepEqual(signatures.get('amazon-q'), [
+    'Amazon Q Developer',
+    [['.amazonq/prompts', 'filename', 'opsx-at']],
+    [['.amazonq/skills', 'skill-slash']],
+  ]);
+  assert.deepEqual(signatures.get('claude')?.[1], [['.claude/commands', 'folder', 'opsx-colon']]);
+});
+
+test('every v1.14.0 skill folder signature survives a re-pin that moves skills to .agents', () => {
+  const v1Definitions = LEGACY_V1_TOOL_TABLE.skills.map(({ id, skills }) => ({ id, name: id, commands: null, skills }));
+  const v1Signatures = buildDetectedToolSignatures(v1Definitions, { ...LEGACY_V1_TOOL_TABLE, skills: [] });
+  const repinned = structuredClone(OPEN_SPEC_TOOL_DEFINITIONS)
+    .filter((definition) => definition.id !== 'amazon-q')
+    .map((definition) => ({
+      ...definition,
+      commands: null,
+      skills: { path: '.agents/skills/openspec-*/SKILL.md', invocation: definition.skills?.invocation ?? '/openspec-<skill>' },
+    }));
+  for (const definitions of [OPEN_SPEC_TOOL_DEFINITIONS, repinned]) {
+    const current = new Map(buildDetectedToolSignatures(definitions));
+    for (const [id, [, , skillSpecs]] of v1Signatures) {
+      for (const spec of skillSpecs) {
+        assert.ok(
+          current.get(id)?.[2].some((candidate) => JSON.stringify(candidate) === JSON.stringify(spec)),
+          `${id} lost v1.14.0 skill signature ${JSON.stringify(spec)}`
+        );
+      }
+    }
+  }
+  const cursor = new Map(buildDetectedToolSignatures(repinned)).get('cursor');
+  assert.deepEqual(cursor?.[2], [['.cursor/skills', 'skill-slash']]);
+});
+
+test('a re-pinned .cursor/skills tree still reports Cursor', async () => {
+  const root = await makeProjectRoot();
+  await write(root, '.cursor/skills/openspec-propose/SKILL.md');
+  const integrations = await detectToolIntegrations(root);
+  assert.ok(integrations.some((integration) => integration.tool === 'Cursor'));
 });

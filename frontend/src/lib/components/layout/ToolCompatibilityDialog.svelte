@@ -9,7 +9,10 @@
   import {
     filterOfficialToolDefinitions,
     filterSharedSkillsCompatibility,
+    globalFolderLabel,
     groupSharedAgentsSkillInstallers,
+    isCommandsRetiredSnapshot,
+    scopeSupportFor,
   } from '$lib/toolCompatibilityReference';
   import type {
     OpenSpecToolDeliveryDefinition,
@@ -45,6 +48,12 @@
   let compatibilityRecords = $derived(
     filterSharedSkillsCompatibility(reference?.sharedCompatibility ?? [], query)
   );
+  let commandsRetired = $derived(isCommandsRetiredSnapshot(reference?.officialSource.version));
+  let officialGrid = $derived(
+    commandsRetired
+      ? 'md:grid-cols-[minmax(9rem,0.8fr)_minmax(0,1.3fr)_minmax(0,1.1fr)]'
+      : 'md:grid-cols-[minmax(9rem,0.8fr)_minmax(0,1.3fr)_minmax(0,1.3fr)_minmax(0,1.1fr)]'
+  );
   let sharedAgentsInstallers = $derived(
     groupSharedAgentsSkillInstallers(reference?.officialDefinitions ?? [])
   );
@@ -63,6 +72,23 @@
     </div>
   {:else}
     <span class="text-sm text-muted-foreground">{t(m.tool_reference_not_defined)}</span>
+  {/if}
+{/snippet}
+
+{#snippet scopeDetails(toolId: string)}
+  {@const entry = scopeSupportFor(reference?.scopeSupport, toolId)}
+  {#if !entry}
+    <span class="text-sm text-muted-foreground">—</span>
+  {:else if entry.kind === 'universal'}
+    <span class="text-sm text-foreground">{t(m.tool_reference_scope_universal)}</span>
+  {:else if entry.kind === 'linked'}
+    <span class="text-sm text-foreground">{t(m.tool_reference_scope_linked)}</span>
+    <code class="mt-1 block break-all text-xs text-primary">{globalFolderLabel(entry)}</code>
+    {#if entry.env}
+      <div class="mt-1 text-xs text-muted-foreground"><code>${entry.env.name}/{entry.env.path}</code></div>
+    {/if}
+  {:else}
+    <span class="text-sm text-foreground">{t(m.tool_reference_scope_project_only)}</span>
   {/if}
 {/snippet}
 
@@ -141,28 +167,41 @@
                 </div>
               </div>
 
+              {#if commandsRetired}
+                <p class="rounded-lg border border-border bg-muted/20 px-4 py-3 text-sm text-muted-foreground" data-testid="commands-retired-note">{t(m.tool_reference_commands_retired)}</p>
+              {/if}
+
               {#if officialDefinitions.length === 0}
                 <p class="py-12 text-center text-sm text-muted-foreground">{t(m.tool_reference_no_results)}</p>
               {:else}
                 <div role="table" aria-label={t(m.tool_reference_view_official)} class="space-y-2 md:space-y-0 md:overflow-hidden md:rounded-lg md:border md:border-border">
-                  <div role="row" class="hidden grid-cols-[minmax(9rem,0.8fr)_minmax(0,1.3fr)_minmax(0,1.3fr)] gap-4 border-b border-border bg-muted/40 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground md:grid">
+                  <div role="row" class="hidden gap-4 border-b border-border bg-muted/40 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground md:grid {officialGrid}">
                     <div role="columnheader">{t(m.tool_reference_tool)}</div>
-                    <div role="columnheader">{t(m.tool_reference_commands)}</div>
+                    {#if !commandsRetired}
+                      <div role="columnheader">{t(m.tool_reference_commands)}</div>
+                    {/if}
                     <div role="columnheader">{t(m.tool_reference_skills)}</div>
+                    <div role="columnheader">{t(m.tool_reference_scope)}</div>
                   </div>
                   {#each officialDefinitions as definition (definition.id)}
-                    <div role="row" class="grid gap-3 rounded-lg border border-border bg-card p-4 md:grid-cols-[minmax(9rem,0.8fr)_minmax(0,1.3fr)_minmax(0,1.3fr)] md:rounded-none md:border-x-0 md:border-t-0 md:p-4 md:last:border-b-0">
+                    <div role="row" class="grid gap-3 rounded-lg border border-border bg-card p-4 {officialGrid} md:rounded-none md:border-x-0 md:border-t-0 md:p-4 md:last:border-b-0">
                       <div role="cell" class="min-w-0">
                         <div class="font-medium text-foreground">{definition.name}</div>
                         <Badge variant="outline" class="mt-1 font-mono">{definition.id}</Badge>
                       </div>
-                      <div role="cell" class="min-w-0">
-                        <div class="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground md:hidden">{t(m.tool_reference_commands)}</div>
-                        {@render deliveryDetails(definition.commands)}
-                      </div>
+                      {#if !commandsRetired}
+                        <div role="cell" class="min-w-0">
+                          <div class="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground md:hidden">{t(m.tool_reference_commands)}</div>
+                          {@render deliveryDetails(definition.commands)}
+                        </div>
+                      {/if}
                       <div role="cell" class="min-w-0">
                         <div class="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground md:hidden">{t(m.tool_reference_skills)}</div>
                         {@render deliveryDetails(definition.skills)}
+                      </div>
+                      <div role="cell" class="min-w-0">
+                        <div class="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground md:hidden">{t(m.tool_reference_scope)}</div>
+                        {@render scopeDetails(definition.id)}
                       </div>
                     </div>
                   {/each}

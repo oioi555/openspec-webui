@@ -7,7 +7,10 @@ import type { OpenSpecToolDefinition, SharedSkillsCompatibility } from './types/
 import {
   filterOfficialToolDefinitions,
   filterSharedSkillsCompatibility,
+  globalFolderLabel,
   groupSharedAgentsSkillInstallers,
+  isCommandsRetiredSnapshot,
+  scopeSupportFor,
 } from './toolCompatibilityReference';
 
 function tool(
@@ -107,20 +110,32 @@ test('groups the pinned official catalog by shared .agents skills invocation', a
     tools: OpenSpecToolDefinition[];
   };
 
-  assert.deepEqual(groupSharedAgentsSkillInstallers(catalog.tools), [
-    {
-      style: 'slash',
-      ids: ['agents', 'amp', 'antigravity', 'gsd', 'zed'],
-      path: '.agents/skills',
-      invocation: '/openspec-*',
+  const groups = groupSharedAgentsSkillInstallers(catalog.tools);
+  assert.deepEqual(groups.map((group) => group.style), ['slash', 'dollar']);
+  assert.equal(groups[0]!.ids[0], 'agents');
+  for (const id of ['amp', 'antigravity', 'gsd', 'zed', 'cursor', 'promptscript']) {
+    assert.ok(groups[0]!.ids.includes(id), id);
+  }
+  assert.equal(groups[0]!.ids.includes('claude'), false);
+  assert.deepEqual(groups[1], { style: 'dollar', ids: ['codex'], path: '.agents/skills', invocation: '$openspec-*' });
+});
+
+test('2.x snapshots retire Commands and scope labels come from the served data', () => {
+  assert.equal(isCommandsRetiredSnapshot('v2.1.1'), true);
+  assert.equal(isCommandsRetiredSnapshot('v2.0.0'), true);
+  assert.equal(isCommandsRetiredSnapshot('v1.14.0'), false);
+  assert.equal(isCommandsRetiredSnapshot(undefined), false);
+  const scopeSupport = {
+    source: { openspecTag: 'v2.1.1', skillsVersion: '1.8.1' },
+    tools: {
+      claude: { kind: 'linked' as const, globalDir: '.claude/skills', env: { name: 'CLAUDE_CONFIG_DIR', path: 'skills' } },
+      eve: { kind: 'project-only' as const },
     },
-    {
-      style: 'dollar',
-      ids: ['codex'],
-      path: '.agents/skills',
-      invocation: '$openspec-*',
-    },
-  ]);
+  };
+  assert.equal(globalFolderLabel(scopeSupportFor(scopeSupport, 'claude')!), '~/.claude/skills');
+  assert.equal(scopeSupportFor(scopeSupport, 'eve')?.kind, 'project-only');
+  assert.equal(scopeSupportFor(scopeSupport, 'unknown'), null);
+  assert.equal(globalFolderLabel({ kind: 'universal' }), null);
 });
 
 test('shared-path grouping omits empty input and does not create a workflows group', () => {

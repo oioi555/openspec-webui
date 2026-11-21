@@ -1,24 +1,12 @@
 {
   "schemaVersion": 1,
   "source": {
-    "checkedAt": "2026-10-02",
-    "revision": "94ca9c1eb15d1b49c06c988419b75c3d95f8b2b5",
-    "url": "https://github.com/Fission-AI/OpenSpec/blob/v1.14.0/docs/supported-tools.md",
-    "version": "v1.14.0"
+    "checkedAt": "2026-11-21",
+    "revision": "0c737dc1b543249b38b0f4716816fcf493d894dd",
+    "url": "https://github.com/Fission-AI/OpenSpec/blob/v2.1.1/docs-lab/reference/supported-tools.md",
+    "version": "v2.1.1"
   },
   "tools": [
-    {
-      "commands": {
-        "invocation": "@opsx-<id>",
-        "path": ".amazonq/prompts/opsx-<id>.md"
-      },
-      "id": "amazon-q",
-      "name": "Amazon Q Developer",
-      "skills": {
-        "invocation": "/openspec-<skill>",
-        "path": ".amazonq/skills/openspec-*/SKILL.md"
-      }
-    },
     {
       "commands": null,
       "id": "amp",
@@ -29,10 +17,7 @@
       }
     },
     {
-      "commands": {
-        "invocation": "/opsx-<id>",
-        "path": ".agents/workflows/opsx-<id>.md"
-      },
+      "commands": null,
       "id": "antigravity",
       "name": "Antigravity",
       "skills": {
@@ -41,34 +26,25 @@
       }
     },
     {
-      "commands": {
-        "invocation": "/opsx-<id>",
-        "path": ".atomcode/commands/opsx-<id>.md"
-      },
+      "commands": null,
       "id": "atomcode",
       "name": "AtomCode",
       "skills": {
         "invocation": "/openspec-<skill>",
-        "path": ".atomcode/skills/openspec-*/SKILL.md"
+        "path": ".agents/skills/openspec-*/SKILL.md"
       }
     },
     {
-      "commands": {
-        "invocation": "/opsx-<id>",
-        "path": ".augment/commands/opsx-<id>.md"
-      },
+      "commands": null,
       "id": "auggie",
-      "name": "Auggie",
+      "name": "Auggie (Augment CLI)",
       "skills": {
         "invocation": "/openspec-<skill>",
         "path": ".augment/skills/openspec-*/SKILL.md"
       }
     },
     {
-      "commands": {
-        "invocation": "/opsx-<id>",
-        "path": ".bob/commands/opsx-<id>.md"
-      },
+      "commands": null,
       "id": "bob",
       "name": "IBM Bob",
       "skills": {
@@ -77,10 +53,7 @@
       }
     },
     {
-      "commands": {
-        "invocation": "/opsx:<id>",
-        "path": ".claude/commands/opsx/<id>.md"
-      },
+      "commands": null,
       "id": "claude",
       "name": "Claude Code",
       "skills": {
@@ -89,27 +62,21 @@
       }
     },
     {
-      "commands": {
-        "invocation": "/opsx-<id>",
-        "path": ".clinerules/workflows/opsx-<id>.md"
-      },
+      "commands": null,
       "id": "cline",
       "name": "Cline",
       "skills": {
         "invocation": "/openspec-<skill>",
-        "path": ".cline/skills/openspec-*/SKILL.md"
+        "path": ".agents/skills/openspec-*/SKILL.md"
       }
     },
     {
-      "commands": {
-        "invocation": "/opsx-<id>",
-        "path": ".commandcode/commands/opsx-<id>.md"
-      },
+      "commands": null,
       "id": "command-code",
       "name": "Command Code",
       "skills": {
         "invocation": "/openspec-<skill>",
-        "path": ".commandcode/skills/openspec-*/SKILL.md"
+        "path": ".agents/skills/openspec-*/SKILL.md"
       }
     },
     {
@@ -119,30 +86,6 @@
       "skills": {
         "invocation": "/openspec-<skill>",
         "path": ".codeartsdoer/skills/openspec-*/SKILL.md"
-      }
-    },
-    {
-      "commands": {
-        "invocation": "/opsx:<id>",
-        "path": ".codebuddy/commands/opsx/<id>.md"
-      },
-      "id": "codebuddy",
-      "name": "CodeBuddy",
-      "skills": {
-        "invocation": "/openspec-<skill>",
-        "path": ".codebuddy/skills/openspec-*/SKILL.md"
-      }
-    },
-    {
-      "commands": {
-        "invocation": "/opsx-<id>",
-        "path": ".codestudio/prompts/opsx-<id>.prompt.md"
-      },
-      "id": "codestudio",
-      "name": "Code Studio",
-      "skills": {
-        "invocation": "/openspec-<skill>",
-        "path": ".codestudio/skills/openspec-*/SKILL.md"
       }
     },
     {
@@ -160,16 +103,13 @@
       "name": "DeepSeek Harness",
       "skills": {
         "invocation": "/openspec-<skill>",
-        "path": ".dsh/skills/openspec-*/SKILL.md"
+        "path": ".agents/skills/openspec-*/SKILL.md"
       }
     },
     {
-      "commands": {
-        "invocation": "/opsx-<id>",
-        "path": ".devin/workflows/opsx-<id>.md"
-      },
+      "commands": null,
       "id": "devin",
-      "name": "Devin Desktop, formerly Windsurf",
+      "name": "Devin Desktop (formerly Windsurf)",
       "skills": {
         "invocation": "/openspec-<skill>",
         "path": ".devin/skills/openspec-*/SKILL.md"
@@ -185,10 +125,25 @@
       }
     },
     {
-      "commands": {
-        "invocation": "/opsx-<id>",
-        "path": ".continue/prompts/opsx-<id>.prompt"
-      },
+      "commands": null,
+      "id": "codebuddy",
+      "name": "CodeBuddy Code (CLI)",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".codebuddy/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "codestudio",
+      "name": "Code Studio",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".codestudio/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
       "id": "continue",
       "name": "Continue",
       "skills": {
@@ -197,22 +152,16 @@
       }
     },
     {
-      "commands": {
-        "invocation": "/opsx-<id>",
-        "path": ".cospec/openspec/commands/opsx-<id>.md"
-      },
+      "commands": null,
       "id": "costrict",
       "name": "CoStrict",
       "skills": {
         "invocation": "/openspec-<skill>",
-        "path": ".cospec/skills/openspec-*/SKILL.md"
+        "path": ".agents/skills/openspec-*/SKILL.md"
       }
     },
     {
-      "commands": {
-        "invocation": "/opsx:<id>",
-        "path": ".crush/commands/opsx/<id>.md"
-      },
+      "commands": null,
       "id": "crush",
       "name": "Crush",
       "skills": {
@@ -221,75 +170,57 @@
       }
     },
     {
-      "commands": {
-        "invocation": "/opsx-<id>",
-        "path": ".cursor/commands/opsx-<id>.md"
-      },
+      "commands": null,
       "id": "cursor",
       "name": "Cursor",
       "skills": {
         "invocation": "/openspec-<skill>",
-        "path": ".cursor/skills/openspec-*/SKILL.md"
+        "path": ".agents/skills/openspec-*/SKILL.md"
       }
     },
     {
-      "commands": {
-        "invocation": "/opsx:<id>",
-        "path": ".easycode/commands/opsx/<id>.toml"
-      },
+      "commands": null,
       "id": "easycode",
       "name": "EasyCode",
       "skills": {
         "invocation": "/openspec-<skill>",
-        "path": ".easycode/skills/openspec-*/SKILL.md"
+        "path": ".agents/skills/openspec-*/SKILL.md"
       }
     },
     {
-      "commands": {
-        "invocation": "/opsx-<id>",
-        "path": ".factory/commands/opsx-<id>.md"
-      },
+      "commands": null,
       "id": "factory",
       "name": "Factory Droid",
       "skills": {
         "invocation": "/openspec-<skill>",
-        "path": ".factory/skills/openspec-*/SKILL.md"
+        "path": ".agents/skills/openspec-*/SKILL.md"
       }
     },
     {
-      "commands": {
-        "invocation": "/opsx:<id>",
-        "path": ".gemini/commands/opsx/<id>.toml"
-      },
+      "commands": null,
       "id": "gemini",
       "name": "Gemini CLI",
       "skills": {
         "invocation": "/openspec-<skill>",
-        "path": ".gemini/skills/openspec-*/SKILL.md"
+        "path": ".agents/skills/openspec-*/SKILL.md"
       }
     },
     {
-      "commands": {
-        "invocation": "/opsx-<id>",
-        "path": ".github/prompts/opsx-<id>.prompt.md"
-      },
+      "commands": null,
       "id": "github-copilot",
       "name": "GitHub Copilot",
       "skills": {
         "invocation": "/openspec-<skill>",
-        "path": ".github/skills/openspec-*/SKILL.md"
+        "path": ".agents/skills/openspec-*/SKILL.md"
       }
     },
     {
-      "commands": {
-        "invocation": "/opsx-<id>",
-        "path": ".gigacode/commands/opsx-<id>.md"
-      },
+      "commands": null,
       "id": "gigacode",
       "name": "GigaCode",
       "skills": {
         "invocation": "/openspec-<skill>",
-        "path": ".gigacode/skills/openspec-*/SKILL.md"
+        "path": ".agents/skills/openspec-*/SKILL.md"
       }
     },
     {
@@ -306,7 +237,7 @@
       "id": "gsd",
       "name": "GSD",
       "skills": {
-        "invocation": "/openspec-<skill>",
+        "invocation": "use the openspec-<skill> skill",
         "path": ".agents/skills/openspec-*/SKILL.md"
       }
     },
@@ -320,10 +251,7 @@
       }
     },
     {
-      "commands": {
-        "invocation": "/opsx-<id>",
-        "path": ".iflow/commands/opsx-<id>.md"
-      },
+      "commands": null,
       "id": "iflow",
       "name": "iFlow",
       "skills": {
@@ -332,10 +260,7 @@
       }
     },
     {
-      "commands": {
-        "invocation": "/opsx-<id>",
-        "path": ".junie/commands/opsx-<id>.md"
-      },
+      "commands": null,
       "id": "junie",
       "name": "Junie",
       "skills": {
@@ -344,15 +269,12 @@
       }
     },
     {
-      "commands": {
-        "invocation": "/opsx-<id>",
-        "path": ".kilo/command/opsx-<id>.md"
-      },
+      "commands": null,
       "id": "kilocode",
       "name": "Kilo Code",
       "skills": {
         "invocation": "/openspec-<skill>",
-        "path": ".kilocode/skills/openspec-*/SKILL.md"
+        "path": ".agents/skills/openspec-*/SKILL.md"
       }
     },
     {
@@ -361,14 +283,11 @@
       "name": "Kimi Code",
       "skills": {
         "invocation": "/skill:openspec-<skill>",
-        "path": ".kimi-code/skills/openspec-*/SKILL.md"
+        "path": ".agents/skills/openspec-*/SKILL.md"
       }
     },
     {
-      "commands": {
-        "invocation": "/opsx-<id>",
-        "path": ".kiro/prompts/opsx-<id>.prompt.md"
-      },
+      "commands": null,
       "id": "kiro",
       "name": "Kiro",
       "skills": {
@@ -377,10 +296,7 @@
       }
     },
     {
-      "commands": {
-        "invocation": "/opsx:<id>",
-        "path": ".lingma/commands/opsx/<id>.md"
-      },
+      "commands": null,
       "id": "lingma",
       "name": "Lingma",
       "skills": {
@@ -393,8 +309,8 @@
       "id": "minimax-code",
       "name": "MiniMax Code",
       "skills": {
-        "invocation": null,
-        "path": "~/.minimax/skills/openspec-*/SKILL.md"
+        "invocation": "/openspec-<skill>",
+        "path": ".minimax/skills/openspec-*/SKILL.md"
       }
     },
     {
@@ -407,58 +323,43 @@
       }
     },
     {
-      "commands": {
-        "invocation": "/opsx-<id>",
-        "path": ".omp/commands/opsx-<id>.md"
-      },
+      "commands": null,
       "id": "oh-my-pi",
       "name": "Oh My Pi",
       "skills": {
         "invocation": "/openspec-<skill>",
-        "path": ".omp/skills/openspec-*/SKILL.md"
+        "path": ".agents/skills/openspec-*/SKILL.md"
       }
     },
     {
-      "commands": {
-        "invocation": "/opsx-<id>",
-        "path": ".opencode/commands/opsx-<id>.md"
-      },
+      "commands": null,
       "id": "opencode",
       "name": "OpenCode",
       "skills": {
         "invocation": "/openspec-<skill>",
-        "path": ".opencode/skills/openspec-*/SKILL.md"
+        "path": ".agents/skills/openspec-*/SKILL.md"
       }
     },
     {
-      "commands": {
-        "invocation": "/opsx-<id>",
-        "path": ".pi/prompts/opsx-<id>.md"
-      },
+      "commands": null,
       "id": "pi",
       "name": "Pi",
       "skills": {
         "invocation": "/openspec-<skill>",
-        "path": ".pi/skills/openspec-*/SKILL.md"
+        "path": ".agents/skills/openspec-*/SKILL.md"
       }
     },
     {
-      "commands": {
-        "invocation": "/opsx-<id>",
-        "path": ".codeassistant/commands/opsx-<id>.md"
-      },
+      "commands": null,
       "id": "codeassistant",
-      "name": "SourceCraft Code Assistant for VS Code",
+      "name": "SourceCraft Code Assistant",
       "skills": {
         "invocation": "use the openspec-<skill> skill",
-        "path": ".codeassistant/skills/openspec-*/SKILL.md"
+        "path": ".agents/skills/openspec-*/SKILL.md"
       }
     },
     {
-      "commands": {
-        "invocation": "/opsx:<id>",
-        "path": ".qoder/commands/opsx/<id>.md"
-      },
+      "commands": null,
       "id": "qoder",
       "name": "Qoder",
       "skills": {
@@ -467,10 +368,7 @@
       }
     },
     {
-      "commands": {
-        "invocation": "/opsx-<id>",
-        "path": ".qwen/commands/opsx-<id>.md"
-      },
+      "commands": null,
       "id": "qwen",
       "name": "Qwen Code",
       "skills": {
@@ -488,10 +386,7 @@
       }
     },
     {
-      "commands": {
-        "invocation": "/opsx-<id>",
-        "path": ".roo/commands/opsx-<id>.md"
-      },
+      "commands": null,
       "id": "roocode",
       "name": "Zoo Code",
       "skills": {
@@ -500,10 +395,7 @@
       }
     },
     {
-      "commands": {
-        "invocation": "/opsx-<id>",
-        "path": ".trae/commands/opsx-<id>.md"
-      },
+      "commands": null,
       "id": "trae",
       "name": "Trae",
       "skills": {
@@ -517,7 +409,7 @@
       "name": "Veai",
       "skills": {
         "invocation": "/openspec-<skill>",
-        "path": ".veai/skills/openspec-*/SKILL.md"
+        "path": ".agents/skills/openspec-*/SKILL.md"
       }
     },
     {
@@ -526,7 +418,7 @@
       "name": "Warp",
       "skills": {
         "invocation": "/openspec-<skill>",
-        "path": ".warp/skills/openspec-*/SKILL.md"
+        "path": ".agents/skills/openspec-*/SKILL.md"
       }
     },
     {
@@ -539,10 +431,7 @@
       }
     },
     {
-      "commands": {
-        "invocation": "/opsx:<id>",
-        "path": ".zcode/commands/opsx/<id>.md"
-      },
+      "commands": null,
       "id": "zcode",
       "name": "ZCode",
       "skills": {
@@ -553,10 +442,352 @@
     {
       "commands": null,
       "id": "agents",
-      "name": "Shared .agents skills",
+      "name": "Other / Universal",
       "skills": {
         "invocation": "/openspec-<skill>",
         "path": ".agents/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "aider-desk",
+      "name": "AiderDesk",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".aider-desk/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "antigravity-cli",
+      "name": "Antigravity CLI",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".agents/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "astrbot",
+      "name": "AstrBot",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": "data/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "autohand-code",
+      "name": "Autohand Code CLI",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".autohand/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "openclaw",
+      "name": "OpenClaw",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": "skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "codemaker",
+      "name": "Codemaker",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".codemaker/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "cortex",
+      "name": "Cortex Code",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".cortex/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "deepagents",
+      "name": "Deep Agents",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".agents/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "dexto",
+      "name": "Dexto",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".agents/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "eve",
+      "name": "Eve",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": "agent/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "firebender",
+      "name": "Firebender",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".agents/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "fx",
+      "name": "fx",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".agents/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "goose",
+      "name": "Goose",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".goose/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "inference-sh",
+      "name": "inference.sh",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".inferencesh/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "jazz",
+      "name": "Jazz",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".jazz/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "kimchi",
+      "name": "Kimchi",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".kimchi/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "kode",
+      "name": "Kode",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".kode/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "loaf",
+      "name": "Loaf",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".agents/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "mcpjam",
+      "name": "MCPJam",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".mcpjam/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "moxby",
+      "name": "Moxby",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".moxby/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "mux",
+      "name": "Mux",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".mux/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "openhands",
+      "name": "OpenHands",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".openhands/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "ona",
+      "name": "Ona",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".ona/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "posit-assistant",
+      "name": "Posit Assistant",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".posit/assistant/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "qoder-cn",
+      "name": "Qoder CN",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".qoder/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "replit",
+      "name": "Replit",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".agents/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "reasonix",
+      "name": "Reasonix",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".reasonix/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "sarvam-code",
+      "name": "Sarvam Code",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".agents/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "tabnine-cli",
+      "name": "Tabnine CLI",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".tabnine/agent/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "terramind",
+      "name": "Terramind",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".terramind/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "tinycloud",
+      "name": "Tinycloud",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".tinycloud/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "trae-cn",
+      "name": "Trae CN",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".trae/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "zencoder",
+      "name": "Zencoder",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".zencoder/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "zenflow",
+      "name": "Zenflow",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".zencoder/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "neovate",
+      "name": "Neovate",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".neovate/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "pochi",
+      "name": "Pochi",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".pochi/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "promptscript",
+      "name": "PromptScript",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".agents/skills/openspec-*/SKILL.md"
+      }
+    },
+    {
+      "commands": null,
+      "id": "adal",
+      "name": "AdaL",
+      "skills": {
+        "invocation": "/openspec-<skill>",
+        "path": ".adal/skills/openspec-*/SKILL.md"
       }
     }
   ]

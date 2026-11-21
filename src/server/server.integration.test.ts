@@ -1765,9 +1765,16 @@ test('GET /api/tool-reference returns static reference data without an active pr
   try {
     const result = await apiJson(runtime.baseUrl, '/api/tool-reference');
     assert.equal(result.response.status, 200);
-    assert.equal(result.body.officialSource.version, 'v1.14.0');
-    assert.equal(result.body.officialSource.verifiedAt, '2026-10-02');
-    assert.equal(result.body.officialDefinitions.length, 50);
+    assert.equal(result.body.officialSource.version, 'v2.1.1');
+    assert.equal(result.body.officialSource.verifiedAt, '2026-11-21');
+    assert.equal(result.body.officialDefinitions.length, 87);
+    assert.equal(result.body.toolNames.kimi, 'Kimi Code');
+    assert.equal(result.body.toolNames['amazon-q'], 'Amazon Q Developer');
+    assert.deepEqual(result.body.scopeSupport.source, { openspecTag: 'v2.1.1', skillsVersion: '1.8.1' });
+    assert.deepEqual(result.body.scopeSupport.tools.claude, {
+      kind: 'linked', globalDir: '.claude/skills', env: { name: 'CLAUDE_CONFIG_DIR', path: 'skills' },
+    });
+    assert.deepEqual(result.body.scopeSupport.tools.eve, { kind: 'project-only' });
     const grokBuild = result.body.sharedCompatibility.find(
       (record: { clientId: string; openSpecToolId?: string }) => record.clientId === 'grok-build'
     );
@@ -2038,8 +2045,8 @@ test('availability route reports detected tool integrations and distinct forms',
         items: [{ skillName: 'openspec-propose', source: '.kimi-code/skills/openspec-propose/SKILL.md' }],
       },
     });
-    assert.deepEqual(byTool.get('SourceCraft Code Assistant for VS Code'), {
-      tool: 'SourceCraft Code Assistant for VS Code',
+    assert.deepEqual(byTool.get('SourceCraft Code Assistant'), {
+      tool: 'SourceCraft Code Assistant',
       scope: 'project',
       delivery: 'both',
       form: 'opsx-dash',
@@ -2061,7 +2068,7 @@ test('availability route reports detected tool integrations and distinct forms',
     assert.ok(toolOptions.some((o) => o.tool === 'Claude Code' && o.form === 'opsx-colon'));
     assert.ok(toolOptions.some((o) => o.tool === 'Cursor' && o.form === 'opsx-dash'));
     assert.ok(toolOptions.some((o) => o.tool === 'Kimi Code' && o.form === 'skill-colon'));
-    assert.ok(toolOptions.some((o) => o.tool === 'SourceCraft Code Assistant for VS Code' && o.form === 'opsx-dash'));
+    assert.ok(toolOptions.some((o) => o.tool === 'SourceCraft Code Assistant' && o.form === 'opsx-dash'));
     assert.ok(toolOptions.some((o) => o.tool === 'Shared .agents' && o.form === 'skill-slash'));
     assert.ok(toolOptions.some((o) => o.tool === 'Codex' && o.form === 'skill-dollar'));
     // Existing transition field remains present.
