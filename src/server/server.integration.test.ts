@@ -1832,8 +1832,8 @@ test('GET /api/stores returns registered stores without requiring a project head
     assert.equal(result.response.status, 200);
     assert.equal(result.body.status, 'stores');
     assert.deepEqual(result.body.stores, [
-      { id: 'store-a', root: '/store/a' },
-      { id: 'store-b', root: '/store/b' },
+      { id: 'store-a', root: resolve('/store/a') },
+      { id: 'store-b', root: resolve('/store/b') },
     ]);
     assert.equal(result.body.reason, null);
     assert.equal(typeof result.body.checkedAt, 'string');
