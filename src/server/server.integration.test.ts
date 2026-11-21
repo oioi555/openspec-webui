@@ -4,8 +4,8 @@ import { afterEach, beforeEach, test } from 'node:test';
 import { chmod, cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { homedir, tmpdir } from 'node:os';
 import { delimiter, join, resolve } from 'node:path';
-// Node 20 has no global WebSocket (it is behind --experimental-websocket until
-// Node 22), so use the `ws` client on every supported runtime.
+// Use the `ws` client rather than the global WebSocket so the tests do not
+// depend on the runtime's built-in client.
 import { WebSocket } from 'ws';
 
 import { createServer } from './index.js';

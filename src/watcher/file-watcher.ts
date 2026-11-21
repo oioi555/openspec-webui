@@ -102,7 +102,11 @@ export function createFileWatcher(
     .on('change', handleFileEvent('change'))
     .on('unlink', handleFileEvent('unlink'))
     .on('addDir', handleDirEvent('addDir'))
-    .on('unlinkDir', handleDirEvent('unlinkDir'));
+    .on('unlinkDir', handleDirEvent('unlinkDir'))
+    .on('error', (error) => {
+      // Without a listener an `error` event would throw and crash the server.
+      console.warn(`[file-watcher] error watching ${openspecPath}:`, error);
+    });
 
   return watcher;
 }

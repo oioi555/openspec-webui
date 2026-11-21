@@ -25,7 +25,7 @@ jobs:
         include:
           # Minimum supported runtime from package.json engines.
           - os: ubuntu-latest
-            node: '20.19'
+            node: '22.22.0'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
