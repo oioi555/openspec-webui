@@ -1,16 +1,25 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import {
   AGENTS_SHARED_TOOL,
+  DETECTED_TOOL_ID_LIST,
+  GLOBAL_SKILL_DIRS,
+  deriveSharedSkillTarget,
   detectToolIntegrations,
+  parseSharedSkillTargetMarker,
   deriveDistinctForms,
   getSupportedToolOptions,
   type DetectedIntegration,
 } from './tool-integration-detection.js';
+
+// Never scan the developer's real home folder for global skills: point the
+// default seams at an empty temporary home.
+process.env.HOME = await mkdtemp(join(tmpdir(), 'openspec-webui-empty-home-'));
+delete process.env.CLAUDE_CONFIG_DIR;
 
 const tempDirs: string[] = [];
 
@@ -34,6 +43,7 @@ test('detects a single folder-namespaced command integration (opsx-colon)', asyn
   assert.deepEqual(integrations, [
     {
       tool: 'Claude Code',
+      scope: 'project',
       delivery: 'commands',
       form: 'opsx-colon',
       example: '/opsx:propose',
@@ -94,6 +104,7 @@ test('detects Command Code commands and skills with their documented forms', asy
   assert.deepEqual(integrations, [
     {
       tool: 'Command Code',
+      scope: 'project',
       delivery: 'both',
       form: 'opsx-dash',
       example: '/opsx-propose',
@@ -127,6 +138,7 @@ test('detects SourceCraft commands and skills with Commands-first evidence', asy
   const integrations = await detectToolIntegrations(root);
   assert.deepEqual(integrations, [{
     tool: 'SourceCraft Code Assistant for VS Code',
+    scope: 'project',
     delivery: 'both',
     form: 'opsx-dash',
     example: '/opsx-propose',
@@ -156,6 +168,7 @@ test('detects SourceCraft skill-only repositories and ignores empty directories'
   const integrations = await detectToolIntegrations(root);
   assert.deepEqual(integrations, [{
     tool: 'SourceCraft Code Assistant for VS Code',
+    scope: 'project',
     delivery: 'skills',
     form: 'skill-prompt',
     example: 'use the openspec-apply-change skill',
@@ -185,6 +198,7 @@ test('detects current Kilo Code commands and skills with their documented forms'
   const integrations = await detectToolIntegrations(root);
   assert.deepEqual(integrations, [{
     tool: 'Kilo Code',
+    scope: 'project',
     delivery: 'both',
     form: 'opsx-dash',
     example: '/opsx-propose',
@@ -314,6 +328,7 @@ test('detects skill-only integrations with the general skill-slash form', async 
   assert.deepEqual(integrations, [
     {
       tool: 'ForgeCode',
+      scope: 'project',
       delivery: 'skills',
       form: 'skill-slash',
       example: '/openspec-propose',
@@ -354,6 +369,7 @@ test('maps Kimi Code skill root to the skill-colon form', async () => {
   assert.deepEqual(integrations, [
     {
       tool: 'Kimi Code',
+      scope: 'project',
       delivery: 'skills',
       form: 'skill-colon',
       example: '/skill:openspec-propose',
@@ -375,6 +391,7 @@ test('maps the shared .agents root to a non-committal integration with both form
   assert.deepEqual(integrations, [
     {
       tool: AGENTS_SHARED_TOOL,
+      scope: 'project',
       delivery: 'skills',
       form: 'skill-slash',
       example: '/openspec-propose or $openspec-propose',
@@ -425,6 +442,7 @@ test('merges current Antigravity commands and owned shared skills into one integ
   assert.equal(integrations.length, 1);
   assert.deepEqual(integrations[0], {
     tool: 'Antigravity',
+    scope: 'project',
     delivery: 'both',
     form: 'opsx-dash',
     example: '/opsx-propose',
@@ -451,6 +469,7 @@ test('detects current Antigravity skills without workflows when its marker owns 
 
   assert.deepEqual(await detectToolIntegrations(root), [{
     tool: 'Antigravity',
+    scope: 'project',
     delivery: 'skills',
     form: 'skill-slash',
     example: '/openspec-propose',
@@ -574,6 +593,7 @@ test('derives distinct forms in canonical order', () => {
   const integrations: DetectedIntegration[] = [
     {
       tool: 'Cursor',
+      scope: 'project',
       delivery: 'commands',
       form: 'opsx-dash',
       example: '/opsx-propose',
@@ -586,6 +606,7 @@ test('derives distinct forms in canonical order', () => {
     },
     {
       tool: 'Claude Code',
+      scope: 'project',
       delivery: 'commands',
       form: 'opsx-colon',
       example: '/opsx:propose',
@@ -598,6 +619,7 @@ test('derives distinct forms in canonical order', () => {
     },
     {
       tool: 'Kimi Code',
+      scope: 'project',
       delivery: 'skills',
       form: 'skill-colon',
       example: '/skill:openspec-propose',
@@ -621,6 +643,7 @@ test('collapses identical forms across tools into one form entry', () => {
   const integrations: DetectedIntegration[] = [
     {
       tool: 'Cursor',
+      scope: 'project',
       delivery: 'commands',
       form: 'opsx-dash',
       example: '/opsx-propose',
@@ -633,6 +656,7 @@ test('collapses identical forms across tools into one form entry', () => {
     },
     {
       tool: 'Trae',
+      scope: 'project',
       delivery: 'commands',
       form: 'opsx-dash',
       example: '/opsx-propose',
@@ -796,6 +820,7 @@ test('detects AtomCode filename command evidence', async () => {
   const atom = (await detectToolIntegrations(root)).find((integration) => integration.tool === 'AtomCode');
   assert.deepEqual(atom, {
     tool: 'AtomCode',
+    scope: 'project',
     delivery: 'commands',
     form: 'opsx-dash',
     example: '/opsx-propose',
@@ -865,6 +890,7 @@ test('detects EasyCode folder-namespaced TOML commands', async () => {
   const easycode = (await detectToolIntegrations(root)).find((integration) => integration.tool === 'EasyCode');
   assert.deepEqual(easycode, {
     tool: 'EasyCode',
+    scope: 'project',
     delivery: 'commands',
     form: 'opsx-colon',
     example: '/opsx:propose',
@@ -903,6 +929,7 @@ test('detects unique-path v1.14.0 skill-only tools', async () => {
     const integration = (await detectToolIntegrations(root)).find((candidate) => candidate.tool === tool);
     assert.deepEqual(integration, {
       tool,
+      scope: 'project',
       delivery: 'skills',
       form: 'skill-slash',
       example: '/openspec-propose',
@@ -951,6 +978,7 @@ test('renames shared skills to Amp when its marker owns the tree', async () => {
 
   assert.deepEqual(await detectToolIntegrations(root), [{
     tool: 'Amp',
+    scope: 'project',
     delivery: 'skills',
     form: 'skill-slash',
     example: '/openspec-propose',
@@ -971,6 +999,7 @@ test('renames shared skills to GSD when its marker owns the tree', async () => {
 
   assert.deepEqual(await detectToolIntegrations(root), [{
     tool: 'GSD',
+    scope: 'project',
     delivery: 'skills',
     form: 'skill-slash',
     example: '/openspec-propose',
@@ -989,4 +1018,216 @@ process.on('exit', () => {
   for (const dir of tempDirs.splice(0)) {
     void rm(dir, { recursive: true, force: true });
   }
+});
+
+
+// --- OpenSpec 2.x project scope ---
+
+async function makeHome(): Promise<string> {
+  const dir = await mkdtemp(join(tmpdir(), 'openspec-webui-detection-home-'));
+  tempDirs.push(dir);
+  return dir;
+}
+
+async function linkSkill(root: string, fromDir: string, skill: string): Promise<void> {
+  await mkdir(join(root, fromDir), { recursive: true });
+  await symlink(join('..', '..', '.agents', 'skills', skill), join(root, fromDir, skill), 'dir');
+}
+
+test('detects symlinked .claude/skills folders with link-relative sources', async () => {
+  const root = await makeProjectRoot();
+  await write(root, '.agents/skills/openspec-propose/SKILL.md', '# propose');
+  await linkSkill(root, '.claude/skills', 'openspec-propose');
+
+  const claude = (await detectToolIntegrations(root)).find((i) => i.tool === 'Claude Code');
+  assert.deepEqual(claude?.skills, {
+    form: 'skill-slash',
+    items: [{ skillName: 'openspec-propose', source: '.claude/skills/openspec-propose/SKILL.md' }],
+  });
+  assert.equal(claude?.scope, 'project');
+});
+
+test('ignores dangling skill links', async () => {
+  const root = await makeProjectRoot();
+  await linkSkill(root, '.claude/skills', 'openspec-propose');
+
+  const integrations = await detectToolIntegrations(root);
+  assert.equal(integrations.some((i) => i.tool === 'Claude Code'), false);
+});
+
+test('detects the OpenSpec 2.1.1 project-scope layout (claude,cursor,codex,kimi)', async () => {
+  const root = await makeProjectRoot();
+  const skills = ['openspec-apply-change', 'openspec-propose'];
+  for (const skill of skills) {
+    await write(root, `.agents/skills/${skill}/SKILL.md`, `# ${skill}`);
+    await linkSkill(root, '.claude/skills', skill);
+  }
+  await write(root, '.agents/skills/.openspec-target', 'claude own-files\ncodex\ncursor\nkimi\n');
+
+  const integrations = await detectToolIntegrations(root);
+  assert.deepEqual(integrations.map((i) => i.tool), ['Claude Code', AGENTS_SHARED_TOOL]);
+  assert.ok(integrations.every((i) => i.scope === 'project'));
+  const claude = integrations[0]!;
+  assert.deepEqual(claude.skills?.items.map((item) => item.source), [
+    '.claude/skills/openspec-apply-change/SKILL.md',
+    '.claude/skills/openspec-propose/SKILL.md',
+  ]);
+  const shared = integrations[1]!;
+  assert.equal(shared.sharedSkillTarget, 'multi');
+  assert.deepEqual(shared.sharedSkillTargets, ['codex', 'cursor', 'kimi']);
+  assert.deepEqual(shared.skills?.items.map((item) => item.skillName), skills);
+});
+
+test('parses multi-line target markers', () => {
+  assert.deepEqual(parseSharedSkillTargetMarker('claude own-files\ncodex\ncursor\nkimi\n'), {
+    targets: ['codex', 'cursor', 'kimi'],
+    ownFiles: ['claude'],
+  });
+  assert.deepEqual(parseSharedSkillTargetMarker('\n  codex  \r\n\nnot-a-tool\nzed extra\ncodex\n'), {
+    targets: ['codex', 'zed'],
+    ownFiles: [],
+  });
+  assert.deepEqual(parseSharedSkillTargetMarker('claude own-files\n'), { targets: [], ownFiles: ['claude'] });
+  assert.deepEqual(parseSharedSkillTargetMarker(''), { targets: [], ownFiles: [] });
+
+  assert.equal(deriveSharedSkillTarget([]), 'legacy');
+  assert.equal(deriveSharedSkillTarget(['codex']), 'codex');
+  assert.equal(deriveSharedSkillTarget(['cursor']), 'legacy');
+  assert.equal(deriveSharedSkillTarget(['codex', 'kimi']), 'multi');
+});
+
+test('exposes sharedSkillTargets for a single non-legacy marker target', async () => {
+  const root = await makeProjectRoot();
+  await write(root, '.agents/skills/openspec-propose/SKILL.md');
+  await write(root, '.agents/skills/.openspec-target', 'claude own-files\ncursor\n');
+  const shared = (await detectToolIntegrations(root)).find((i) => i.tool === AGENTS_SHARED_TOOL);
+  assert.equal(shared?.sharedSkillTarget, 'legacy');
+  assert.deepEqual(shared?.sharedSkillTargets, ['cursor']);
+});
+
+test('own-files-only marker falls back to legacy without targets', async () => {
+  const root = await makeProjectRoot();
+  await write(root, '.agents/skills/openspec-propose/SKILL.md');
+  await write(root, '.agents/skills/.openspec-target', 'claude own-files\n');
+  const shared = (await detectToolIntegrations(root)).find((i) => i.tool === AGENTS_SHARED_TOOL);
+  assert.equal(shared?.sharedSkillTarget, 'legacy');
+  assert.equal(shared?.sharedSkillTargets, undefined);
+  assert.deepEqual(shared?.skills?.alternateForms, ['skill-dollar']);
+});
+
+// --- Global skills ---
+
+test('GLOBAL_SKILL_DIRS keys are all detected tool ids', () => {
+  const keys = Object.keys(GLOBAL_SKILL_DIRS);
+  assert.ok(keys.length > 0);
+  for (const key of keys) {
+    assert.ok(DETECTED_TOOL_ID_LIST.includes(key), `${key} is not a detected tool id`);
+  }
+});
+
+test('detects global universal ~/.agents/skills as ambiguous shared evidence', async () => {
+  const root = await makeProjectRoot();
+  const home = await makeHome();
+  await write(home, '.agents/skills/openspec-propose/SKILL.md');
+  await write(home, '.agents/skills/.openspec-target', 'kimi\n');
+
+  const integrations = await detectToolIntegrations(root, { homeDir: home, claudeConfigDir: undefined });
+  assert.deepEqual(integrations, [
+    {
+      tool: AGENTS_SHARED_TOOL,
+      delivery: 'skills',
+      form: 'skill-slash',
+      example: '/openspec-propose or $openspec-propose',
+      source: '~/.agents/skills/openspec-propose/SKILL.md',
+      commands: null,
+      skills: {
+        form: 'skill-slash',
+        alternateForms: ['skill-dollar'],
+        items: [{ skillName: 'openspec-propose', source: '~/.agents/skills/openspec-propose/SKILL.md' }],
+      },
+      sharedSkillTarget: 'legacy',
+      scope: 'global',
+    },
+  ]);
+});
+
+test('detects global Claude skills via ~/.claude fallback and CLAUDE_CONFIG_DIR', async () => {
+  const root = await makeProjectRoot();
+  const home = await makeHome();
+  await write(home, '.claude/skills/openspec-propose/SKILL.md');
+
+  const fallback = await detectToolIntegrations(root, { homeDir: home, claudeConfigDir: undefined });
+  assert.deepEqual(fallback, [
+    {
+      tool: 'Claude Code',
+      delivery: 'skills',
+      form: 'skill-slash',
+      example: '/openspec-propose',
+      source: '~/.claude/skills/openspec-propose/SKILL.md',
+      commands: null,
+      skills: {
+        form: 'skill-slash',
+        items: [{ skillName: 'openspec-propose', source: '~/.claude/skills/openspec-propose/SKILL.md' }],
+      },
+      scope: 'global',
+    },
+  ]);
+
+  await write(home, 'custom-claude/skills/openspec-apply-change/SKILL.md');
+  const configured = await detectToolIntegrations(root, {
+    homeDir: home,
+    claudeConfigDir: join(home, 'custom-claude'),
+  });
+  assert.deepEqual(configured.map((i) => [i.tool, i.scope, i.source]), [
+    ['Claude Code', 'global', '~/custom-claude/skills/openspec-apply-change/SKILL.md'],
+  ]);
+
+  const outside = await makeHome();
+  await write(outside, 'skills/openspec-propose/SKILL.md');
+  const external = await detectToolIntegrations(root, { homeDir: home, claudeConfigDir: outside });
+  assert.equal(external[0]?.source, join(outside, 'skills/openspec-propose/SKILL.md'));
+});
+
+test('detects other tool-specific global folders', async () => {
+  const root = await makeProjectRoot();
+  const home = await makeHome();
+  await write(home, '.config/crush/skills/openspec-propose/SKILL.md');
+  const integrations = await detectToolIntegrations(root, { homeDir: home, claudeConfigDir: undefined });
+  assert.deepEqual(integrations.map((i) => [i.tool, i.scope, i.source]), [
+    ['Crush', 'global', '~/.config/crush/skills/openspec-propose/SKILL.md'],
+  ]);
+});
+
+test('skips the global pass when the project root is the home folder', async () => {
+  const home = await makeHome();
+  await write(home, '.claude/skills/openspec-propose/SKILL.md');
+  const integrations = await detectToolIntegrations(home, { homeDir: home, claudeConfigDir: undefined });
+  assert.deepEqual(integrations.map((i) => [i.tool, i.scope, i.source]), [
+    ['Claude Code', 'project', '.claude/skills/openspec-propose/SKILL.md'],
+  ]);
+});
+
+test('missing home folder degrades to no global evidence', async () => {
+  const root = await makeProjectRoot();
+  const integrations = await detectToolIntegrations(root, {
+    homeDir: join(root, 'does-not-exist'),
+    claudeConfigDir: undefined,
+  });
+  assert.deepEqual(integrations, []);
+});
+
+test('project and global rows coexist with project rows first', async () => {
+  const root = await makeProjectRoot();
+  const home = await makeHome();
+  await write(root, '.github/skills/openspec-propose/SKILL.md');
+  await write(home, '.claude/skills/openspec-propose/SKILL.md');
+  await write(home, '.agents/skills/openspec-propose/SKILL.md');
+
+  const integrations = await detectToolIntegrations(root, { homeDir: home, claudeConfigDir: undefined });
+  assert.deepEqual(integrations.map((i) => [i.tool, i.scope]), [
+    ['GitHub Copilot', 'project'],
+    [AGENTS_SHARED_TOOL, 'global'],
+    ['Claude Code', 'global'],
+  ]);
+  assert.deepEqual(deriveDistinctForms(integrations), ['skill-slash', 'skill-dollar']);
 });

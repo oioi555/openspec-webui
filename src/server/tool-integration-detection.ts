@@ -1,5 +1,6 @@
-import { readFile, readdir } from 'node:fs/promises';
-import { join } from 'node:path';
+import { readFile, readdir, realpath, stat } from 'node:fs/promises';
+import { homedir } from 'node:os';
+import { isAbsolute, join, relative } from 'node:path';
 import { OPEN_SPEC_TOOL_DEFINITIONS } from './tool-compatibility-reference.js';
 
 /**
@@ -27,10 +28,16 @@ export type InvocationFormId = (typeof INVOCATION_FORM_IDS)[number];
 
 export type ToolDelivery = 'commands' | 'skills' | 'both';
 
-export type SharedSkillTarget = 'agents' | 'antigravity' | 'codex' | 'zed' | 'amp' | 'gsd' | 'legacy';
+export type SharedSkillTarget = 'agents' | 'antigravity' | 'codex' | 'zed' | 'amp' | 'gsd' | 'multi' | 'legacy';
+
+export type IntegrationScope = 'project' | 'global';
 
 export interface ToolIntegrationDetectionDependencies {
   readTargetMarker?: (path: string) => Promise<string>;
+  /** Home folder for the global skill pass. Defaults to `os.homedir()`. */
+  homeDir?: string;
+  /** Claude Code config folder. Defaults to `process.env.CLAUDE_CONFIG_DIR`. */
+  claudeConfigDir?: string;
 }
 
 /**
@@ -104,6 +111,14 @@ export interface DetectedIntegration {
   skills: SkillInventory | null;
   /** Resolved target for the shared `.agents/skills` tree. */
   sharedSkillTarget?: SharedSkillTarget;
+  /**
+   * Tool ids from the 2.x `.openspec-target` marker that read the shared
+   * `.agents/skills` tree (i.e. not `own-files`), in file order. Set only on
+   * the project shared integration when at least one such id exists.
+   */
+  sharedSkillTargets?: string[];
+  /** Whether the evidence came from the repository or the user's home folder. */
+  scope: IntegrationScope;
 }
 
 export interface ToolInvocationOption {
@@ -123,25 +138,55 @@ export const AGENTS_SHARED_TOOL = 'Shared .agents / Codex';
 /** Example for the shared root showing both candidate invocations. */
 const AGENTS_SHARED_EXAMPLE = '/openspec-propose or $openspec-propose';
 
-async function resolveSharedSkillTarget(
-  projectRoot: string,
-  readTargetMarker: (path: string) => Promise<string>
-): Promise<SharedSkillTarget> {
-  try {
-    const target = (await readTargetMarker(join(projectRoot, '.agents/skills/.openspec-target'))).trim();
-    return target === 'agents'
-      || target === 'antigravity'
-      || target === 'codex'
-      || target === 'zed'
-      || target === 'amp'
-      || target === 'gsd'
-      ? target
-      : 'legacy';
-  } catch {
-    return 'legacy';
+const LEGACY_SHARED_TARGETS = new Set<SharedSkillTarget>(['agents', 'antigravity', 'codex', 'zed', 'amp', 'gsd']);
+
+const KNOWN_MARKER_TOOL_IDS = new Set<string>(OPEN_SPEC_TOOL_DEFINITIONS.map((definition) => definition.id));
+
+/**
+ * Parse an `.openspec-target` marker. 1.x writes a single tool id; 2.x writes
+ * one `<tool>` or `<tool> own-files` line per tool. Blank lines are ignored and
+ * unknown ids dropped. `targets` lists the tools that read `.agents/skills`.
+ */
+export function parseSharedSkillTargetMarker(content: string): { targets: string[]; ownFiles: string[] } {
+  const targets: string[] = [];
+  const ownFiles: string[] = [];
+  for (const rawLine of content.split(/\r?\n/)) {
+    const tokens = rawLine.trim().split(/\s+/).filter((token) => token.length > 0);
+    const id = tokens[0];
+    if (!id || !KNOWN_MARKER_TOOL_IDS.has(id)) continue;
+    const bucket = tokens[1] === 'own-files' ? ownFiles : targets;
+    if (!bucket.includes(id)) bucket.push(id);
   }
+  return { targets, ownFiles };
 }
 
+/** Legacy single-value `sharedSkillTarget` derived from the parsed targets. */
+export function deriveSharedSkillTarget(targets: readonly string[]): SharedSkillTarget {
+  if (targets.length >= 2) return 'multi';
+  const only = targets[0] as SharedSkillTarget | undefined;
+  return only && LEGACY_SHARED_TARGETS.has(only) ? only : 'legacy';
+}
+
+function sharedTargetForm(id: string): InvocationFormId {
+  if (id === 'codex') return 'skill-dollar';
+  if (id === 'kimi') return 'skill-colon';
+  if (id === 'codeassistant') return 'skill-prompt';
+  return 'skill-slash';
+}
+
+async function resolveSharedSkillTargets(
+  projectRoot: string,
+  readTargetMarker: (path: string) => Promise<string>
+): Promise<{ target: SharedSkillTarget; targets: string[] }> {
+  try {
+    const { targets } = parseSharedSkillTargetMarker(
+      await readTargetMarker(join(projectRoot, '.agents/skills/.openspec-target'))
+    );
+    return { target: deriveSharedSkillTarget(targets), targets };
+  } catch {
+    return { target: 'legacy', targets: [] };
+  }
+}
 
 type SkillSpec = readonly [
   dir: string,
@@ -209,8 +254,13 @@ function skillSignature(path: string, invocation: string | null): SkillSpec | nu
  * and ordering. Global-only and unsupported detector shapes remain reference
  * rows rather than becoming repository evidence.
  */
-const TOOL_SIGNATURES: readonly ToolSpec[] = [
-  ...DETECTED_TOOL_IDS.map((id): ToolSpec => {
+type DetectedToolId = (typeof DETECTED_TOOL_IDS)[number];
+
+const DETECTED_TOOL_SIGNATURES: ReadonlyArray<readonly [DetectedToolId, ToolSpec]> = DETECTED_TOOL_IDS.map(
+  (id): readonly [DetectedToolId, ToolSpec] => [id, buildToolSpec(id)]
+);
+
+function buildToolSpec(id: DetectedToolId): ToolSpec {
     const definition = OPEN_SPEC_TOOL_DEFINITIONS.find((candidate) => candidate.id === id);
     if (!definition) {
       throw new Error(`Missing official definition for detected tool ${id}`);
@@ -246,7 +296,10 @@ const TOOL_SIGNATURES: readonly ToolSpec[] = [
       command ? [command] : [],
       skill ? [skill] : [],
     ];
-  }),
+}
+
+const TOOL_SIGNATURES: readonly ToolSpec[] = [
+  ...DETECTED_TOOL_SIGNATURES.map(([, spec]) => spec),
   [AGENTS_SHARED_TOOL, [], [['.agents/skills', 'skill-slash', ['skill-dollar']]]],
 ];
 
@@ -282,13 +335,27 @@ async function listFiles(dir: string): Promise<string[] | null> {
   }
 }
 
+/**
+ * Directory entries plus symbolic links whose followed target is a directory
+ * (OpenSpec 2.x links `.claude/skills/openspec-*` into `.agents/skills`).
+ * Dangling links are ignored.
+ */
 async function listSubdirs(dir: string): Promise<string[] | null> {
   try {
     const entries = await readdir(dir, { withFileTypes: true });
-    return entries
-      .filter((entry) => entry.isDirectory())
-      .map((entry) => entry.name)
-      .sort();
+    const names: string[] = [];
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        names.push(entry.name);
+      } else if (entry.isSymbolicLink()) {
+        try {
+          if ((await stat(join(dir, entry.name))).isDirectory()) names.push(entry.name);
+        } catch {
+          // Dangling or unreadable link: no evidence.
+        }
+      }
+    }
+    return names.sort();
   } catch {
     return null;
   }
@@ -453,10 +520,20 @@ export async function detectToolIntegrations(
     // Markerless/invalid trees retain the legacy dual-form example; valid
     // slash-style targets narrow it to the slash form.
     const isAgentsShared = tool === AGENTS_SHARED_TOOL;
-    const sharedSkillTarget = isAgentsShared
-      ? await resolveSharedSkillTarget(projectRoot, readTargetMarker)
+    const shared = isAgentsShared
+      ? await resolveSharedSkillTargets(projectRoot, readTargetMarker)
       : undefined;
-    if (isAgentsShared && sharedSkillTarget !== 'legacy' && sharedSkillTarget !== 'codex') {
+    const sharedSkillTarget = shared?.target;
+    if (isAgentsShared && sharedSkillTarget === 'multi') {
+      // Each listed target reads the shared tree with its documented form.
+      const alternateForms = [...new Set(shared!.targets.map(sharedTargetForm))]
+        .filter((candidate) => candidate !== skillInventory!.form);
+      skillInventory = {
+        form: skillInventory!.form,
+        ...(alternateForms.length > 0 ? { alternateForms } : {}),
+        items: skillInventory!.items,
+      };
+    } else if (isAgentsShared && sharedSkillTarget !== 'legacy' && sharedSkillTarget !== 'codex') {
       skillInventory = {
         form: skillInventory!.form,
         items: skillInventory!.items,
@@ -477,6 +554,12 @@ export async function detectToolIntegrations(
       commands: commandInventory,
       skills: skillInventory,
       ...(sharedSkillTarget ? { sharedSkillTarget } : {}),
+      // A single 1.x-style target is fully described by `sharedSkillTarget`;
+      // omitting the list keeps 1.x markers behaving exactly as before.
+      ...(shared && shared.targets.length > 0 && sharedSkillTarget !== shared.targets[0]
+        ? { sharedSkillTargets: shared.targets }
+        : {}),
+      scope: 'project',
     });
   }
 
@@ -534,8 +617,131 @@ export async function detectToolIntegrations(
     }
   }
 
+  integrations.push(...(await detectGlobalIntegrations(projectRoot, dependencies)));
+
   return integrations;
 }
+
+/**
+ * Global (per-user) skill folders for non-universal agents, keyed by detected
+ * OpenSpec tool id. Source: Vercel `skills@1.9.0` `getSupportedAgents()`
+ * `globalSkillsDir`, restricted to agents that map to a detected tool id.
+ * Paths are relative to the home folder; `claude` honours CLAUDE_CONFIG_DIR.
+ */
+export const GLOBAL_SKILL_DIRS: Readonly<Partial<Record<DetectedToolId, string>>> = {
+  claude: '.claude/skills',
+  crush: '.config/crush/skills',
+  devin: '.config/devin/skills',
+  lingma: '.lingma/skills',
+  qoder: '.qoder/skills',
+  qwen: '.qwen/skills',
+  trae: '.trae/skills',
+  kiro: '.kiro/skills',
+  junie: '.junie/skills',
+  roocode: '.roo/skills',
+  continue: '.continue/skills',
+  codebuddy: '.codebuddy/skills',
+  auggie: '.augment/skills',
+  bob: '.bob/skills',
+  codeartsagent: '.codeartsdoer/skills',
+  'command-code': '.commandcode/skills',
+  forgecode: '.forge/skills',
+  grok: '.grok/skills',
+  hermes: '.hermes/skills',
+  iflow: '.iflow/skills',
+};
+
+/** Universal global skills folder read by every universal agent. */
+const GLOBAL_UNIVERSAL_SKILLS_DIR = '.agents/skills';
+
+function displayGlobalPath(homeDir: string, absolutePath: string): string {
+  const rel = relative(homeDir, absolutePath);
+  if (rel === '') return '~';
+  if (!rel.startsWith('..') && !isAbsolute(rel)) return `~/${toPosixPath(rel)}`;
+  return toPosixPath(absolutePath);
+}
+
+async function findGlobalSkillFiles(homeDir: string, absoluteDir: string): Promise<SkillInventoryItem[]> {
+  const items = await findSkillFiles(absoluteDir, '');
+  return (items ?? []).map((item) => ({
+    skillName: item.skillName,
+    source: displayGlobalPath(homeDir, join(absoluteDir, item.source)),
+  }));
+}
+
+function skillOnlyIntegration(
+  tool: string,
+  skills: SkillInventory,
+  extra: Partial<DetectedIntegration> = {}
+): DetectedIntegration {
+  const example = skills.alternateForms
+    ? AGENTS_SHARED_EXAMPLE
+    : skills.form === 'skill-prompt'
+      ? `use the ${skills.items[0]!.skillName} skill`
+      : exampleForForm(skills.form);
+  return {
+    tool,
+    delivery: 'skills',
+    form: skills.form,
+    example,
+    source: skills.items[0]!.source,
+    commands: null,
+    skills,
+    ...extra,
+    scope: 'global',
+  };
+}
+
+async function detectGlobalIntegrations(
+  projectRoot: string,
+  dependencies: ToolIntegrationDetectionDependencies
+): Promise<DetectedIntegration[]> {
+  try {
+    const homeDir = dependencies.homeDir ?? homedir();
+    const claudeConfigDir = 'claudeConfigDir' in dependencies
+      ? dependencies.claudeConfigDir
+      : process.env.CLAUDE_CONFIG_DIR;
+    if (!homeDir) return [];
+
+    try {
+      if ((await realpath(projectRoot)) === (await realpath(homeDir))) return [];
+    } catch {
+      // A missing home folder simply yields no evidence below.
+    }
+
+    const integrations: DetectedIntegration[] = [];
+
+    const universal = await findGlobalSkillFiles(homeDir, join(homeDir, GLOBAL_UNIVERSAL_SKILLS_DIR));
+    if (universal.length > 0) {
+      integrations.push(
+        skillOnlyIntegration(
+          AGENTS_SHARED_TOOL,
+          { form: 'skill-slash', alternateForms: ['skill-dollar'], items: universal },
+          { sharedSkillTarget: 'legacy' }
+        )
+      );
+    }
+
+    for (const [id, [tool, , skillSpecs]] of DETECTED_TOOL_SIGNATURES) {
+      const relDir = GLOBAL_SKILL_DIRS[id];
+      if (!relDir) continue;
+      const absoluteDir = id === 'claude' && claudeConfigDir
+        ? join(claudeConfigDir, 'skills')
+        : join(homeDir, relDir);
+      const items = await findGlobalSkillFiles(homeDir, absoluteDir);
+      if (items.length === 0) continue;
+      const form = skillSpecs[0]?.[1] ?? 'skill-slash';
+      integrations.push(skillOnlyIntegration(tool, { form, items }));
+    }
+
+    return integrations;
+  } catch {
+    return [];
+  }
+}
+
+/** Detected tool ids, exported for table-consistency tests. */
+export const DETECTED_TOOL_ID_LIST: readonly string[] = DETECTED_TOOL_IDS;
 
 /**
  * Distinct invocation-form candidates from a set of detected integrations, in

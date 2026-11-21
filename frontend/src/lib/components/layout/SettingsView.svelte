@@ -575,13 +575,19 @@
             {t(m.settings_commands_checking)}
           </Callout>
         {:else if integrations.length > 0}
+          {#if integrations.every((integration) => integration.scope === 'global')}
+            <Callout variant="info">
+              {t(m.settings_tools_global_only)}
+            </Callout>
+          {/if}
           <div class="divide-y divide-border overflow-hidden rounded-md border border-border bg-secondary/50">
-            {#each integrations as integration (integration.tool + integration.source)}
+            {#each integrations as integration (integration.scope + integration.tool + integration.source)}
               <div class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center gap-2">
                     <span class="font-medium text-foreground">{getIntegrationLabel(integration)}</span>
                     <Badge variant="secondary">{getDeliveryLabel(integration)}</Badge>
+                    <Badge variant="outline">{integration.scope === 'global' ? t(m.settings_tools_scope_global) : t(m.settings_tools_scope_project)}</Badge>
                   </div>
                   <div class="mt-1 text-xs text-muted-foreground">
                     {t(m.settings_tools_detected)}: <code class="rounded bg-background px-1 py-0.5">{integration.source}</code>

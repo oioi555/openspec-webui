@@ -13,11 +13,14 @@
  *    id, its command form is used.
  * 2. Otherwise the tool's Skills inventory is consulted and the skill form is
  *    used only when it contains the workflow's canonical OpenSpec skill name.
- * 3. Shared `.agents` target metadata selects Zed, Antigravity, Amp, GSD, or
+ * 3. A 2.x multi-line shared target list (`sharedSkillTargets`) yields one
+ *    labelled candidate per listed tool in its documented form (Codex `$`,
+ *    Kimi `/skill:`, Code Assistant prompt, others `/`). Otherwise shared
+ *    `.agents` target metadata selects Zed, Antigravity, Amp, GSD, or
  *    generic agents slash forms, Codex-led compatible forms, or the legacy
  *    fallback.
  *
- * Effective candidates are grouped by their final command text; each group
+ * Project and global integrations both participate. Effective candidates are grouped by their final command text; each group
  * carries every associated tool name in stable detector order, deduplicated.
  * When no tool has matching evidence the workflow receives no candidate at all.
  */
@@ -55,6 +58,45 @@ const AGENTS_SPLIT_LABELS: Partial<Record<InvocationFormId, string>> = {
   'skill-slash': 'Shared .agents',
   'skill-dollar': 'Codex',
 };
+
+/**
+ * Official OpenSpec tool id -> display name (mirrors the server tool
+ * reference). Used to label per-tool candidates derived from a 2.x
+ * multi-line shared `.agents` marker. Unknown ids fall back to the id.
+ */
+const OPENSPEC_TOOL_NAMES: Readonly<Record<string, string>> = {
+  'amazon-q': 'Amazon Q Developer', amp: 'Amp', antigravity: 'Antigravity', atomcode: 'AtomCode',
+  auggie: 'Auggie', bob: 'IBM Bob', claude: 'Claude Code', cline: 'Cline', 'command-code': 'Command Code',
+  codeartsagent: 'CodeArts', codebuddy: 'CodeBuddy', codestudio: 'Code Studio', codex: 'Codex',
+  dsh: 'DeepSeek Harness', devin: 'Devin Desktop, formerly Windsurf', forgecode: 'ForgeCode',
+  continue: 'Continue', costrict: 'CoStrict', crush: 'Crush', cursor: 'Cursor', easycode: 'EasyCode',
+  factory: 'Factory Droid', gemini: 'Gemini CLI', 'github-copilot': 'GitHub Copilot', gigacode: 'GigaCode',
+  grok: 'Grok Build', gsd: 'GSD', hermes: 'Hermes Agent', iflow: 'iFlow', junie: 'Junie',
+  kilocode: 'Kilo Code', kimi: 'Kimi Code', kiro: 'Kiro', lingma: 'Lingma', 'minimax-code': 'MiniMax Code',
+  vibe: 'Mistral Vibe', 'oh-my-pi': 'Oh My Pi', opencode: 'OpenCode', pi: 'Pi',
+  codeassistant: 'SourceCraft Code Assistant for VS Code', qoder: 'Qoder', qwen: 'Qwen Code',
+  rovodev: 'Rovo Dev CLI', roocode: 'Zoo Code', trae: 'Trae', veai: 'Veai', warp: 'Warp',
+  zed: 'Zed Agent', zcode: 'ZCode', agents: 'Shared .agents',
+};
+
+/** Documented skill invocation form for a tool reading the shared `.agents/skills` tree. */
+function sharedTargetForm(toolId: string): InvocationFormId {
+  if (toolId === 'codex') {
+    return 'skill-dollar';
+  }
+  if (toolId === 'kimi') {
+    return 'skill-colon';
+  }
+  if (toolId === 'codeassistant') {
+    return 'skill-prompt';
+  }
+  return 'skill-slash';
+}
+
+/** Labelled (form, tool name) pairs for a shared integration with a multi-line target list. */
+function sharedTargetCandidates(targets: readonly string[]): Array<{ form: InvocationFormId; label: string }> {
+  return targets.map((id) => ({ form: sharedTargetForm(id), label: OPENSPEC_TOOL_NAMES[id] ?? id }));
+}
 
 function toolLabelFor(integration: DetectedIntegration, form: InvocationFormId): string {
   if (integration.tool === AGENTS_TOOL_NAME) {
@@ -150,6 +192,12 @@ export function buildGroupedToolChoices(
     // Otherwise fall back to a matching skill for this workflow only.
     const skills = integration.skills;
     if (skills && skills.items.some((item) => item.skillName === skillName)) {
+      if (integration.sharedSkillTargets?.length) {
+        for (const { form, label } of sharedTargetCandidates(integration.sharedSkillTargets)) {
+          addToolToGroup(groups, generateText(form, workflow, changeName), label);
+        }
+        continue;
+      }
       for (const form of skillFormsFor(integration)) {
         addToolToGroup(
           groups,

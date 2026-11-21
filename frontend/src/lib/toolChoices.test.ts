@@ -43,6 +43,7 @@ function commandsIntegration(
       })),
     },
     skills: null,
+    scope: 'project',
   };
 }
 
@@ -70,6 +71,7 @@ function skillsIntegration(
       })),
     },
     ...(sharedSkillTarget ? { sharedSkillTarget } : {}),
+    scope: 'project',
   };
 }
 
@@ -181,6 +183,7 @@ test('SourceCraft skill-only evidence produces a natural-language prompt', () =>
 
 test('SourceCraft commands take precedence over matching skills', () => {
   const integrations: DetectedIntegration = {
+    scope: 'project',
     tool: 'SourceCraft Code Assistant for VS Code',
     delivery: 'both',
     form: 'opsx-dash',
@@ -203,6 +206,7 @@ test('SourceCraft commands take precedence over matching skills', () => {
 
 test('commands win when both deliveries match the same workflow', () => {
   const claude: DetectedIntegration = {
+    scope: 'project',
     tool: 'Claude Code',
     delivery: 'both',
     form: 'opsx-colon',
@@ -230,6 +234,7 @@ test('available skill is used when the command artifact for that workflow is mis
   // The tool has a `propose` command file but no `apply` command file; the
   // `apply` workflow still works through the matching skill.
   const claude: DetectedIntegration = {
+    scope: 'project',
     tool: 'Claude Code',
     delivery: 'both',
     form: 'opsx-colon',
@@ -304,6 +309,7 @@ test('legacy aggregate fields never influence candidate eligibility', () => {
   // The legacy `form` claims opsx-at, but the authoritative commands inventory
   // says opsx-dash — the inventory must win.
   const integration: DetectedIntegration = {
+    scope: 'project',
     tool: 'Cursor',
     delivery: 'commands',
     form: 'opsx-at',
@@ -398,6 +404,7 @@ test('shared target metadata selects Zed, agents, Antigravity, Amp, GSD, Codex-l
 
 test('Antigravity commands win per workflow while another workflow falls back to its shared skill', () => {
   const antigravity: DetectedIntegration = {
+    scope: 'project',
     tool: 'Antigravity',
     delivery: 'both',
     form: 'opsx-dash',
@@ -583,4 +590,68 @@ test('ToolChoice carries text, stable key, and tools[]', () => {
   assert.equal(choice.key, choice.text);
   assert.deepEqual(choice.tools, ['Cursor']);
   assert.equal(choice.text, '/opsx-propose');
+});
+
+// ---------------------------------------------------------------------------
+// 9. OpenSpec 2.x multi-line shared targets and global scope
+// ---------------------------------------------------------------------------
+
+function withScope(integration: DetectedIntegration, scope: DetectedIntegration['scope']): DetectedIntegration {
+  return { ...integration, scope };
+}
+
+test('2.1.1 fixture: Claude Code plus multi-target shared tree yields labelled per-tool candidates', () => {
+  const shared: DetectedIntegration = {
+    ...skillsIntegration(AGENTS_TOOL_NAME, 'skill-slash', ['openspec-propose'], '.agents/', undefined, 'multi'),
+    sharedSkillTargets: ['codex', 'cursor', 'kimi'],
+  };
+  const integrations = [
+    skillsIntegration('Claude Code', 'skill-slash', ['openspec-propose'], '.claude/'),
+    shared,
+  ];
+
+  assert.deepEqual(buildGroupedToolChoices(integrations, 'propose'), [
+    { key: '/openspec-propose', text: '/openspec-propose', tools: ['Claude Code', 'Cursor'] },
+    { key: '$openspec-propose', text: '$openspec-propose', tools: ['Codex'] },
+    { key: '/skill:openspec-propose', text: '/skill:openspec-propose', tools: ['Kimi Code'] },
+  ]);
+});
+
+test('multi-target list maps codeassistant to the prompt form and unknown ids to slash with the id label', () => {
+  const shared: DetectedIntegration = {
+    ...skillsIntegration(AGENTS_TOOL_NAME, 'skill-slash', ['openspec-propose'], '.agents/', undefined, 'multi'),
+    sharedSkillTargets: ['codeassistant', 'future-tool'],
+  };
+  const choices = buildGroupedToolChoices([shared], 'propose');
+  assert.deepEqual(choices.map((c) => c.tools), [['SourceCraft Code Assistant for VS Code'], ['future-tool']]);
+  assert.equal(choices[1]!.text, '/openspec-propose');
+});
+
+test('multi without a target list falls back to the legacy slash + Codex dollar split', () => {
+  const shared = skillsIntegration(AGENTS_TOOL_NAME, 'skill-slash', ['openspec-propose'], '.agents/', undefined, 'multi');
+  assert.deepEqual(buildGroupedToolChoices([shared], 'propose'), [
+    { key: '/openspec-propose', text: '/openspec-propose', tools: ['Shared .agents'] },
+    { key: '$openspec-propose', text: '$openspec-propose', tools: ['Codex'] },
+  ]);
+});
+
+test('global-only integrations (universal + Claude Code) produce candidates', () => {
+  const integrations = [
+    withScope(skillsIntegration(AGENTS_TOOL_NAME, 'skill-slash', ['openspec-propose'], '~/.agents/', undefined, 'legacy'), 'global'),
+    withScope(skillsIntegration('Claude Code', 'skill-slash', ['openspec-propose'], '~/.claude/'), 'global'),
+  ];
+  assert.deepEqual(buildGroupedToolChoices(integrations, 'propose'), [
+    { key: '/openspec-propose', text: '/openspec-propose', tools: ['Shared .agents', 'Claude Code'] },
+    { key: '$openspec-propose', text: '$openspec-propose', tools: ['Codex'] },
+  ]);
+});
+
+test('identical commands from project and global scopes collapse into one choice', () => {
+  const integrations = [
+    skillsIntegration('Claude Code', 'skill-slash', ['openspec-apply-change'], '.claude/'),
+    withScope(skillsIntegration('Claude Code', 'skill-slash', ['openspec-apply-change'], '~/.claude/'), 'global'),
+  ];
+  assert.deepEqual(buildGroupedToolChoices(integrations, 'apply', { changeName: 'x' }), [
+    { key: '/openspec-apply-change x', text: '/openspec-apply-change x', tools: ['Claude Code'] },
+  ]);
 });

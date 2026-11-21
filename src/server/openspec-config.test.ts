@@ -10,6 +10,11 @@ import {
   type OpenSpecConfigReader,
 } from './openspec-config.js';
 
+// Never scan the developer's real home folder for global skills: point the
+// default seams at an empty temporary home.
+process.env.HOME = await mkdtemp(join(tmpdir(), 'openspec-webui-empty-home-'));
+delete process.env.CLAUDE_CONFIG_DIR;
+
 const tempDirs: string[] = [];
 
 async function makeCwd(): Promise<string> {

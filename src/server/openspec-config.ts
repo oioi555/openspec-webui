@@ -6,6 +6,7 @@ import {
   type DetectedIntegration,
   type InvocationFormId,
   type ToolInvocationOption,
+  type ToolIntegrationDetectionDependencies,
 } from './tool-integration-detection.js';
 
 const expandedWorkflowCommands = ['new', 'continue', 'ff', 'verify', 'sync', 'bulk-archive'] as const;
@@ -94,7 +95,8 @@ export function parseDelivery(value: string | null): CommandDelivery {
 
 export async function inspectCommandAvailability(
   cwd: string,
-  reader: OpenSpecConfigReader = readOpenSpecConfigValue
+  reader: OpenSpecConfigReader = readOpenSpecConfigValue,
+  detectionDependencies: Pick<ToolIntegrationDetectionDependencies, 'homeDir' | 'claudeConfigDir'> = {}
 ): Promise<CommandAvailability> {
   let profile: string | null = null;
   let delivery: CommandDelivery = null;
@@ -113,7 +115,7 @@ export async function inspectCommandAvailability(
 
   // Detection is repo-scoped and independent of the CLI; failures degrade to an
   // empty list so availability never becomes an application error.
-  const integrations = await detectToolIntegrations(cwd);
+  const integrations = await detectToolIntegrations(cwd, detectionDependencies);
   const forms = deriveDistinctForms(integrations);
   // The static tool catalog is independent of CLI config and detection; it is
   // always included so the UI can offer tool choices even with zero detections.

@@ -11,6 +11,7 @@ import type { FileChangeEvent } from '../watcher/file-watcher.js';
 import type { WSIncomingMessage } from '../shared/types.js';
 import { WebSocketManager } from './websocket/handler.js';
 import { registerApiRoutes } from './routes/api.js';
+import type { ToolIntegrationDetectionDependencies } from './tool-integration-detection.js';
 import { createProjectRegistry, ProjectRegistryError } from './project-registry.js';
 import { createVersionSnapshotService, type VersionSnapshotService } from './version-status.js';
 import { createProjectVersionStatusService } from './project-version-status.js';
@@ -22,6 +23,8 @@ export interface ServerOptions {
   port: number;
   host?: string;
   versionSnapshotService?: VersionSnapshotService;
+  /** Optional home / Claude config seams for global skill detection (tests). */
+  toolDetection?: ToolIntegrationDetectionDependencies;
 }
 
 export interface Server {
@@ -195,6 +198,7 @@ export async function createServer(options: ServerOptions): Promise<Server> {
     versionSnapshotService,
     projectVersionStatusService,
     storeDiscoveryService,
+    ...(options.toolDetection ? { toolDetection: options.toolDetection } : {}),
     onProjectRemoved: async (removedProjectId, nextProjectId) => {
       for (const client of wsManager.getClientsBoundTo(removedProjectId)) {
         wsManager.bindClient(client, nextProjectId);

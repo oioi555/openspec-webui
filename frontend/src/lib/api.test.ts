@@ -54,6 +54,7 @@ test('normalizeCommandAvailability passes through a full additive payload', () =
         commands: null,
         skills: null,
         sharedSkillTarget: 'zed',
+        scope: 'project',
       },
     ],
     forms: ['opsx-colon', 'skill-slash'],
@@ -144,7 +145,7 @@ test('normalizeCommandAvailability filters malformed integrations and form ids',
   });
 
   assert.deepEqual(normalized.integrations, [
-    { tool: 'claude', delivery: 'commands', form: 'opsx-colon', example: '/opsx:propose', source: 'a', commands: null, skills: null },
+    { tool: 'claude', delivery: 'commands', form: 'opsx-colon', example: '/opsx:propose', source: 'a', commands: null, skills: null, scope: 'project' },
   ]);
   assert.deepEqual(normalized.forms, ['opsx-colon', 'skill-dollar', 'skill-prompt']);
 });
@@ -211,4 +212,32 @@ test('getToolCompatibilityReference loads project-independent reference data', a
   assert.deepEqual(await getToolCompatibilityReference(), fixture);
   assert.equal(requests[0]?.url.endsWith('/api/tool-reference'), true);
   assert.equal(requests[0]?.headers.has('X-Project-Id'), false);
+});
+
+test('normalizeCommandAvailability normalizes scope and sharedSkillTargets', () => {
+  const base = {
+    delivery: 'skills',
+    form: 'skill-slash',
+    example: '/openspec-propose',
+    source: '.agents/skills/openspec-propose/SKILL.md',
+  };
+  const normalized = normalizeCommandAvailability({
+    status: 'ready',
+    workflows: ['propose'],
+    integrations: [
+      { ...base, tool: 'a', scope: 'global', sharedSkillTarget: 'multi', sharedSkillTargets: ['codex', 3, 'kimi'] },
+      { ...base, tool: 'b', scope: 'weird', sharedSkillTarget: 'bogus', sharedSkillTargets: [1, null] },
+      { ...base, tool: 'c', sharedSkillTargets: 'codex' },
+    ],
+  });
+
+  const [a, b, c] = normalized.integrations;
+  assert.equal(a?.scope, 'global');
+  assert.equal(a?.sharedSkillTarget, 'multi');
+  assert.deepEqual(a?.sharedSkillTargets, ['codex', 'kimi']);
+  assert.equal(b?.scope, 'project');
+  assert.equal(b?.sharedSkillTarget, undefined);
+  assert.equal('sharedSkillTargets' in b!, false);
+  assert.equal(c?.scope, 'project');
+  assert.equal('sharedSkillTargets' in c!, false);
 });

@@ -268,6 +268,7 @@ function isSharedSkillTarget(value: unknown): value is NonNullable<DetectedInteg
     || value === 'zed'
     || value === 'amp'
     || value === 'gsd'
+    || value === 'multi'
     || value === 'legacy';
 }
 
@@ -358,6 +359,10 @@ function normalizeDetectedIntegration(value: unknown): DetectedIntegration | nul
     return null;
   }
 
+  const sharedSkillTargets = Array.isArray(candidate.sharedSkillTargets)
+    ? (candidate.sharedSkillTargets as unknown[]).filter((id): id is string => typeof id === 'string')
+    : [];
+
   return {
     tool: candidate.tool,
     delivery: candidate.delivery,
@@ -369,6 +374,8 @@ function normalizeDetectedIntegration(value: unknown): DetectedIntegration | nul
     ...(isSharedSkillTarget(candidate.sharedSkillTarget)
       ? { sharedSkillTarget: candidate.sharedSkillTarget }
       : {}),
+    scope: candidate.scope === 'global' ? 'global' : 'project',
+    ...(sharedSkillTargets.length > 0 ? { sharedSkillTargets } : {}),
   };
 }
 

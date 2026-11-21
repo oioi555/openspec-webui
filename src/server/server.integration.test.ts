@@ -180,8 +180,14 @@ async function startServer(options: {
   host?: string;
   cwd?: string;
   versionSnapshotService?: VersionSnapshotService;
+  toolDetection?: { homeDir?: string; claudeConfigDir?: string };
 } = {}) {
-  const { cwd = await createTempDir('openspec-webui-server-cwd-'), ...serverOptions } = options;
+  const {
+    cwd = await createTempDir('openspec-webui-server-cwd-'),
+    // Never scan the real home folder: default to an empty temporary home.
+    toolDetection = { homeDir: await createTempDir('openspec-webui-empty-home-'), claudeConfigDir: undefined },
+    ...serverOptions
+  } = options;
   const previousCwd = process.cwd();
   process.chdir(cwd);
 
@@ -191,6 +197,7 @@ async function startServer(options: {
       port: 0,
       host: '127.0.0.1',
       ...serverOptions,
+      toolDetection,
     });
   } finally {
     process.chdir(previousCwd);
@@ -1994,6 +2001,7 @@ test('availability route reports detected tool integrations and distinct forms',
 
     assert.deepEqual(byTool.get('Claude Code'), {
       tool: 'Claude Code',
+      scope: 'project',
       delivery: 'commands',
       form: 'opsx-colon',
       example: '/opsx:propose',
@@ -2006,6 +2014,7 @@ test('availability route reports detected tool integrations and distinct forms',
     });
     assert.deepEqual(byTool.get('Cursor'), {
       tool: 'Cursor',
+      scope: 'project',
       delivery: 'commands',
       form: 'opsx-dash',
       example: '/opsx-propose',
@@ -2018,6 +2027,7 @@ test('availability route reports detected tool integrations and distinct forms',
     });
     assert.deepEqual(byTool.get('Kimi Code'), {
       tool: 'Kimi Code',
+      scope: 'project',
       delivery: 'skills',
       form: 'skill-colon',
       example: '/skill:openspec-propose',
@@ -2030,6 +2040,7 @@ test('availability route reports detected tool integrations and distinct forms',
     });
     assert.deepEqual(byTool.get('SourceCraft Code Assistant for VS Code'), {
       tool: 'SourceCraft Code Assistant for VS Code',
+      scope: 'project',
       delivery: 'both',
       form: 'opsx-dash',
       example: '/opsx-propose',
@@ -2105,6 +2116,7 @@ test('availability route preserves both deliveries and partial workflow sets per
     // Both deliveries are preserved for Claude Code with command-first legacy fields.
     assert.deepEqual(byTool.get('Claude Code'), {
       tool: 'Claude Code',
+      scope: 'project',
       delivery: 'both',
       form: 'opsx-colon',
       example: '/opsx:propose',
@@ -2125,6 +2137,7 @@ test('availability route preserves both deliveries and partial workflow sets per
     // Partial workflow set: only the apply command is present for OpenCode.
     assert.deepEqual(byTool.get('OpenCode'), {
       tool: 'OpenCode',
+      scope: 'project',
       delivery: 'commands',
       form: 'opsx-dash',
       example: '/opsx-propose',
@@ -2177,6 +2190,7 @@ test('availability route surfaces both skill-slash and skill-dollar for a shared
     );
     assert.deepEqual(agents, {
       tool: 'Shared .agents / Codex',
+      scope: 'project',
       delivery: 'skills',
       form: 'skill-slash',
       example: '/openspec-propose or $openspec-propose',
@@ -2374,5 +2388,60 @@ test('POST /api/project-version-status/refresh recomputes statuses and isolates 
     );
   } finally {
     await runtime.close();
+  }
+});
+
+test('availability route reports project-only, global-only, and mixed skill scopes', async () => {
+  const configHome = await createTempDir('openspec-webui-server-config-');
+  process.env.XDG_CONFIG_HOME = configHome;
+
+  const writeSkill = async (base: string, relDir: string) => {
+    await mkdir(join(base, relDir, 'openspec-propose'), { recursive: true });
+    await writeFile(join(base, relDir, 'openspec-propose', 'SKILL.md'), '# openspec-propose', 'utf8');
+  };
+
+  const scenarios = [
+    { name: 'scope-project-only', project: true, global: false, expected: [['Claude Code', 'project', '.claude/skills/openspec-propose/SKILL.md']] },
+    { name: 'scope-global-only', project: false, global: true, expected: [['Claude Code', 'global', '~/.claude/skills/openspec-propose/SKILL.md']] },
+    {
+      name: 'scope-mixed',
+      project: true,
+      global: true,
+      expected: [
+        ['Claude Code', 'project', '.claude/skills/openspec-propose/SKILL.md'],
+        ['Claude Code', 'global', '~/.claude/skills/openspec-propose/SKILL.md'],
+      ],
+    },
+  ] as const;
+
+  for (const scenario of scenarios) {
+    const projectRoot = await createProjectFixture(scenario.name);
+    const homeDir = await createTempDir('openspec-webui-server-home-');
+    if (scenario.project) await writeSkill(projectRoot, '.claude/skills');
+    if (scenario.global) await writeSkill(homeDir, '.claude/skills');
+
+    await installFakeOpenSpecCommand({ readyProjectRoots: new Set([projectRoot]) });
+    const runtime = await startServer({ toolDetection: { homeDir, claudeConfigDir: undefined } });
+
+    try {
+      await apiJson(runtime.baseUrl, '/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: projectRoot }),
+      });
+
+      const result = await apiJson(runtime.baseUrl, '/api/commands/availability');
+      assert.equal(result.response.status, 200);
+      const integrations = result.body.availability.integrations as Array<Record<string, unknown>>;
+      assert.deepEqual(
+        integrations.map((i) => [i.tool, i.scope, i.source]),
+        scenario.expected,
+        scenario.name
+      );
+      assert.ok(!JSON.stringify(integrations).includes(homeDir), 'absolute home path must not leak');
+      assert.deepEqual(result.body.availability.forms, ['skill-slash']);
+    } finally {
+      await runtime.close();
+    }
   }
 });

@@ -256,7 +256,10 @@ export interface SearchResult {
 }
 
 export type CommandDelivery = 'commands' | 'skills' | 'both' | null;
-export type SharedSkillTarget = 'agents' | 'antigravity' | 'codex' | 'zed' | 'amp' | 'gsd' | 'legacy';
+export type SharedSkillTarget = 'agents' | 'antigravity' | 'codex' | 'zed' | 'amp' | 'gsd' | 'multi' | 'legacy';
+
+/** Where an integration's evidence was found: the repository or the user's home (global install). */
+export type IntegrationScope = 'project' | 'global';
 
 /** One detected OpenSpec command artifact: the workflow id and its repo-relative source path. */
 export interface CommandInventoryItem {
@@ -316,6 +319,14 @@ export interface DetectedIntegration {
   skills: SkillInventory | null;
   /** Resolved target for the shared `.agents/skills` tree. */
   sharedSkillTarget?: SharedSkillTarget;
+  /** Evidence scope; normalized to `'project'` when missing or unknown. */
+  scope: IntegrationScope;
+  /**
+   * OpenSpec tool ids (e.g. `codex`, `cursor`, `kimi`) listed in a 2.x
+   * multi-line `.agents/skills/.openspec-target` marker that read the shared
+   * `.agents/skills` tree. Absent when no such list exists.
+   */
+  sharedSkillTargets?: string[];
 }
 
 export interface ToolInvocationOption {

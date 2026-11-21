@@ -6,11 +6,11 @@ Detects which AI coding tools have OpenSpec integrations (commands and/or skills
 ## Requirements
 
 ### Requirement: Inventory workflow-specific OpenSpec integration artifacts
-The system SHALL detect OpenSpec-generated tool-specific Commands and Skills artifacts present in the active repository and SHALL retain enough artifact-level evidence to determine, independently for each workflow, whether each tool has a matching Commands artifact, a matching Skills artifact, or both. Detection SHALL associate command artifacts with workflow ids and skill artifacts with OpenSpec skill names, invocation forms, delivery types, and source paths. Detection SHALL look for real OpenSpec-generated artifacts only, SHALL NOT attempt to detect the AI tool executable itself or global integrations, SHALL NOT treat empty directories as evidence, and SHALL degrade safely when a configured path cannot be read.
+The system SHALL detect OpenSpec-generated tool-specific Commands and Skills artifacts present in the active repository and SHALL retain enough artifact-level evidence to determine, independently for each workflow, whether each tool has a matching Commands artifact, a matching Skills artifact, or both. Detection SHALL associate command artifacts with workflow ids and skill artifacts with OpenSpec skill names, invocation forms, delivery types, and source paths. Detection SHALL look for real OpenSpec-generated artifacts only, SHALL NOT attempt to detect the AI tool executable itself, SHALL NOT treat empty directories as evidence, and SHALL degrade safely when a configured path cannot be read. An `openspec-*` skill entry that is a symbolic link or junction resolving to a directory containing `SKILL.md` SHALL count as skill evidence; a broken link SHALL NOT. Machine-wide (global) skill evidence is defined by the separate global-skill requirement.
 
 The system SHALL continue to report detected integrations in Settings as repository-local configuration rather than claiming that an AI tool executable is installed. Repository-local artifact evidence SHALL nevertheless be authoritative for command-shortcut candidate eligibility: a workflow without a matching detected artifact SHALL not receive a candidate.
 
-When matching artifacts exist under `.agents/skills`, detection SHALL read `.agents/skills/.openspec-target` as authoritative shared-tree target metadata only when its trimmed value is `agents`, `codex`, `zed`, `antigravity`, `amp`, or `gsd`. The `zed` value SHALL identify the tree as Zed-generated evidence, the `agents` value SHALL identify Shared `.agents` evidence, the `codex` value SHALL identify Codex-led evidence, the `antigravity` value SHALL identify Antigravity-owned skill evidence, the `amp` value SHALL identify Amp-owned skill evidence, and the `gsd` value SHALL identify GSD-owned skill evidence. An absent, unreadable, or invalid marker SHALL preserve the legacy ambiguity between Shared `.agents` and Codex invocation forms. Marker inspection SHALL NOT be treated as evidence when no matching OpenSpec skill artifact exists and SHALL NOT assert that any corresponding executable is installed.
+When matching artifacts exist under `.agents/skills`, detection SHALL read `.agents/skills/.openspec-target` as authoritative shared-tree target metadata. The marker MAY contain one entry per line in the OpenSpec 2.x form `<tool>` or `<tool> own-files`; detection SHALL trim each line, SHALL ignore blank lines, SHALL take the first whitespace-separated token as the tool id, and SHALL ignore unknown ids. The single-value forms `agents`, `codex`, `zed`, `antigravity`, `amp`, and `gsd` SHALL keep their existing meaning. The `zed` value SHALL identify the tree as Zed-generated evidence, the `agents` value SHALL identify Shared `.agents` evidence, the `codex` value SHALL identify Codex-led evidence, the `antigravity` value SHALL identify Antigravity-owned skill evidence, the `amp` value SHALL identify Amp-owned skill evidence, and the `gsd` value SHALL identify GSD-owned skill evidence. An absent or unreadable marker, or one with no known tool id, SHALL preserve the legacy ambiguity between Shared `.agents` and Codex invocation forms. Marker inspection SHALL NOT be treated as evidence when no matching OpenSpec skill artifact exists and SHALL NOT assert that any corresponding executable is installed.
 
 Detection SHALL recognize Antigravity command artifacts under the current `.agents/workflows/opsx-<workflow-id>.*` path and SHALL retain read compatibility for OpenSpec artifacts under legacy `.agent/workflows` and `.agent/skills` paths. The presence of the bare shared `.agents` directory or shared skills without an `antigravity` marker SHALL NOT by itself synthesize Antigravity evidence. Shared skills without an `amp` or `gsd` marker SHALL NOT synthesize Amp or GSD evidence.
 
@@ -99,6 +99,20 @@ Detection SHALL recognize Antigravity command artifacts under the current `.agen
 - **THEN** detection does not report Amp integration evidence
 - **AND** does not report GSD integration evidence
 
+#### Scenario: Linked skill directories are evidence
+- **WHEN** `.claude/skills/openspec-propose` is a symbolic link to `../../.agents/skills/openspec-propose`, which contains `SKILL.md`
+- **THEN** detection reports Claude Code Skills evidence for `openspec-propose`
+- **AND** reports the source as `.claude/skills/openspec-propose/SKILL.md`
+
+#### Scenario: Broken skill links are not evidence
+- **WHEN** an `openspec-*` entry is a symbolic link whose target does not exist
+- **THEN** detection reports no evidence for that entry
+
+#### Scenario: Parse a multi-line OpenSpec 2.x marker
+- **WHEN** matching skills exist under `.agents/skills` and `.openspec-target` contains the lines `claude own-files`, `codex`, `cursor`, and `kimi`
+- **THEN** detection reports the shared tree with targets `codex`, `cursor`, and `kimi`
+- **AND** records `claude` as an own-files tool that does not take a shared-tree candidate
+
 ### Requirement: Expose workflow-specific integration evidence via the API
 The system SHALL expose repository-local integration evidence through the command availability API for the active project alongside existing availability fields. For each detected tool, the response SHALL make the detected Commands and Skills forms and their workflow-specific artifact identifiers available so the client can resolve candidates without consulting the supported-but-undetected tool catalog. If legacy aggregate integration or form fields are retained for compatibility, candidate selection SHALL NOT use those fields when they lose workflow-level or dual-delivery evidence.
 
@@ -116,10 +130,10 @@ The system SHALL expose repository-local integration evidence through the comman
 - **THEN** the response does not synthesize candidates from the static supported-tool catalog
 
 ### Requirement: Warn when the active repository has no detected integrations
-The Settings Tools section SHALL render a warning-style placeholder when an active repository has no detected OpenSpec integration artifacts. The placeholder SHALL explain that no repository integrations were found and SHALL direct the operator to the existing `openspec init <active-repository-path>` guidance without claiming the repository is unsupported.
+The Settings Tools section SHALL render a warning-style placeholder when an active repository has no detected OpenSpec integration artifacts in either the project scope or the global scope. The placeholder SHALL explain that no repository integrations were found and SHALL direct the operator to the existing `openspec init <active-repository-path>` guidance without claiming the repository is unsupported.
 
 #### Scenario: Tools shows a warning placeholder for zero detection
-- **WHEN** an active repository is selected and detection returns no integrations
+- **WHEN** an active repository is selected and detection returns no project or global integrations
 - **THEN** the Tools integration list area shows a warning-style placeholder
 - **AND** the existing copyable `openspec init <active-repository-path>` guidance remains available
 
@@ -127,6 +141,11 @@ The Settings Tools section SHALL render a warning-style placeholder when an acti
 - **WHEN** one or more OpenSpec integration artifacts are detected for the active repository
 - **THEN** the Tools section lists the detected integrations
 - **AND** does not show the zero-detection warning placeholder
+
+#### Scenario: Global-only evidence does not trigger the warning
+- **WHEN** the repository has no OpenSpec skills but global OpenSpec skills are detected
+- **THEN** the Tools section lists the global integrations with a Global badge
+- **AND** shows a note that the skills come from the machine-wide install instead of the zero-detection warning
 
 ### Requirement: Tools section is read-only with guidance and detected integrations
 The Settings sidebar SHALL present the section previously labeled `Workflow` under the short label `Tools`, with a more descriptive in-page heading permitted. The Tools section SHALL be read-only: it SHALL explain how OpenSpec installs per-tool commands and skills, SHALL link to the official supported-tools documentation at `https://github.com/Fission-AI/OpenSpec/blob/main/docs/supported-tools.md` via the shared documentation URL constant, SHALL link to the `openspec init` CLI reference at `https://github.com/Fission-AI/OpenSpec/blob/main/docs/cli.md#openspec-init` via a shared documentation URL constant, rendering both documentation links together in the same docs-link paragraph, SHALL explain that per-repository tool integrations are added or removed by re-running `openspec init`, SHALL list the integrations detected for the active repository (tool name, Commands/Skills delivery, example invocation, detection source), SHALL provide a refresh control that re-runs detection, and SHALL NOT contain any selection or format-fixing setting. The section SHALL describe detected content as "OpenSpec integrations configured for this repository" and SHALL NOT describe detected tools as "installed tools".
@@ -259,7 +278,7 @@ The system SHALL recognize repository-local OpenSpec artifacts generated for Kil
 - **AND** reports the integration delivery as `both`
 
 ### Requirement: Expose shared skill target metadata via the API
-The command availability API SHALL expose the resolved `.agents/skills` target state as `agents`, `codex`, `zed`, `antigravity`, `amp`, `gsd`, or legacy ambiguous alongside the existing workflow-specific artifact evidence. The metadata SHALL be additive and SHALL preserve existing integration evidence fields.
+The command availability API SHALL expose the resolved `.agents/skills` target state as `agents`, `codex`, `zed`, `antigravity`, `amp`, `gsd`, `multi`, or legacy ambiguous alongside the existing workflow-specific artifact evidence. It SHALL expose `sharedSkillTargets` (marker tool ids that read `.agents/skills`, own-files excluded) except for 1.x single-value markers. The metadata SHALL be additive and preserve existing evidence fields.
 
 #### Scenario: API returns Zed target metadata
 - **WHEN** the active repository contains matching shared skills and a valid `zed` marker
@@ -285,6 +304,11 @@ The command availability API SHALL expose the resolved `.agents/skills` target s
 - **WHEN** matching shared skills exist without a valid marker
 - **THEN** command availability reports the target as legacy ambiguous
 - **AND** retains the existing fallback candidate behavior
+
+#### Scenario: API returns multi-tool target metadata
+- **WHEN** the active repository contains matching shared skills and a marker listing `codex`, `cursor`, and `kimi`
+- **THEN** command availability reports `multi` as the resolved shared skill target
+- **AND** reports `sharedSkillTargets` as `codex`, `cursor`, `kimi`
 
 ### Requirement: Recognize unique-path OpenSpec v1.14.0 integration artifacts
 The system SHALL recognize repository-local OpenSpec artifacts generated for AtomCode, Code Studio, DeepSeek Harness, EasyCode, GigaCode, Grok Build, Veai, and Warp. Command files under `.atomcode/commands` and `.gigacode/commands` named `opsx-<workflow-id>.*` SHALL be reported as Commands evidence using the `/opsx-<workflow-id>` invocation form. Command files under `.codestudio/prompts` named `opsx-<workflow-id>.prompt.md` SHALL be reported as Code Studio Commands evidence using the `/opsx-<workflow-id>` invocation form. Command files under `.easycode/commands/opsx` named `<workflow-id>.*` SHALL be reported as EasyCode Commands evidence using the `/opsx:<workflow-id>` invocation form. Skill files under `.atomcode/skills`, `.codestudio/skills`, `.dsh/skills`, `.easycode/skills`, `.gigacode/skills`, `.grok/skills`, `.veai/skills`, and `.warp/skills` in `openspec-*/SKILL.md` directories SHALL be reported as Skills evidence using the `/openspec-*` invocation form. Detection SHALL retain both evidence sets when both deliveries exist, SHALL expose them through command availability, and SHALL NOT report a tool from empty directories, a bare `WARP.md` file, or any other non-OpenSpec marker file.
@@ -371,3 +395,31 @@ The system SHALL report IBM Bob repository integration evidence using the offici
 - **WHEN** the active repository contains `.bob/commands/opsx-propose.md`
 - **THEN** detection reports IBM Bob Commands evidence for the `propose` workflow
 - **AND** the detected tool name is `IBM Bob`
+
+### Requirement: Detect global OpenSpec skills
+The system SHALL detect machine-wide OpenSpec skills (OpenSpec 2.1+) in the universal folder `<home>/.agents/skills` and in the global skills folders of supported tools that do not read it, listed in a code-owned table with recorded provenance. Global evidence SHALL use the same `openspec-*` + `SKILL.md` rule as project evidence and SHALL carry `scope` `global`; repository-local evidence SHALL carry `scope` `project`. The system SHALL NOT write to the home folder.
+
+#### Scenario: Global-only project yields global evidence
+- **WHEN** the repository has no OpenSpec skills and `<home>/.agents/skills/openspec-propose/SKILL.md` exists
+- **THEN** detection reports a global shared integration with Skills evidence for `openspec-propose`
+- **AND** reports its source as `~/.agents/skills/openspec-propose/SKILL.md`
+
+#### Scenario: Claude config directory override
+- **WHEN** `CLAUDE_CONFIG_DIR` is set and `$CLAUDE_CONFIG_DIR/skills/openspec-apply-change/SKILL.md` exists
+- **THEN** detection reports a global Claude Code integration with Skills evidence for `openspec-apply-change`
+
+#### Scenario: Project and global evidence coexist
+- **WHEN** the repository contains project skills and global skills also exist
+- **THEN** detection reports both the project integrations and the global integrations, each with its scope
+
+#### Scenario: Universal folder keeps the ambiguous forms
+- **WHEN** global skills are detected only in `<home>/.agents/skills`
+- **THEN** the global integration exposes both the slash and the Codex dollar interpretations
+
+#### Scenario: Unreadable global folder degrades safely
+- **WHEN** a global skills folder is missing or cannot be read
+- **THEN** detection treats it as having no evidence and command availability stays responsive
+
+#### Scenario: Home folder project skips the global pass
+- **WHEN** the active project root resolves to the user's home folder
+- **THEN** detection does not report `global` integrations for the home skills folders

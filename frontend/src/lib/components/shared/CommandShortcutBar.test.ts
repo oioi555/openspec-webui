@@ -55,6 +55,7 @@ function integration(
     source,
     commands: overrides && 'commands' in overrides ? overrides.commands! : commandInventory(form, 'propose'),
     skills: overrides && 'skills' in overrides ? overrides.skills! : null,
+    scope: 'project',
   };
 }
 

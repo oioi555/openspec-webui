@@ -10,7 +10,7 @@ import {
   type CommandAvailability,
 } from '../openspec-config.js';
 import { execOpenSpec } from '../openspec-cli.js';
-import { getSupportedToolOptions } from '../tool-integration-detection.js';
+import { getSupportedToolOptions, type ToolIntegrationDetectionDependencies } from '../tool-integration-detection.js';
 import { TOOL_COMPATIBILITY_REFERENCE } from '../tool-compatibility-reference.js';
 import {
   ProjectRegistryError,
@@ -57,6 +57,8 @@ interface RegisterApiRoutesOptions {
   projectVersionStatusService: Pick<ProjectVersionStatusService, 'getSnapshot' | 'refresh'>;
   storeDiscoveryService: StoreDiscoveryService;
   onProjectRemoved?: (removedProjectId: string, nextProjectId: string | null) => Promise<void> | void;
+  /** Optional home / Claude config seams for global skill detection (tests). */
+  toolDetection?: Pick<ToolIntegrationDetectionDependencies, 'homeDir' | 'claudeConfigDir'>;
 }
 
 interface AddProjectRequestBody {
@@ -182,7 +184,7 @@ export async function registerApiRoutes(
   fastify: FastifyInstance,
   options: RegisterApiRoutesOptions
 ) {
-  const { registry, versionSnapshotService, projectVersionStatusService, storeDiscoveryService, onProjectRemoved } = options;
+  const { registry, versionSnapshotService, projectVersionStatusService, storeDiscoveryService, onProjectRemoved, toolDetection } = options;
 
   function readProjectIdHeader(request: FastifyRequest): string | null {
     const rawValue = request.headers['x-project-id'];
@@ -216,7 +218,7 @@ export async function registerApiRoutes(
       } satisfies CommandAvailability;
     }
 
-    const availability = await inspectCommandAvailability(projectRoot);
+    const availability = await inspectCommandAvailability(projectRoot, undefined, toolDetection);
 
     if (availability.status === 'ready') {
       registry.setCommandAvailabilityCache(availability, resolvedProjectId);
