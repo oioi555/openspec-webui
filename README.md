@@ -2,6 +2,8 @@
 
 OpenSpec WebUI helps you review OpenSpec artifacts, run validation, track change progress, and copy the next command into your AI coding tool — without manually navigating the OpenSpec folder structure.
 
+[![CI](https://github.com/oioi555/openspec-webui/actions/workflows/ci.yml/badge.svg)](https://github.com/oioi555/openspec-webui/actions/workflows/ci.yml)
+
 ![OpenSpec WebUI](https://raw.githubusercontent.com/oioi555/openspec-webui/main/screenshot.png)
 
 ## What is this?
@@ -38,6 +40,7 @@ OpenSpec WebUI is a local browser interface for projects that use OpenSpec. Your
 
 - UI available in 7 languages (English, Japanese, Portuguese, Spanish, Chinese, French, German)
 - Light / dark / system theme support
+- Versions page — check WebUI and OpenSpec CLI updates with an update command that matches how the CLI was installed, and see which repositories need `openspec update`
 
 ## Install
 
@@ -45,6 +48,20 @@ OpenSpec WebUI is a local browser interface for projects that use OpenSpec. Your
 
 - OpenSpec WebUI runs on Node.js 20.19 or later.
 - The [OpenSpec CLI](https://openspec.dev/docs/installation) on your PATH. OpenSpec 2.x installed through npm needs Node.js 22.20 or later; standalone installs (the `openspec install` binary or Homebrew) need no Node.js.
+
+### OpenSpec compatibility
+
+OpenSpec WebUI 2.x is built for **OpenSpec 2.x** (tested with 2.1.1), and OpenSpec 2.x is recommended.
+
+| Feature | OpenSpec 2.x | OpenSpec 1.x |
+| -------- | :----------: | :----------: |
+| Browse specs and changes, search, validation, task progress | ✓ | ✓ |
+| Tool detection and next-command shortcuts | ✓ | ✓ |
+| Machine-wide (global) skills and per-repository skill scopes | ✓ | — |
+| Project update status from `openspec update --dry-run` | ✓ | — |
+| Update command matching the CLI install method (npm, standalone, Homebrew) | ✓ | — |
+
+With OpenSpec 1.x, project update status is estimated from generated skill files, and the Versions page shows the npm update command.
 
 ```bash
 npm install -g openspec-webui
