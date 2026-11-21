@@ -32,6 +32,7 @@ npm-debug.log*
 .cursor/
 .github/*
 !.github/workflows/
+!.github/release-notes/
 .opencode*
 .opencode/
 .agents/skills/
@@ -39,6 +40,8 @@ npm-debug.log*
 .agents/skills/*
 !.agents/skills/update-tool-reference/
 !.agents/skills/update-tool-reference/**
+!.agents/skills/npm-release-workflow/
+!.agents/skills/npm-release-workflow/**
 
 # OpenSpec: exclude active (unarchived) changes, keep archive/
 openspec/changes/*

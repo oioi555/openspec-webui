@@ -1,0 +1,111 @@
+name: Release
+
+# Publishes to npm with Trusted Publishing (OIDC) and creates the GitHub
+# Release. The workflow filename `release.yml` is bound in the package's
+# trusted publisher settings on npmjs.com; renaming this file breaks publish.
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: read
+
+concurrency:
+  # One release run per tag; never cancel a run that may be mid-publish.
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  guard:
+    name: guard (tag, version, main, notes)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.guard.outputs.version }}
+      notes_file: ${{ steps.guard.outputs.notes_file }}
+      published: ${{ steps.guard.outputs.published }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Fetch main
+        run: git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+      - name: Check tag, version, ancestry, notes, and npm state
+        id: guard
+        run: node scripts/release-guard.mjs --tag "$GITHUB_REF_NAME" --main-ref origin/main
+      - run: npm ci
+      - name: Check ThirdPartyNotices.txt is committed and current
+        run: |
+          node scripts/generate-licenses.mjs
+          git diff --exit-code -- ThirdPartyNotices.txt
+
+  publish:
+    name: publish to npm (OIDC)
+    needs: guard
+    if: needs.guard.outputs.published != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          registry-url: 'https://registry.npmjs.org'
+      - name: Use the repo's pinned npm (trusted publishing needs >= 11.5.1)
+        run: |
+          npm install -g "$(node -p "require('./package.json').packageManager")"
+          node scripts/release-guard.mjs --check-npm-cli
+      - run: npm ci
+      # prepublishOnly runs scripts/verify-release.mjs (licenses, build, test,
+      # typecheck, pack checks, packed CLI smoke test) before anything is
+      # uploaded. Trusted publishing generates provenance automatically.
+      - name: Re-check npm (re-runs and manual fallback publishes)
+        id: recheck
+        run: node scripts/release-guard.mjs --check-published
+      - name: npm publish
+        if: steps.recheck.outputs.published != 'true'
+        run: npm publish --access public
+
+  github-release:
+    name: GitHub Release
+    needs: [guard, publish]
+    if: >-
+      always() && needs.guard.result == 'success' &&
+      (needs.publish.result == 'success' || needs.publish.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirm version is on npm
+        env:
+          VERSION: ${{ needs.guard.outputs.version }}
+        run: |
+          # Up to ~5 minutes with backoff: 10+20+30+40+60+60+60 s.
+          for delay in 10 20 30 40 60 60 60 0; do
+            if [ "$(npm view "openspec-webui@$VERSION" version 2>/dev/null)" = "$VERSION" ]; then exit 0; fi
+            sleep "$delay"
+          done
+          echo "openspec-webui@$VERSION is not visible on npm" >&2
+          exit 1
+      - name: Create GitHub Release (skip if it exists)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: v${{ needs.guard.outputs.version }}
+          NOTES_FILE: ${{ needs.guard.outputs.notes_file }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "GitHub Release $TAG already exists; nothing to do"
+          else
+            gh release create "$TAG" --notes-file "$NOTES_FILE" --title "$TAG" --verify-tag
+          fi

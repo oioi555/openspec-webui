@@ -68,6 +68,7 @@ const testFiles = [
   'frontend/src/lib/views/dashboard.test.ts',
   'frontend/src/lib/views/dashboardStore.test.ts',
   'scripts/dev-utils.test.mjs',
+  'scripts/release-guard.test.mjs',
 ];
 
 ensureLocalBins(['tsx']);
