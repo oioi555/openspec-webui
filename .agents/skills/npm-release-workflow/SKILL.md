@@ -38,22 +38,19 @@ This skill is repo-specific. Assume the package is `openspec-webui`.
 - Release workflow jobs: `guard` → `publish` (OIDC) → `github-release`
 - The workflow also fails if regenerated `ThirdPartyNotices.txt` differs from the committed file
 
-## One-time setup on npmjs.com (maintainer, before the first CI release)
+## Trusted publisher setup (already done)
 
-Done once by the maintainer in a browser; the assistant cannot do it.
+Only needed again if the npm trust config is lost or `release.yml` is renamed. The maintainer runs it, because it needs their 2FA:
 
-**Timing:** a new trusted publisher configuration must complete its first successful publish within **2 days**, or it expires and can no longer be used or edited. If that happens, delete it, create a new one, and publish within 2 days. So do this setup right before the first CI release, not in advance.
+```bash
+npm trust github openspec-webui --file release.yml --repo oioi555/openspec-webui --allow-publish
+npm trust list openspec-webui
+```
 
-1. Sign in to https://www.npmjs.com as `oioi555`, open package `openspec-webui` → **Settings** → **Trusted Publisher**.
-2. Choose **GitHub Actions** and enter exactly (case-sensitive, not validated on save):
-   - Organization or user: `oioi555`
-   - Repository: `openspec-webui`
-   - Workflow filename: `release.yml` (filename only, not the path)
-   - Environment name: leave empty (the workflow uses no GitHub environment)
-3. Save. Keep `package.json` `repository.url` pointing at `github.com/oioi555/openspec-webui`; it must match for OIDC and provenance.
-4. Optional, after the first successful CI release: **Settings → Publishing access → "Require two-factor authentication and disallow tokens"**, and revoke any old automation tokens. This does not block trusted publishing, but it does block the token part of the manual fallback (the maintainer's interactive 2FA publish still works).
-
-Renaming `release.yml` or moving the publish step into a reusable workflow breaks the binding.
+- Use the CLI. Saving through the npmjs.com web form never worked.
+- `--allow-publish` lets CI run `npm publish` directly; without it only `npm stage publish` is allowed.
+- When there is no trust config, CI `npm publish` fails with `E404 ... PUT https://registry.npmjs.org/openspec-webui`.
+- A new config expires unless it publishes within 2 days, so set it up right before releasing.
 
 ## Phase 1: Prepare
 
