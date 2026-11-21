@@ -14,6 +14,7 @@ export default defineConfig({
       project: path.resolve(import.meta.dirname, './project.inlang'),
       outdir: path.resolve(import.meta.dirname, './src/lib/paraglide'),
       strategy: ['custom-openspec-locale', 'preferredLanguage', 'baseLocale'],
+      outputStructure: 'message-modules',
       emitTsDeclarations: true,
       emitGitIgnore: false,
       emitPrettierIgnore: false,
