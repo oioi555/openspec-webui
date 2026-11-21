@@ -210,6 +210,8 @@ export async function registerApiRoutes(
         profile: null,
         workflows: [],
         delivery: null,
+        skillsScope: null,
+        copilotCloud: false,
         integrations: [],
         forms: [],
         toolOptions: getSupportedToolOptions(),

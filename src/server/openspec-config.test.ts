@@ -6,6 +6,8 @@ import { join } from 'node:path';
 
 import {
   inspectCommandAvailability,
+  createMemoizedVersionReader,
+  parseCliMajorVersion,
   parseDelivery,
   type OpenSpecConfigReader,
 } from './openspec-config.js';
@@ -410,6 +412,105 @@ test('inspectCommandAvailability keeps legacy fields present with zero detection
   assert.deepEqual(availability.integrations, []);
   assert.deepEqual(availability.forms, []);
   assert.ok(Array.isArray(availability.toolOptions) && availability.toolOptions.length > 0);
+});
+
+// --- OpenSpec 2.x: retired delivery and recorded skillsScope ---
+
+function trackingReader(keys: string[]): OpenSpecConfigReader {
+  const inner = createReader({});
+  return async (cwd, key) => {
+    keys.push(key);
+    return inner(cwd, key);
+  };
+}
+
+test('parseCliMajorVersion reads the major version and rejects garbage', () => {
+  assert.equal(parseCliMajorVersion('2.1.1'), 2);
+  assert.equal(parseCliMajorVersion('v1.14.0'), 1);
+  assert.equal(parseCliMajorVersion(''), null);
+  assert.equal(parseCliMajorVersion(null), null);
+  assert.equal(parseCliMajorVersion('unknown'), null);
+});
+
+test('inspectCommandAvailability skips the delivery read for a 2.x CLI and returns null', async () => {
+  const cwd = await makeCwd();
+  const keys: string[] = [];
+  const availability = await inspectCommandAvailability(cwd, trackingReader(keys), {}, async () => '2.1.1');
+
+  assert.equal(availability.delivery, null);
+  assert.equal(keys.includes('delivery'), false);
+  assert.equal(availability.status, 'ready');
+  assert.deepEqual(availability.workflows, ['propose', 'verify']);
+});
+
+test('inspectCommandAvailability keeps reading delivery for a 1.x or unknown CLI', async () => {
+  const cwd = await makeCwd();
+  for (const version of ['1.14.0', null]) {
+    const keys: string[] = [];
+    const availability = await inspectCommandAvailability(cwd, trackingReader(keys), {}, async () => version);
+    assert.equal(availability.delivery, 'both');
+    assert.equal(keys.includes('delivery'), true);
+  }
+});
+
+test('inspectCommandAvailability candidates are unchanged between 1.x and 2.x CLIs', async () => {
+  const cwd = await makeCwd();
+  await mkdir(join(cwd, '.claude', 'skills', 'openspec-propose'), { recursive: true });
+  await writeFile(join(cwd, '.claude', 'skills', 'openspec-propose', 'SKILL.md'), '# propose', 'utf8');
+
+  const v1 = await inspectCommandAvailability(cwd, createReader({}), {}, async () => '1.14.0');
+  const v2 = await inspectCommandAvailability(cwd, createReader({}), {}, async () => '2.1.1');
+  assert.deepEqual(v2.integrations, v1.integrations);
+  assert.deepEqual(v2.forms, v1.forms);
+  assert.deepEqual(v2.workflows, v1.workflows);
+});
+
+async function writeProjectConfig(cwd: string, content: string): Promise<void> {
+  await mkdir(join(cwd, 'openspec'), { recursive: true });
+  await writeFile(join(cwd, 'openspec', 'config.yaml'), content, 'utf8');
+}
+
+test('inspectCommandAvailability reports skillsScope project from openspec/config.yaml', async () => {
+  const cwd = await makeCwd();
+  await writeProjectConfig(cwd, 'schema: spec-driven\nskillsScope: project\n');
+  const availability = await inspectCommandAvailability(cwd, createReader({}));
+  assert.equal(availability.skillsScope, 'project');
+});
+
+test('inspectCommandAvailability reports null skillsScope when absent, global, invalid or malformed', async () => {
+  const cases = [
+    null,
+    'schema: spec-driven\n',
+    'schema: spec-driven\nskillsScope: global\n',
+    'schema: spec-driven\nskillsScope: team\n',
+    'skillsScope: [project\n',
+  ];
+  for (const content of cases) {
+    const cwd = await makeCwd();
+    if (content !== null) await writeProjectConfig(cwd, content);
+    const availability = await inspectCommandAvailability(cwd, createReader({}));
+    assert.equal(availability.skillsScope, null, `config: ${String(content)}`);
+  }
+});
+
+test('inspectCommandAvailability reports Copilot cloud files', async () => {
+  const cwd = await makeCwd();
+  assert.equal((await inspectCommandAvailability(cwd, createReader({}))).copilotCloud, false);
+  await mkdir(join(cwd, '.github', 'agents'), { recursive: true });
+  await writeFile(join(cwd, '.github', 'agents', 'openspec.agent.md'), '# agent', 'utf8');
+  assert.equal((await inspectCommandAvailability(cwd, createReader({}))).copilotCloud, true);
+});
+
+test('createMemoizedVersionReader spawns once per TTL window', async () => {
+  let spawns = 0;
+  let time = 0;
+  const reader = createMemoizedVersionReader(async () => { spawns += 1; return '2.1.1'; }, () => time, 1000);
+  assert.equal(await reader('/a'), '2.1.1');
+  assert.equal(await reader('/b'), '2.1.1');
+  assert.equal(spawns, 1);
+  time = 1000;
+  await reader('/a');
+  assert.equal(spawns, 2);
 });
 
 // Cleanup temp dirs after all tests.

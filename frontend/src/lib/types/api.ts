@@ -341,8 +341,12 @@ export interface CommandAvailability {
   status: 'ready' | 'unavailable';
   profile: string | null;
   workflows: string[];
-  /** Delivery mode from `openspec config get delivery` (defensively parsed). */
+  /** @deprecated Retired in OpenSpec 2.x; `null` for 2.x CLIs and never rendered. */
   delivery: CommandDelivery;
+  /** `project` when `openspec/config.yaml` records `skillsScope: project`, else null. */
+  skillsScope: 'project' | null;
+  /** Whether OpenSpec-managed GitHub Copilot cloud coding-agent files exist in the repository. */
+  copilotCloud: boolean;
   /** Detected OpenSpec tool integrations for the active repository (hints only). */
   integrations: DetectedIntegration[];
   /** Deduplicated distinct invocation-form candidates from detection. */

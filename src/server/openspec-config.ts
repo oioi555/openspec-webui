@@ -1,3 +1,7 @@
+import { access, readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { parseDocument } from 'yaml';
+
 import { execOpenSpec } from './openspec-cli.js';
 import {
   detectToolIntegrations,
@@ -22,12 +26,27 @@ const blockedWorkflowCommands = new Set(['onboard']);
 
 export type CommandDelivery = 'commands' | 'skills' | 'both' | null;
 
+/** The team's recorded skill scope from `openspec/config.yaml`; only `project` is surfaced. */
+export type ProjectSkillsScope = 'project' | null;
+
 export interface CommandAvailability {
   status: 'ready' | 'unavailable';
   profile: string | null;
   workflows: string[];
-  /** Delivery mode from `openspec config get delivery` (defensively parsed). */
+  /**
+   * @deprecated Delivery mode from `openspec config get delivery`. Retired in
+   * OpenSpec 2.x: not read and always `null` when the CLI major version is 2
+   * or later. Nothing renders or gates on it.
+   */
   delivery: CommandDelivery;
+  /** `project` when `openspec/config.yaml` records `skillsScope: project`, else null. */
+  skillsScope: ProjectSkillsScope;
+  /**
+   * Whether GitHub Copilot cloud coding-agent files that OpenSpec manages are
+   * present (`.github/workflows/copilot-setup-steps.yml` or
+   * `.github/agents/openspec.agent.md`). OpenSpec refuses `--scope global` then.
+   */
+  copilotCloud: boolean;
   /**
    * Detected OpenSpec tool integrations for the active repository. Each entry
    * carries authoritative workflow-specific `commands` and `skills`
@@ -93,10 +112,89 @@ export function parseDelivery(value: string | null): CommandDelivery {
   return null;
 }
 
+/** Reads the local OpenSpec CLI version string; null or a rejection means unknown. */
+export type OpenSpecVersionReader = (cwd: string) => Promise<string | null>;
+
+/** How long one `openspec --version` result is reused (the CLI rarely changes while the server runs). */
+export const CLI_VERSION_CACHE_TTL_MS = 5 * 60 * 1000;
+
+function spawnOpenSpecCliVersion(): Promise<string | null> {
+  return new Promise((resolve) => {
+    execOpenSpec(['--version'], {}, (error, stdout) => {
+      resolve(error ? null : stdout.trim() || null);
+    });
+  });
+}
+
+/**
+ * Per-process memoized CLI version read, so availability requests do not spawn
+ * `openspec --version` each time. The CLI is global, so the cwd is ignored.
+ */
+export function createMemoizedVersionReader(
+  spawn: () => Promise<string | null> = spawnOpenSpecCliVersion,
+  now: () => number = Date.now,
+  ttlMs: number = CLI_VERSION_CACHE_TTL_MS,
+): OpenSpecVersionReader {
+  let cache: { value: Promise<string | null>; expiresAt: number } | null = null;
+  return () => {
+    const time = now();
+    if (!cache || time >= cache.expiresAt) {
+      cache = { value: spawn(), expiresAt: time + ttlMs };
+    }
+    return cache.value;
+  };
+}
+
+const readOpenSpecCliVersion = createMemoizedVersionReader();
+
+/** Major version from a CLI version string such as `2.1.1` or `v1.14.0`; null when unparseable. */
+export function parseCliMajorVersion(value: string | null | undefined): number | null {
+  const match = typeof value === 'string' ? /(\d+)\.\d+/.exec(value) : null;
+  return match ? Number(match[1]) : null;
+}
+
+/**
+ * Read `skillsScope` from `openspec/config.yaml`. Only `project` is surfaced;
+ * absent, `global`, invalid values or an unreadable file become null.
+ */
+export async function readProjectSkillsScope(cwd: string): Promise<ProjectSkillsScope> {
+  try {
+    const content = await readFile(join(cwd, 'openspec', 'config.yaml'), 'utf8');
+    const parsed = parseDocument(content).toJS() as unknown;
+    if (parsed && typeof parsed === 'object' && (parsed as { skillsScope?: unknown }).skillsScope === 'project') {
+      return 'project';
+    }
+  } catch {
+    // Missing or malformed config degrades to null.
+  }
+  return null;
+}
+
+const COPILOT_CLOUD_FILES = [
+  ['.github', 'workflows', 'copilot-setup-steps.yml'],
+  ['.github', 'agents', 'openspec.agent.md'],
+] as const;
+
+/** Whether any OpenSpec-managed GitHub Copilot cloud coding-agent file exists. */
+export async function hasCopilotCloudFiles(cwd: string): Promise<boolean> {
+  for (const segments of COPILOT_CLOUD_FILES) {
+    try {
+      await access(join(cwd, ...segments));
+      return true;
+    } catch {
+      // Not present.
+    }
+  }
+  return false;
+}
+
 export async function inspectCommandAvailability(
   cwd: string,
   reader: OpenSpecConfigReader = readOpenSpecConfigValue,
-  detectionDependencies: Pick<ToolIntegrationDetectionDependencies, 'homeDir' | 'claudeConfigDir'> = {}
+  detectionDependencies: Pick<ToolIntegrationDetectionDependencies, 'homeDir' | 'claudeConfigDir'> = {},
+  // An injected config reader implies a test seam: the version then stays
+  // unknown unless a version reader is injected too.
+  versionReader: OpenSpecVersionReader = reader === readOpenSpecConfigValue ? readOpenSpecCliVersion : async () => null
 ): Promise<CommandAvailability> {
   let profile: string | null = null;
   let delivery: CommandDelivery = null;
@@ -107,11 +205,24 @@ export async function inspectCommandAvailability(
     profile = null;
   }
 
+  let cliMajor: number | null = null;
   try {
-    delivery = parseDelivery(await reader(cwd, 'delivery'));
+    cliMajor = parseCliMajorVersion(await versionReader(cwd));
   } catch {
-    delivery = null;
+    cliMajor = null;
   }
+
+  // `delivery` was retired in OpenSpec 2.0: skip the read for 2.x CLIs. An
+  // unknown version still reads it, which is harmless because nothing renders it.
+  if (cliMajor === null || cliMajor < 2) {
+    try {
+      delivery = parseDelivery(await reader(cwd, 'delivery'));
+    } catch {
+      delivery = null;
+    }
+  }
+
+  const [skillsScope, copilotCloud] = await Promise.all([readProjectSkillsScope(cwd), hasCopilotCloudFiles(cwd)]);
 
   // Detection is repo-scoped and independent of the CLI; failures degrade to an
   // empty list so availability never becomes an application error.
@@ -139,6 +250,8 @@ export async function inspectCommandAvailability(
       profile,
       workflows,
       delivery,
+      skillsScope,
+      copilotCloud,
       integrations,
       forms,
       toolOptions,
@@ -151,6 +264,8 @@ export async function inspectCommandAvailability(
       profile,
       workflows: [],
       delivery,
+      skillsScope,
+      copilotCloud,
       integrations,
       forms,
       toolOptions,

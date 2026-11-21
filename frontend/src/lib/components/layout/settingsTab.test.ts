@@ -626,11 +626,8 @@ test('SettingsView.svelte distinguishes every shared target without executable-i
   assert.equal(source.toLowerCase().includes('installed executable'), false);
 });
 
-test('SettingsView.svelte Tools section shows active repository and copyable openspec init command', async () => {
+test('SettingsView.svelte Tools section shows active repository and copyable openspec init commands', async () => {
   const source = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
-
-  // buildToolsInitCommand is imported beside buildProjectUpdateCommand from core
-  assert.match(source, /import \{ buildProjectUpdateCommand, buildToolsInitCommand \} from '\$lib\/state\/projectVersionStatusCore'/);
 
   // OPENSPEC_INIT_DOCS_URL is imported from openspecDocs
   assert.match(source, /import.*?OPENSPEC_INIT_DOCS_URL.*?from '\$lib\/openspecDocs'/s);
@@ -644,24 +641,73 @@ test('SettingsView.svelte Tools section shows active repository and copyable ope
   assert.ok(toolsStart > 0, 'tools section should exist');
   const toolsBlock = source.slice(toolsStart, toolsEnd);
 
-  // Init-command block at the bottom of the Tools body, styled to match Versions update-command pattern
-  assert.match(toolsBlock, /settings_tools_init_command_caption/);
-  assert.match(toolsBlock, /settings_tools_init_command_aria/);
-
-  // Full path available as tooltip on the code element
+  // Command blocks: full path as tooltip, Versions-style border, copy wired to handleCopyCommand
   assert.match(toolsBlock, /title=\{activeRepositoryPath\}/);
-
-  // Command block uses the same border/background pattern as Versions section
   assert.match(toolsBlock, /rounded-sm border border-border bg-background px-3 py-2/);
+  assert.match(toolsBlock, /handleCopyCommand\(command, command\)/);
+  assert.match(toolsBlock, /settings_tools_command_copy_aria/);
 
-  // Copy button is wired to handleCopyCommand(buildToolsInitCommand(activeRepositoryPath), activeRepositoryPath)
-  assert.match(toolsBlock, /buildToolsInitCommand\(activeRepositoryPath\)/);
-  assert.match(toolsBlock, /handleCopyCommand\(buildToolsInitCommand\(activeRepositoryPath\), activeRepositoryPath\)/);
-
-  // Both documentation links render in the same paragraph: supported-tools and openspec init reference
+  // Both documentation links render: supported-tools and openspec init reference
   assert.match(toolsBlock, /OPENSPEC_SUPPORTED_TOOLS_DOCS_URL/);
   assert.match(toolsBlock, /OPENSPEC_INIT_DOCS_URL/);
   assert.match(toolsBlock, /t\(m\.settings_docs_init_command\)/);
+
+  // Retired 1.x wording is gone
+  assert.equal(toolsBlock.includes('settings_tools_init_command_caption'), false);
+  assert.equal(toolsBlock.includes('settings_tools_global_only'), false);
+});
+
+function getToolsBlock(source: string): string {
+  const toolsStart = source.indexOf('id="settings-tools"');
+  const toolsEnd = source.indexOf('<!-- commands section -->', toolsStart);
+  return source.slice(toolsStart, toolsEnd);
+}
+
+test('SettingsView.svelte Tools section groups rows into This machine and This repository', async () => {
+  const source = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
+  const toolsBlock = getToolsBlock(source);
+
+  assert.match(source, /toolGroups = \$derived\(groupIntegrationsByScope\(integrations\)\)/);
+  assert.match(toolsBlock, /data-tools-group="machine"[\s\S]*settings_tools_group_machine_description[\s\S]*toolGroups\.machine\.length > 0[\s\S]*integrationRows\(toolGroups\.machine\)[\s\S]*settings_tools_group_machine_empty/);
+  assert.match(toolsBlock, /data-tools-group="repository"[\s\S]*settings_tools_group_repository_description[\s\S]*settings_tools_skills_scope_recorded[\s\S]*toolGroups\.repository\.length > 0[\s\S]*integrationRows\(toolGroups\.repository\)[\s\S]*settings_tools_group_repository_empty/);
+  assert.match(toolsBlock, /skillsScope === 'project' \? t\(m\.settings_tools_skills_scope_recorded\) : t\(m\.settings_tools_skills_scope_not_recorded\)/);
+  assert.match(source, /skillsScope = \$derived\(commandPreferencesStore\.availability\.skillsScope\)/);
+
+  // The zero-detection warning appears only when both groups are empty
+  assert.match(toolsBlock, /\{#if integrations\.length === 0\}\s*<Callout variant="warning">\s*\{t\(m\.settings_tools_no_integrations\)\}/);
+});
+
+test('SettingsView.svelte Tools section offers commands by predicate', async () => {
+  const source = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
+  const toolsBlock = getToolsBlock(source);
+
+  assert.match(source, /toolCommandState = \$derived\(resolveToolCommandState\(\{[\s\S]*copilotCloud: commandPreferencesStore\.availability\.copilotCloud/);
+  assert.match(toolsBlock, /\{#if toolCommandState\.init\}[\s\S]*buildInitCommand\(activeRepositoryPath\)/);
+  assert.match(toolsBlock, /toolCommandState\.toolAdd === 'repository' \? t\(m\.settings_tools_cmd_repository_add\) : t\(m\.settings_tools_cmd_machine_add\)[\s\S]*filteredMachineToolChoices[\s\S]*buildInitCommand\(activeRepositoryPath, \['--tools', selectedMachineToolId\]\)/);
+  assert.match(toolsBlock, /\{#if toolCommandState\.keepInRepository\}[\s\S]*buildInitCommand\(activeRepositoryPath, \['--scope', 'project'\]\)/);
+  assert.match(toolsBlock, /\{#if toolCommandState\.moveToGlobal\.offered\}[\s\S]*buildInitCommand\(activeRepositoryPath, \['--scope', 'global'\]\)[\s\S]*\{\/if\}\s*\{#if toolCommandState\.moveToGlobal\.blockingTools\.length > 0\}[\s\S]*settings_tools_cmd_move_blocked_tools[\s\S]*\{\/if\}\s*\{#if toolCommandState\.moveToGlobal\.copilotCloud\}[\s\S]*settings_tools_cmd_move_blocked_copilot/);
+  assert.equal(toolsBlock.includes('settings_tools_cmd_move_note'), false);
+  assert.match(source, /toolAddChoices\(toolReference\?\.officialDefinitions \?\? \[\], toolReference\?\.scopeSupport, toolCommandState\.toolAdd\)/);
+  assert.match(source, /toolReferenceStore\.load\(\)/);
+});
+
+test('SettingsView.svelte Tools rows show scope support, the 1.x legacy label and the multi-target label', async () => {
+  const source = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
+
+  assert.match(source, /integrationScopeKind\(integration, toolNames, toolReference\?\.scopeSupport\)/);
+  assert.match(source, /case 'universal':\s*return t\(m\.settings_tools_scope_kind_universal\)/);
+  assert.match(source, /case 'linked':\s*return t\(m\.settings_tools_scope_kind_linked\)/);
+  assert.match(source, /case 'project-only':\s*return t\(m\.settings_tools_scope_kind_project_only\)/);
+  assert.match(source, /scopeKind === 'project-only'[\s\S]*settings_tools_scope_kind_project_only_hint/);
+  assert.match(source, /\{#if isLegacyCommandOnly\(integration\)\}\s*<Badge variant="warning">\{t\(m\.settings_tools_legacy_label\)\}/);
+  assert.match(source, /settings_tools_legacy_hint/);
+  assert.match(source, /sharedTargetNames\(integration, toolNames\)[\s\S]*t\(m\.settings_tools_shared_targets, \{ tools: formatToolList\(targetNames\) \}\)/);
+});
+
+test('settings_tools_shared_targets renders the 2.1.1 multi marker in English', async () => {
+  const en = await readMessageCatalog('en');
+  const names = new Intl.ListFormat('en', { style: 'long', type: 'conjunction' }).format(['Codex', 'Cursor', 'Kimi Code']);
+  assert.equal(en.settings_tools_shared_targets.replace('{tools}', names), 'Shared `.agents` with Codex, Cursor, and Kimi Code');
 });
 
 test('SettingsView.svelte Tools section shows empty state and keeps docs links and refresh when no project is active', async () => {

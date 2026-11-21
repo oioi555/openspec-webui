@@ -6,7 +6,6 @@ import { ApiError } from '../../api';
 import {
   OPENSPEC_COMMANDS_DOCS_URL,
   OPENSPEC_INSTALL_DOCS_URL,
-  OPENSPEC_OPSX_REFERENCE_DOCS_URL,
   OPENSPEC_SETUP_DOCS_URL,
   OPENSPEC_SUPPORTED_TOOLS_DOCS_URL,
   OPENSPEC_WORKFLOWS_DOCS_URL,
@@ -63,12 +62,11 @@ test('project onboarding components share docs links and keep onboarding actions
   const emptyProjectStateSource = await readFile(new URL('./EmptyProjectState.svelte', import.meta.url), 'utf8');
   const settingsViewSource = await readFile(new URL('./SettingsView.svelte', import.meta.url), 'utf8');
 
-  assert.equal(OPENSPEC_INSTALL_DOCS_URL, 'https://github.com/Fission-AI/OpenSpec#quick-start');
-  assert.equal(OPENSPEC_SETUP_DOCS_URL, 'https://github.com/Fission-AI/OpenSpec/blob/main/docs/cli.md#setup-commands');
-  assert.equal(OPENSPEC_OPSX_REFERENCE_DOCS_URL, 'https://github.com/Fission-AI/OpenSpec/blob/main/docs/opsx.md');
-  assert.equal(OPENSPEC_SUPPORTED_TOOLS_DOCS_URL, 'https://github.com/Fission-AI/OpenSpec/blob/main/docs/supported-tools.md');
-  assert.equal(OPENSPEC_COMMANDS_DOCS_URL, 'https://github.com/Fission-AI/OpenSpec/blob/main/docs/commands.md');
-  assert.equal(OPENSPEC_WORKFLOWS_DOCS_URL, 'https://github.com/Fission-AI/OpenSpec/blob/main/docs/workflows.md');
+  assert.equal(OPENSPEC_INSTALL_DOCS_URL, 'https://openspec.dev/docs/installation');
+  assert.equal(OPENSPEC_SETUP_DOCS_URL, 'https://openspec.dev/docs/setup');
+  assert.equal(OPENSPEC_SUPPORTED_TOOLS_DOCS_URL, 'https://openspec.dev/docs/supported-tools');
+  assert.equal(OPENSPEC_COMMANDS_DOCS_URL, 'https://openspec.dev/docs/skills');
+  assert.equal(OPENSPEC_WORKFLOWS_DOCS_URL, 'https://openspec.dev/docs/profiles');
 
   for (const source of [addProjectDialogSource, emptyProjectStateSource]) {
     assert.match(source, /OPENSPEC_INSTALL_DOCS_URL/);

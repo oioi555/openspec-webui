@@ -22,6 +22,8 @@ test('normalizeCommandAvailability passes through a full additive payload', () =
     profile: 'core',
     workflows: ['propose', 'apply'],
     delivery: 'both',
+    skillsScope: 'project',
+    copilotCloud: true,
     integrations: [
       {
         tool: 'claude',
@@ -46,6 +48,8 @@ test('normalizeCommandAvailability passes through a full additive payload', () =
     profile: 'core',
     workflows: ['propose', 'apply'],
     delivery: 'both',
+    skillsScope: 'project',
+    copilotCloud: true,
     integrations: [
       {
         tool: 'claude',
@@ -179,13 +183,17 @@ test('normalizeCommandAvailability degrades malformed payloads to unavailable', 
     profile: null,
     workflows: [],
     delivery: null,
+    skillsScope: null,
+    copilotCloud: false,
     integrations: [],
     forms: [],
     toolOptions: [],
     error: null,
   });
 
-  const normalized = normalizeCommandAvailability({ status: 'bogus', workflows: 'nope' });
+  const normalized = normalizeCommandAvailability({ status: 'bogus', workflows: 'nope', skillsScope: 'global', copilotCloud: 'yes' });
+  assert.equal(normalized.skillsScope, null);
+  assert.equal(normalized.copilotCloud, false);
   assert.equal(normalized.status, 'unavailable');
   assert.deepEqual(normalized.workflows, []);
   assert.equal(normalized.error, null);

@@ -28,9 +28,8 @@ const ONBOARDING_COMMAND_KEYS = [
 ] as const;
 
 const TOOLS_COMMAND_KEYS = [
-  'settings_tools_init_command_caption',
-  'settings_tools_init_command_aria',
   'settings_tools_no_active_project',
+  'settings_tools_no_integrations',
 ] as const;
 
 const LANGUAGE_AND_ZED_KEYS = [
@@ -261,6 +260,20 @@ test('translated tools section keeps `openspec init` in English', async () => {
     for (const key of TOOLS_COMMAND_KEYS) {
       assert.match(messages[key], /openspec init/, `${locale}.${key} should keep openspec init in English`);
     }
+  }
+});
+
+test('translated tools guidance keeps skillsScope and openspec update tokens in English', async () => {
+  const settings = await readJson<{ locales: string[] }>('../../project.inlang/settings.json');
+
+  for (const locale of settings.locales) {
+    const messages = await readJson<Record<string, string>>(`../../messages/${locale}.json`);
+    assert.match(messages.settings_tools_skills_scope_recorded, /openspec\/config\.yaml.*skillsScope: project/, locale);
+    assert.match(messages.settings_tools_skills_scope_not_recorded, /skillsScope: project/, locale);
+    assert.match(messages.settings_tools_legacy_hint, /openspec update/, locale);
+    assert.match(messages.settings_tools_shared_targets, /`\.agents`.*\{tools\}/, locale);
+    assert.match(messages.settings_tools_cmd_move_blocked_tools, /\{tools\}/, locale);
+    assert.match(messages.settings_tools_command_copy_aria, /\{command\}/, locale);
   }
 });
 

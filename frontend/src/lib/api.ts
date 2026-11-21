@@ -398,6 +398,8 @@ function createUnavailableCommandAvailability(error: string | null): CommandAvai
     profile: null,
     workflows: [],
     delivery: null,
+    skillsScope: null,
+    copilotCloud: false,
     integrations: [],
     forms: [],
     toolOptions: [],
@@ -427,6 +429,8 @@ export function normalizeCommandAvailability(value: unknown): CommandAvailabilit
       ? candidate.workflows.filter((workflow): workflow is string => typeof workflow === 'string')
       : [],
     delivery: isCommandDelivery(candidate.delivery) ? candidate.delivery : null,
+    skillsScope: candidate.skillsScope === 'project' ? 'project' : null,
+    copilotCloud: candidate.copilotCloud === true,
     integrations: Array.isArray(candidate.integrations)
       ? candidate.integrations
           .map(normalizeDetectedIntegration)

@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { CircleHelp, CircleOff, Copy, ExternalLink, FlaskConical, Info, Languages, ListChecks, Monitor, Moon, Network, RefreshCw, Settings, Sun, Wrench } from '@lucide/svelte';
+  import { CircleHelp, CircleOff, Copy, ExternalLink, FlaskConical, Info, Languages, ListChecks, Monitor, Moon, Network, RefreshCw, Search, Settings, Sun, Wrench } from '@lucide/svelte';
   import { toolReferenceStore } from '$lib/state/toolReference.svelte.ts';
-  import { buildProjectUpdateCommand, buildToolsInitCommand } from '$lib/state/projectVersionStatusCore';
+  import { buildProjectUpdateCommand } from '$lib/state/projectVersionStatusCore';
   import { projectVersionStatusStore } from '$lib/state/projectVersionStatus.svelte.ts';
   import { Callout } from '$lib/components/shared/callout';
   import ToolCompatibilityDialog from './ToolCompatibilityDialog.svelte';
@@ -20,6 +20,16 @@
     OPENSPEC_WORKFLOWS_DOCS_URL,
   } from '$lib/openspecDocs';
   import { projectStore } from '$lib/state/projects.svelte.ts';
+  import { filterOfficialToolDefinitions } from '$lib/toolCompatibilityReference';
+  import {
+    buildInitCommand,
+    groupIntegrationsByScope,
+    integrationScopeKind,
+    isLegacyCommandOnly,
+    toolAddChoices,
+    resolveToolCommandState,
+    sharedTargetNames,
+  } from '$lib/toolsGuidance';
   import { buildArtifactLanguageInitCommand } from '$lib/locale';
   import { LOCALE_LABELS, localeStore, type AppLocale } from '$lib/state/locale.svelte.ts';
   import * as m from '$lib/paraglide/messages.js';
@@ -27,7 +37,7 @@
   import { copyToClipboard } from '$lib/utils';
   import { versionStatusStore } from '$lib/state/versionStatus.svelte.ts';
   import { RELEASE_PAGE_URLS, UPDATE_COMMANDS, type VersionedToolId } from '$lib/state/versionStatusCore';
-  import type { DetectedIntegration, ProjectVersionUpdateStatus, ToolVersionStatus } from '$lib/types/api';
+  import type { DetectedIntegration, ProjectVersionUpdateStatus, ToolScopeKind, ToolVersionStatus } from '$lib/types/api';
   import type { WorkflowCommand } from '$lib/types/commandTypes';
   import {
     CORE_COMMANDS,
@@ -170,6 +180,35 @@
   let availabilityReady = $derived(commandPreferencesStore.availability.status === 'ready');
   let artifactLanguageCommand = $derived(buildArtifactLanguageInitCommand(localeStore.value));
   let integrations = $derived(commandPreferencesStore.availability.integrations);
+  let skillsScope = $derived(commandPreferencesStore.availability.skillsScope);
+  let toolNames = $derived(toolReferenceStore.toolNames);
+  let toolGroups = $derived(groupIntegrationsByScope(integrations));
+  let toolCommandState = $derived(resolveToolCommandState({
+    integrations,
+    copilotCloud: commandPreferencesStore.availability.copilotCloud,
+    toolNames,
+    scopeSupport: toolReference?.scopeSupport,
+  }));
+
+  // Add-tool picker: project-only tools are excluded only for a machine add.
+  let machineToolQuery = $state('');
+  let machineToolId = $state('claude');
+  let filteredMachineToolChoices = $derived(
+    filterOfficialToolDefinitions(
+      toolAddChoices(toolReference?.officialDefinitions ?? [], toolReference?.scopeSupport, toolCommandState.toolAdd),
+      machineToolQuery,
+    ),
+  );
+  let selectedMachineToolId = $derived(
+    filteredMachineToolChoices.some((definition) => definition.id === machineToolId)
+      ? machineToolId
+      : (filteredMachineToolChoices[0]?.id ?? machineToolId),
+  );
+
+  // Scope support and display names come from the served tool reference.
+  $effect(() => {
+    void toolReferenceStore.load();
+  });
   let versionSnapshot = $derived(versionStatusStore.snapshot);
   let projectVersionSnapshot = $derived(projectVersionStatusStore.snapshot);
 
@@ -194,7 +233,30 @@
     }
   }
 
+  function formatToolList(names: string[]): string {
+    try {
+      return new Intl.ListFormat(localeStore.value, { style: 'long', type: 'conjunction' }).format(names);
+    } catch {
+      return names.join(', ');
+    }
+  }
+
+  function getScopeKindLabel(kind: ToolScopeKind): string {
+    switch (kind) {
+      case 'universal':
+        return t(m.settings_tools_scope_kind_universal);
+      case 'linked':
+        return t(m.settings_tools_scope_kind_linked);
+      case 'project-only':
+        return t(m.settings_tools_scope_kind_project_only);
+    }
+  }
+
   function getIntegrationLabel(integration: DetectedIntegration): string {
+    const targetNames = sharedTargetNames(integration, toolNames);
+    if (targetNames) {
+      return t(m.settings_tools_shared_targets, { tools: formatToolList(targetNames) });
+    }
     switch (integration.sharedSkillTarget) {
       case 'zed':
         return t(m.settings_tools_shared_target_zed);
@@ -560,59 +622,156 @@
           <Callout variant="info">
             {t(m.settings_commands_checking)}
           </Callout>
-        {:else if integrations.length > 0}
-          {#if integrations.every((integration) => integration.scope === 'global')}
-            <Callout variant="info">
-              {t(m.settings_tools_global_only)}
+        {:else if activeRepositoryPath}
+          {#if integrations.length === 0}
+            <Callout variant="warning">
+              {t(m.settings_tools_no_integrations)}
             </Callout>
           {/if}
-          <div class="divide-y divide-border overflow-hidden rounded-md border border-border bg-secondary/50">
-            {#each integrations as integration (integration.scope + integration.tool + integration.source)}
-              <div class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
-                <div class="min-w-0 flex-1">
-                  <div class="flex items-center gap-2">
-                    <span class="font-medium text-foreground">{getIntegrationLabel(integration)}</span>
-                    <Badge variant="secondary">{getDeliveryLabel(integration)}</Badge>
-                    <Badge variant="outline">{integration.scope === 'global' ? t(m.settings_tools_scope_global) : t(m.settings_tools_scope_project)}</Badge>
-                  </div>
-                  <div class="mt-1 text-xs text-muted-foreground">
-                    {t(m.settings_tools_detected)}: <code class="rounded bg-background px-1 py-0.5">{integration.source}</code>
-                  </div>
-                </div>
-                <div class="min-w-0 shrink-0 sm:text-right">
-                  <div class="text-xs uppercase tracking-wide text-muted-foreground">{t(m.settings_tools_example)}</div>
-                  <code class="mt-0.5 block max-w-full overflow-x-auto rounded bg-background px-1.5 py-0.5 text-xs text-primary">{integration.example}</code>
-                </div>
-              </div>
-            {/each}
-          </div>
-        {:else if activeRepositoryPath}
-          <Callout variant="warning">
-            {t(m.settings_tools_no_integrations)}
-          </Callout>
-        {/if}
 
-        {#if activeRepositoryPath}
-          <div>
-            <div class="text-xs uppercase tracking-wide text-muted-foreground">{t(m.settings_tools_init_command_caption)}</div>
-            <div class="mt-1 flex items-center gap-2 rounded-sm border border-border bg-background px-3 py-2">
-              <code class="min-w-0 flex-1 overflow-x-auto text-xs text-primary" title={activeRepositoryPath}>{buildToolsInitCommand(activeRepositoryPath)}</code>
-              <Button
-                variant="ghost"
-                size="icon"
-                class="size-8 shrink-0 text-muted-foreground hover:text-foreground"
-                aria-label={t(m.settings_tools_init_command_aria, { path: activeRepositoryPath })}
-                onclick={() => handleCopyCommand(buildToolsInitCommand(activeRepositoryPath), activeRepositoryPath)}
-              >
-                <Copy class="h-4 w-4" />
-              </Button>
-            </div>
+          <!-- machine group -->
+          <div data-tools-group="machine">
+            <h3 class="text-sm font-semibold text-foreground">{t(m.settings_tools_group_machine)}</h3>
+            <p class="mt-0.5 text-xs text-muted-foreground">{t(m.settings_tools_group_machine_description)}</p>
+            {#if toolGroups.machine.length > 0}
+              {@render integrationRows(toolGroups.machine)}
+            {:else}
+              <p class="mt-2 text-xs text-muted-foreground">{t(m.settings_tools_group_machine_empty)}</p>
+            {/if}
+          </div>
+
+          <!-- repository group -->
+          <div data-tools-group="repository">
+            <h3 class="text-sm font-semibold text-foreground">{t(m.settings_tools_group_repository)}</h3>
+            <p class="mt-0.5 text-xs text-muted-foreground">{t(m.settings_tools_group_repository_description)}</p>
+            <p class="mt-1 text-xs text-muted-foreground" data-skills-scope={skillsScope ?? 'none'}>
+              {skillsScope === 'project' ? t(m.settings_tools_skills_scope_recorded) : t(m.settings_tools_skills_scope_not_recorded)}
+            </p>
+            {#if toolGroups.repository.length > 0}
+              {@render integrationRows(toolGroups.repository)}
+            {:else}
+              <p class="mt-2 text-xs text-muted-foreground">{t(m.settings_tools_group_repository_empty)}</p>
+            {/if}
+          </div>
+
+          <!-- state-based command blocks -->
+          <div class="space-y-3">
+            <div class="text-xs uppercase tracking-wide text-muted-foreground">{t(m.settings_tools_actions_heading)}</div>
+
+            {#if toolCommandState.init}
+              {@render commandBlock(t(m.settings_tools_cmd_init), buildInitCommand(activeRepositoryPath))}
+            {/if}
+
+            <div data-tools-command={toolCommandState.toolAdd === 'repository' ? 'repository-add' : 'machine-add'}>
+                <div class="text-xs text-muted-foreground">
+                  {toolCommandState.toolAdd === 'repository' ? t(m.settings_tools_cmd_repository_add) : t(m.settings_tools_cmd_machine_add)}
+                </div>
+                <div class="mt-1 flex flex-wrap items-center gap-2">
+                  <label class="relative min-w-0 flex-1 sm:max-w-xs">
+                    <span class="sr-only">{t(m.tool_reference_search_label)}</span>
+                    <Search class="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      type="search"
+                      value={machineToolQuery}
+                      oninput={(event) => machineToolQuery = event.currentTarget.value}
+                      placeholder={t(m.tool_reference_search_placeholder)}
+                      class="h-8 w-full rounded-sm border border-border bg-background pl-8 pr-2 text-xs text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
+                    />
+                  </label>
+                  <select
+                    aria-label={t(m.settings_tools_cmd_tool_label)}
+                    value={machineToolId}
+                    onchange={(event) => machineToolId = event.currentTarget.value}
+                    class="h-8 min-w-0 rounded-sm border border-border bg-background px-2 text-xs text-foreground"
+                  >
+                    {#each filteredMachineToolChoices as definition (definition.id)}
+                      <option value={definition.id}>{definition.name} ({definition.id})</option>
+                    {/each}
+                  </select>
+                </div>
+                {@render commandBlock(null, buildInitCommand(activeRepositoryPath, ['--tools', selectedMachineToolId]))}
+              </div>
+
+            {#if toolCommandState.keepInRepository}
+              {@render commandBlock(t(m.settings_tools_cmd_keep_in_repository), buildInitCommand(activeRepositoryPath, ['--scope', 'project']))}
+            {/if}
+
+            {#if toolCommandState.moveToGlobal}
+              {#if toolCommandState.moveToGlobal.offered}
+                {@render commandBlock(t(m.settings_tools_cmd_move_to_global), buildInitCommand(activeRepositoryPath, ['--scope', 'global']))}
+              {/if}
+              {#if toolCommandState.moveToGlobal.blockingTools.length > 0}
+                <Callout variant="info">
+                  {t(m.settings_tools_cmd_move_blocked_tools, { tools: formatToolList(toolCommandState.moveToGlobal.blockingTools) })}
+                </Callout>
+              {/if}
+              {#if toolCommandState.moveToGlobal.copilotCloud}
+                <Callout variant="info">
+                  {t(m.settings_tools_cmd_move_blocked_copilot)}
+                </Callout>
+              {/if}
+            {/if}
           </div>
         {:else}
           <p class="text-xs text-muted-foreground">{t(m.settings_tools_no_active_project)}</p>
         {/if}
       </div>
     </SurfaceCard>
+
+    {#snippet integrationRows(rows: DetectedIntegration[])}
+      <div class="mt-2 divide-y divide-border overflow-hidden rounded-md border border-border bg-secondary/50">
+        {#each rows as integration (integration.scope + integration.tool + integration.source)}
+          {@const scopeKind = integrationScopeKind(integration, toolNames, toolReference?.scopeSupport)}
+          <div class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
+            <div class="min-w-0 flex-1">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="font-medium text-foreground">{getIntegrationLabel(integration)}</span>
+                <Badge variant="secondary">{getDeliveryLabel(integration)}</Badge>
+                {#if scopeKind}
+                  <Badge variant="outline" data-scope-kind={scopeKind}>{getScopeKindLabel(scopeKind)}</Badge>
+                {/if}
+                {#if isLegacyCommandOnly(integration)}
+                  <Badge variant="warning">{t(m.settings_tools_legacy_label)}</Badge>
+                {/if}
+              </div>
+              <div class="mt-1 text-xs text-muted-foreground">
+                {t(m.settings_tools_detected)}: <code class="rounded bg-background px-1 py-0.5">{integration.source}</code>
+              </div>
+              {#if isLegacyCommandOnly(integration)}
+                <p class="mt-1 text-xs text-muted-foreground">{t(m.settings_tools_legacy_hint)}</p>
+              {/if}
+              {#if scopeKind === 'project-only'}
+                <p class="mt-1 text-xs text-muted-foreground">{t(m.settings_tools_scope_kind_project_only_hint)}</p>
+              {/if}
+            </div>
+            <div class="min-w-0 shrink-0 sm:text-right">
+              <div class="text-xs uppercase tracking-wide text-muted-foreground">{t(m.settings_tools_example)}</div>
+              <code class="mt-0.5 block max-w-full overflow-x-auto rounded bg-background px-1.5 py-0.5 text-xs text-primary">{integration.example}</code>
+            </div>
+          </div>
+        {/each}
+      </div>
+    {/snippet}
+
+    {#snippet commandBlock(caption: string | null, command: string)}
+      <div>
+        {#if caption}
+          <div class="text-xs text-muted-foreground">{caption}</div>
+        {/if}
+        <div class="mt-1 flex items-center gap-2 rounded-sm border border-border bg-background px-3 py-2">
+          <code class="min-w-0 flex-1 overflow-x-auto text-xs text-primary" title={activeRepositoryPath}>{command}</code>
+          <Button
+            variant="ghost"
+            size="icon"
+            class="size-8 shrink-0 text-muted-foreground hover:text-foreground"
+            aria-label={t(m.settings_tools_command_copy_aria, { command })}
+            onclick={() => handleCopyCommand(command, command)}
+          >
+            <Copy class="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    {/snippet}
 
     <!-- commands section -->
     <SurfaceCard id="settings-commands" data-settings-section="commands">

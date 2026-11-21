@@ -19,6 +19,8 @@ function createAvailability(workflows: string[]): CommandAvailability {
     profile: 'test',
     workflows,
     delivery: 'both',
+    skillsScope: null,
+    copilotCloud: false,
     integrations: [],
     forms: [],
     toolOptions: [],

@@ -50,6 +50,7 @@ const testFiles = [
   'frontend/src/lib/commandTypes.test.ts',
   'frontend/src/lib/toolChoices.test.ts',
   'frontend/src/lib/toolCompatibilityReference.test.ts',
+  'frontend/src/lib/toolsGuidance.test.ts',
   'frontend/src/lib/workflowMetadata.test.ts',
   'frontend/src/lib/api.test.ts',
   'frontend/src/lib/openspecDocs.test.ts',

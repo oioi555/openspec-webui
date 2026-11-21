@@ -113,6 +113,8 @@ function createRegistryHarness() {
     profile: 'test',
     workflows: ['new'],
     delivery: null,
+    skillsScope: null,
+    copilotCloud: false,
     integrations: [],
     forms: [],
     toolOptions: [],
