@@ -13,4 +13,3 @@ context: |
   Constraints:
   - Local-first, defaults to 127.0.0.1
   - User-visible behavior changes should be captured in OpenSpec before or alongside implementation
-skillsScope: project

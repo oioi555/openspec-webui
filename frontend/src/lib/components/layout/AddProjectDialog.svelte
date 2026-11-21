@@ -15,6 +15,7 @@
   import { projectStore } from '$lib/state/projects.svelte.ts';
   import type { BrowseResult } from '$lib/types/api';
   import { FIXED_LABELS } from '$lib/uiText';
+  import { DIRECTORY_LIST_LIMIT, deriveVisibleDirectories } from '$lib/directoryBrowser';
 
   interface Props {
     open: boolean;
@@ -36,8 +37,14 @@
   let browseError = $state('');
   // Breadcrumb trail for navigation history
   let history = $state<string[]>([]);
+  // Client-side filter and render limit for the directory list
+  let dirFilter = $state('');
+  let dirLimit = $state(DIRECTORY_LIST_LIMIT);
+  let dirList = $derived(deriveVisibleDirectories(browseResult?.dirs ?? [], dirFilter, dirLimit));
 
   async function loadBrowse(dirPath?: string) {
+    dirFilter = '';
+    dirLimit = DIRECTORY_LIST_LIMIT;
     browseLoading = true;
     browseError = '';
     try {
@@ -53,6 +60,14 @@
   function navigateTo(dirPath: string) {
     history.push(browseResult?.path ?? '');
     loadBrowse(dirPath);
+  }
+
+  // Skip re-browsing when the path bar already shows the current directory
+  // (e.g. the change event fired on blur right after Enter navigated).
+  function navigateToPathBar(value: string) {
+    const dirPath = value.trim();
+    if (dirPath === browseResult?.path) return;
+    navigateTo(dirPath);
   }
 
   function goUp() {
@@ -175,11 +190,11 @@
           onkeydown={(e) => {
             if (e.key === 'Enter') {
               e.preventDefault();
-              navigateTo((e.target as HTMLInputElement).value);
+              navigateToPathBar((e.target as HTMLInputElement).value);
             }
           }}
           onchange={(e) => {
-            navigateTo((e.target as HTMLInputElement).value);
+            navigateToPathBar((e.target as HTMLInputElement).value);
           }}
         />
         {#if browseLoading}
@@ -199,8 +214,31 @@
             {m.add_project_no_subdirectories()}
           </div>
         {:else if browseResult}
+          <div class="border-b border-border/50 px-3 py-2">
+            <input
+              bind:value={dirFilter}
+              type="text"
+              placeholder={m.add_project_filter_placeholder()}
+              aria-label={m.add_project_filter_placeholder()}
+              class="flex h-8 w-full rounded-md border border-input bg-background px-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+              onkeydown={(e) => {
+                if (e.key === 'Enter' && dirList.matchCount === 1) {
+                  e.preventDefault();
+                  navigateTo(dirList.visible[0].path);
+                }
+              }}
+            />
+          </div>
+          {#if dirList.matchCount === 0}
+            <div class="flex flex-col items-center gap-2 px-4 py-8 text-center text-sm text-muted-foreground">
+              <span>{m.add_project_filter_no_matches({ filter: dirFilter })}</span>
+              <Button variant="outline" size="sm" onclick={() => (dirFilter = '')}>
+                {m.add_project_filter_clear()}
+              </Button>
+            </div>
+          {:else}
           <div class="max-h-100 overflow-y-auto">
-            {#each browseResult.dirs as dir}
+            {#each dirList.visible as dir (dir.path)}
               <button
                 type="button"
                 class="flex w-full items-center gap-3 border-b border-border/30 px-4 py-2.5 text-left transition-colors last:border-0 hover:bg-muted/50"
@@ -221,7 +259,17 @@
                 <ChevronRight class="ml-1 h-4 w-4 shrink-0 text-muted-foreground/50" />
               </button>
             {/each}
+            {#if dirList.hiddenCount > 0}
+              <button
+                type="button"
+                class="w-full px-4 py-2.5 text-center text-sm font-medium text-primary transition-colors hover:bg-muted/50"
+                onclick={() => (dirLimit = Infinity)}
+              >
+                {m.add_project_show_all_remaining({ count: dirList.hiddenCount })}
+              </button>
+            {/if}
           </div>
+          {/if}
         {:else}
           <div class="px-4 py-8 text-center text-sm text-muted-foreground">
             {FIXED_LABELS.common.loading}
