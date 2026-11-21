@@ -9,7 +9,16 @@ test('withFlag adds a missing flag only once', () => {
   assert.deepEqual(withFlag(['--no-open'], '--no-open'), ['--no-open']);
 });
 
-test('resolveLocalBin points to repo-local node_modules binaries', () => {
-  const expectedSuffix = process.platform === 'win32' ? 'vite.cmd' : 'vite';
-  assert.equal(resolveLocalBin('vite'), join(repoRoot, 'node_modules', '.bin', expectedSuffix));
+test('resolveLocalBin points to the package JS bin entry, never a .cmd shim', () => {
+  assert.equal(resolveLocalBin('vite'), join(repoRoot, 'node_modules', 'vite', 'bin', 'vite.js'));
+  assert.equal(resolveLocalBin('tsc'), join(repoRoot, 'node_modules', 'typescript', 'bin', 'tsc'));
+  assert.equal(resolveLocalBin('tsx'), join(repoRoot, 'node_modules', 'tsx', 'dist', 'cli.mjs'));
+  assert.equal(
+    resolveLocalBin('paraglide-js'),
+    join(repoRoot, 'node_modules', '@inlang', 'paraglide-js', 'bin', 'run.js'),
+  );
+});
+
+test('resolveLocalBin returns null for unknown tools', () => {
+  assert.equal(resolveLocalBin('definitely-not-installed-tool'), null);
 });

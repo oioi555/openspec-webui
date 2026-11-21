@@ -74,6 +74,7 @@
     "tailwindcss-animate": "^1.0.7",
     "tsx": "^4.23.15",
     "typescript": "^6.0.3",
-    "vite": "^8.3.2"
+    "vite": "^8.3.2",
+    "ws": "^8.23.0"
   }
 }

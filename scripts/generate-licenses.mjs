@@ -2,7 +2,7 @@
 
 import { pathToFileURL } from 'node:url';
 
-import { ensureLocalBins, resolveLocalBin, spawnInRepo, waitForExit } from './dev-utils.mjs';
+import { ensureLocalBins, spawnLocalBin, waitForExit } from './dev-utils.mjs';
 
 const licenseArgs = [
   '--input',
@@ -18,7 +18,7 @@ const licenseArgs = [
 export async function generateLicenses() {
   ensureLocalBins(['generate-license-file']);
 
-  const child = spawnInRepo(resolveLocalBin('generate-license-file'), licenseArgs);
+  const child = spawnLocalBin('generate-license-file', licenseArgs);
   const result = await waitForExit(child, 'generate-license-file');
   return result.code;
 }

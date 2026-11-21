@@ -4,6 +4,9 @@ import { afterEach, beforeEach, test } from 'node:test';
 import { chmod, cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { homedir, tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+// Node 20 has no global WebSocket (it is behind --experimental-websocket until
+// Node 22), so use the `ws` client on every supported runtime.
+import { WebSocket } from 'ws';
 
 import { createServer } from './index.js';
 import { createVersionSnapshotService, type VersionSnapshotService } from './version-status.js';
@@ -431,9 +434,10 @@ test('server integration covers explicit websocket binding, scoped API routing, 
   });
 
   const runtime = await startServer();
-  const alphaClient = await openWsClient(runtime.baseUrl);
+  let alphaClient: Awaited<ReturnType<typeof openWsClient>> | undefined;
 
   try {
+    alphaClient = await openWsClient(runtime.baseUrl);
     const initMessage = await alphaClient.recorder.nextMessage();
     assert.deepEqual(initMessage, { type: 'connection:init', activeProjectId: null });
 
@@ -601,7 +605,9 @@ test('server integration covers explicit websocket binding, scoped API routing, 
     assert.deepEqual(registry.projects, []);
     assert.equal(registry.activeProjectId, null);
   } finally {
-    alphaClient.ws.close();
+    // Close the server even when the client failed to connect, so a failure
+    // cannot leave a listening socket that keeps the test process alive.
+    alphaClient?.ws.close();
     await runtime.close();
   }
 });

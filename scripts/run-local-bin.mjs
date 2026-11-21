@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { ensureLocalBins, resolveLocalBin, spawnInRepo, waitForExit } from './dev-utils.mjs';
+import { ensureLocalBins, spawnLocalBin, waitForExit } from './dev-utils.mjs';
 
 const [binName, ...args] = process.argv.slice(2);
 
@@ -11,6 +11,6 @@ if (!binName) {
 
 ensureLocalBins([binName]);
 
-const child = spawnInRepo(resolveLocalBin(binName), args);
+const child = spawnLocalBin(binName, args);
 const result = await waitForExit(child, binName);
 process.exit(result.code);

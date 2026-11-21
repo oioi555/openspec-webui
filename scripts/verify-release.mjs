@@ -7,8 +7,23 @@ import { spawn, spawnSync } from 'node:child_process';
 
 import { repoRoot } from './dev-utils.mjs';
 
-const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-const packedBinName = process.platform === 'win32' ? 'openspec-webui.cmd' : 'openspec-webui';
+const npmCommand = 'npm';
+// Node refuses to spawn `.cmd` shims without a shell on Windows
+// (CVE-2024-27980), so npm runs through its JS entry (`npm_execpath`, set by
+// `npm run`/lifecycle scripts) and the packed CLI through its JS bin file.
+const npmCli = /\.[cm]?js$/.test(process.env.npm_execpath ?? '') ? process.env.npm_execpath : null;
+
+function resolveCommand(command, args) {
+  if (command === npmCommand && npmCli) return { command: process.execPath, args: [npmCli, ...args], shell: false };
+  if (command === npmCommand && process.platform === 'win32') {
+    return { command: 'npm.cmd', args: args.map((arg) => `"${arg}"`), shell: true };
+  }
+  return { command, args, shell: false };
+}
+
+function installedCliPath(installDir) {
+  return join(installDir, 'node_modules', 'openspec-webui', 'bin', 'openspec-webui.js');
+}
 
 function run(command, args, options = {}) {
   const env = { ...process.env };
@@ -21,8 +36,10 @@ function run(command, args, options = {}) {
     delete env.NPM_CONFIG_DRY_RUN;
   }
 
-  const result = spawnSync(command, args, {
+  const resolved = resolveCommand(command, args);
+  const result = spawnSync(resolved.command, resolved.args, {
     cwd: repoRoot,
+    shell: resolved.shell,
     env,
     encoding: 'utf8',
     stdio: options.capture ? ['ignore', 'pipe', 'pipe'] : 'inherit',
@@ -97,15 +114,15 @@ function verifyTarballContents(packInfo, packageJson, packageLock) {
 }
 
 async function smokeTestInstalledCli(installDir, expectedVersion, configHome, expectedReferenceCounts) {
-  const installedCli = join(installDir, 'node_modules', '.bin', packedBinName);
+  const installedCli = installedCliPath(installDir);
   const helpOutput = run(
-    installedCli,
-    ['--help'],
+    process.execPath,
+    [installedCli, '--help'],
     { capture: true }
   ).stdout;
   const versionOutput = run(
-    installedCli,
-    ['--version'],
+    process.execPath,
+    [installedCli, '--version'],
     { capture: true }
   ).stdout.trim();
 
@@ -114,13 +131,12 @@ async function smokeTestInstalledCli(installDir, expectedVersion, configHome, ex
 
   await new Promise((resolve, reject) => {
     const child = spawn(
-      installedCli,
-      ['--no-open', '--port', '0'],
+      process.execPath,
+      [installedCli, '--no-open', '--port', '0'],
       {
         cwd: repoRoot,
         env: { ...process.env, XDG_CONFIG_HOME: configHome },
         stdio: ['ignore', 'pipe', 'pipe'],
-        shell: process.platform === 'win32',
       }
     );
 
