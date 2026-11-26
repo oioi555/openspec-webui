@@ -19,6 +19,7 @@ OpenSpec WebUI is a local browser interface for projects that use OpenSpec. Your
 - Multi-project support — add, switch, and remove projects from the UI
 - Browse `config.yaml`, specs, active changes, and archived changes from the browser
 - Review proposals, designs, tasks, and supplemental change files with Markdown preview
+- Follow Markdown links: specs and changes open in the app, and local files open in your editor (VS Code, Cursor, Zed, and more)
 - Search across all OpenSpec content
 - Live refresh when files change
 - Group supplemental change files by folder/tab
@@ -51,7 +52,7 @@ OpenSpec WebUI is a local browser interface for projects that use OpenSpec. Your
 
 ### OpenSpec compatibility
 
-OpenSpec WebUI 2.x is built for **OpenSpec 2.x** (tested with 2.1.1), and OpenSpec 2.x is recommended.
+OpenSpec WebUI 2.x is built for **OpenSpec 2.x** (tested with 2.2.0), and OpenSpec 2.x is recommended.
 
 | Feature | OpenSpec 2.x | OpenSpec 1.x |
 | -------- | :----------: | :----------: |
