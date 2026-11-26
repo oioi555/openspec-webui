@@ -6,7 +6,7 @@ Define the Explorer Pane that organizes active changes, archives, and specs besi
 ## Requirements
 
 ### Requirement: Explorer Pane renders collapsible sections
-The system SHALL render an Explorer Pane between the Activity Bar and the Main Viewer, using the `ExplorerSection` component for each of its three sections (ACTIVE CHANGES, ARCHIVE, SPECS), passing its props (including `emptyMessage`) and rendering section content via slots. Each section header SHALL render a `Date` / `Name` sort control. Each list item SHALL use `ExplorerSectionItem`, and `ExplorerPane.svelte` SHALL keep no inline collapsible section header markup.
+The system SHALL render an Explorer Pane between the Activity Bar and the Main Viewer, using the `ExplorerSection` component for each of its two default sections (ACTIVE CHANGES, ARCHIVE), passing its props (including `emptyMessage`) and rendering section content via slots. Each section header SHALL render a `Date` / `Name` sort control. Each list item SHALL use `ExplorerSectionItem`, and `ExplorerPane.svelte` SHALL keep no inline collapsible section header markup.
 
 #### Scenario: Explorer Pane uses ExplorerSection for ACTIVE CHANGES
 - **WHEN** the Explorer Pane renders the ACTIVE CHANGES section
@@ -38,28 +38,21 @@ The system SHALL render an Explorer Pane between the Activity Bar and the Main V
 - **AND** each `ExplorerSectionItem` shows a compact second line with Calendar+date, FileText+delta count, CircleCheckBig+task progress, with no progress bar
 
 #### Scenario: Explorer Pane uses ExplorerSection for SPECS
-- **WHEN** the Explorer Pane renders the SPECS section
-- **THEN** it renders an ExplorerSection with `title="Specs"`, `count` from the specs store
-- **AND** the section header icon is shown by the ExplorerSection component
-- **AND** the section header includes a sort control with `Date` and `Name` options
-- **AND** the section passes `emptyMessage="No specs found"` to ExplorerSection
-- **AND** the ExplorerSection internally reuses its section header icon as the empty icon
-- **AND** the default slot renders `ExplorerSectionItem` components for each spec
-- **AND** each `ExplorerSectionItem` shows a Calendar icon and last modification datetime on the second line
-- **AND** no design-specific badge or marker is shown for spec entries
+- **WHEN** the Explorer Pane renders its default section group
+- **THEN** it renders only the ACTIVE CHANGES and ARCHIVE sections, with no SPECS ExplorerSection
+- **AND** specs are browsed in the dedicated Specs panel instead
 
 #### Scenario: Explorer sorting uses shared sorting base
 - **WHEN** an explorer section sorts items by Date or Name
 - **THEN** the ordering behavior is provided by the shared sorting base used by dashboard sorting
 - **AND** the ACTIVE CHANGES and ARCHIVE sections still default to Date sorting
-- **AND** the SPECS section still defaults to Name sorting
 
 ### Requirement: Default Explorer sections use flush list layout
-The Explorer Pane default section group SHALL render Active Changes, Archive, and Specs as adjacent flush full-width list sections instead of separated rounded card containers, without large outer padding or large inter-section gaps, so list items gain horizontal space like Search and Validation rows. Each section SHALL keep its existing header controls and item behavior. Section boundaries and programmatic section focus SHALL stay visually clear without a card-wide rounded focus ring.
+The Explorer Pane default section group SHALL render Active Changes and Archive as adjacent flush full-width list sections instead of separated rounded card containers, without large outer padding or large inter-section gaps, so list items gain horizontal space like Search and Validation rows. Each section SHALL keep its existing header controls and item behavior. Section boundaries and programmatic section focus SHALL stay visually clear without a card-wide rounded focus ring.
 
 #### Scenario: Default Explorer uses adjacent full-width sections
-- **WHEN** the Explorer Pane displays the default Active Changes, Archive, and Specs group
-- **THEN** the sections render as a contiguous flush list surface rather than as three separated rounded cards
+- **WHEN** the Explorer Pane displays the default Active Changes and Archive group
+- **THEN** the sections render as a contiguous flush list surface rather than as separated rounded cards
 - **AND** there is no large vertical gap between adjacent section containers
 - **AND** list rows can use the available Explorer Pane width without extra card-stack inset padding
 - **AND** Explorer list items gain horizontal space comparable to Search and Validation panel rows
@@ -68,23 +61,23 @@ The Explorer Pane default section group SHALL render Active Changes, Archive, an
 - **WHEN** the default Explorer section group is rendered in the flush layout
 - **THEN** each section header still displays its title, icon, count, chevron, and collapse/expand control
 - **AND** each section keeps its existing empty-state behavior
-- **AND** Active Changes, Archive, and Specs still display their sort controls where currently supported
+- **AND** Active Changes and Archive still display their sort controls where currently supported
 - **AND** Active Changes still displays workspace command shortcuts when available
 
 #### Scenario: Flush layout preserves section wayfinding
 - **WHEN** multiple default Explorer sections are expanded next to each other
-- **THEN** section headers and separators make the boundary between Active Changes, Archive, and Specs visually clear
+- **THEN** section headers and separators make the boundary between Active Changes and Archive visually clear
 - **AND** the boundary may use full-width header styling, separators, or an equivalent flush-list-friendly treatment
 - **AND** a programmatically focused section has a visible focused state suitable for a flush list layout
 - **AND** that focused state does not require a card-wide rounded focus ring
 
 #### Scenario: Existing item behavior is unchanged
-- **WHEN** the operator selects, previews, confirms, or opens the context menu for an Active Changes, Archive, or Specs row
+- **WHEN** the operator selects, previews, confirms, or opens the context menu for an Active Changes or Archive row
 - **THEN** the row behavior matches the existing Explorer item behavior
 - **AND** inline validation icons, date/spec/task metadata, progress display, and archived-change display names remain unchanged
 
 #### Scenario: Search and Validation panels are not redesigned
-- **WHEN** the Explorer Pane switches to Search or Validation mode
+- **WHEN** the Explorer Pane switches to Search, Validation, or Specs mode
 - **THEN** those dedicated panels retain their existing header and list structure
 - **AND** the default-section flush layout changes do not introduce additional card wrappers or spacing into those panels
 
@@ -94,32 +87,32 @@ The system SHALL allow each Explorer Pane section to be collapsed and expanded i
 #### Scenario: Collapse a section
 - **WHEN** the operator clicks the ACTIVE CHANGES section header
 - **THEN** the ACTIVE CHANGES section body collapses to show only the header
-- **AND** the ARCHIVE and SPECS sections remain in their current state
+- **AND** the ARCHIVE section remains in its current state
 
 #### Scenario: Expand a collapsed section
 - **WHEN** the operator clicks a collapsed section header
 - **THEN** the section expands to show its items
 
+#### Scenario: Both default sections start expanded
+- **WHEN** the Explorer Pane renders the default section group with no saved section state
+- **THEN** the ACTIVE CHANGES and ARCHIVE sections are both expanded
+
 ### Requirement: Activity Bar selection applies explorer focus presets
-The system SHALL synchronize Activity Bar selection with Explorer Pane expansion presets: Home, Archive, and Specs SHALL each expand their own section (ACTIVE CHANGES, ARCHIVE, SPECS) and collapse the other two, and Search and Validate SHALL show the Search and Validation panels. Manual section toggles inside the Explorer Pane SHALL remain allowed until the next Activity Bar preset change.
+The system SHALL synchronize Activity Bar selection with Explorer Pane expansion presets: Home SHALL expand both ACTIVE CHANGES and ARCHIVE, Archive SHALL expand ARCHIVE and collapse ACTIVE CHANGES, and Specs, Search, and Validate SHALL show the Specs, Search, and Validation panels. Manual section toggles inside the Explorer Pane SHALL remain allowed until the next Activity Bar preset change.
 
 #### Scenario: Home preset expands active changes browsing
 - **WHEN** the operator clicks the Home icon in the Activity Bar
 - **THEN** the ACTIVE CHANGES section is expanded
-- **AND** the ARCHIVE section is collapsed
-- **AND** the SPECS section is collapsed
+- **AND** the ARCHIVE section is expanded below it
 
 #### Scenario: Archive preset expands archive browsing
 - **WHEN** the operator clicks the Archive icon in the Activity Bar
 - **THEN** the ARCHIVE section is expanded
 - **AND** the ACTIVE CHANGES section is collapsed
-- **AND** the SPECS section is collapsed
 
 #### Scenario: Specs preset expands only spec browsing
 - **WHEN** the operator clicks the Specs icon in the Activity Bar
-- **THEN** the SPECS section is expanded
-- **AND** the ACTIVE CHANGES section is collapsed
-- **AND** the ARCHIVE section is collapsed
+- **THEN** the Explorer Pane switches to the Specs panel
 
 #### Scenario: Search preset shows Search panel
 - **WHEN** the operator clicks the Search icon in the Activity Bar
@@ -129,21 +122,26 @@ The system SHALL synchronize Activity Bar selection with Explorer Pane expansion
 - **WHEN** the operator clicks the Validate icon in the Activity Bar
 - **THEN** the Explorer Pane switches to the Validation panel
 
+#### Scenario: Opening a tab does not switch panels
+- **WHEN** a spec tab or a change tab becomes active while the Specs, Search, or Validation panel is shown
+- **THEN** the Explorer Pane keeps showing that panel
+- **AND** a spec tab becoming active while the default section group is shown does not switch to the Specs panel
+
 #### Scenario: Activity Bar can restore a collapsed pane
 - **WHEN** the Explorer Pane is collapsed and the operator clicks the Home icon in the Activity Bar
 - **THEN** the Explorer Pane expands back to its previous width
 - **AND** the ACTIVE CHANGES section is expanded
 
 #### Scenario: Manual toggles persist until the next preset
-- **WHEN** the operator applies the Home preset and then manually expands the SPECS section
-- **THEN** the SPECS section stays expanded
+- **WHEN** the operator applies the Home preset and then manually collapses the ARCHIVE section
+- **THEN** the ARCHIVE section stays collapsed
 - **AND** the next Activity Bar preset change reapplies that preset's expansion state
 
 ### Requirement: Explorer items open tabs in main viewer
 The system SHALL open a new tab (or focus an existing one) in the Main Viewer when the operator clicks an item in the Explorer Pane. Clicking a spec item SHALL open that spec's detail view. Clicking a change item SHALL open that change's detail view.
 
 #### Scenario: Click a spec item to open tab
-- **WHEN** the operator clicks a spec named `authentication` in the SPECS section
+- **WHEN** the operator clicks a spec named `authentication` in the Specs panel
 - **THEN** a tab with type `spec` and name `authentication` is opened or focused in the Main Viewer
 - **AND** the spec content is rendered in the tab
 
@@ -228,7 +226,7 @@ The system SHALL scroll the focused explorer section header to the top of the ex
 - **AND** the new reactive scroll does not produce a double-scroll
 
 ### Requirement: Explorer Pane renders a persistent Search panel
-The system SHALL render Search as a dedicated Explorer Pane panel separate from the Active Changes, Archive, and Specs section group, shown alone above the project selector footer when active. It SHALL follow the Explorer visual language with a larger fixed header, search input, and persistent result list, and SHALL show result counts, loading state, short-query guidance, empty results, and a clear control as appropriate. State explanations SHALL render in the list area, not as header prose.
+The system SHALL render Search as a dedicated Explorer Pane panel separate from the Active Changes and Archive section group, shown alone above the project selector footer when active. It SHALL follow the Explorer visual language with a larger fixed header, search input, and persistent result list, and SHALL show result counts, loading state, short-query guidance, empty results, and a clear control as appropriate. State explanations SHALL render in the list area, not as header prose.
 
 #### Scenario: Search panel initial state
 - **WHEN** the Explorer Pane is switched to Search and no search query has been entered

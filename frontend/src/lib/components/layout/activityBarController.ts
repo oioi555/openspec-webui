@@ -4,10 +4,7 @@ import { decodeName, isArchivedChangeName } from '../../utils';
 export type ActivityBarActiveSection = ActivityPreset | 'settings';
 
 export function activitySectionFromPath(path: string, archivedChangeNames: readonly string[]): ActivityPreset {
-  if (path === '/specs' || path.startsWith('/specs/')) {
-    return 'specs';
-  }
-
+  // Spec tabs never move the highlight to Specs; only the Specs icon and Dashboard card show that panel.
   if (path === '/changes') {
     return 'archive';
   }

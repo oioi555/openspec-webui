@@ -15,6 +15,7 @@
     interactive?: boolean;
     validationStatus?: ValidationStatusKind | null;
     class?: string;
+    tabindex?: number;
     onclick?: (event: MouseEvent) => void;
     children?: Snippet;
   }
@@ -28,6 +29,7 @@
     interactive = true,
     validationStatus = null,
     class: className = "",
+    tabindex,
     onclick,
     children,
   }: Props = $props();
@@ -44,6 +46,7 @@
       className,
       active && "bg-primary/10 text-foreground",
     )}
+    {tabindex}
     {onclick}
   >
     <div class="flex w-full min-w-0 items-center gap-2">

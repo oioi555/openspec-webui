@@ -5,14 +5,14 @@
     ArchiveExplorerSection,
     ExplorerSortControl,
     SearchExplorerSection,
-    SpecsExplorerSection,
+    SpecsTreePanel,
     ValidationExplorerSection,
     type ExplorerSortMode,
   } from '$lib/components/shared/explorer-section';
   import { InteractiveCard } from '$lib/components/shared/surface';
   import * as ScrollArea from '$lib/components/ui/scroll-area';
   import { getWorkspaceCommands } from '$lib/commandShortcuts';
-  import { activeChanges, archivedChanges, project, specs } from '$lib/state/appData.svelte.ts';
+  import { activeChanges, archivedChanges, project } from '$lib/state/appData.svelte.ts';
   import { commandPreferencesStore } from '$lib/state/commandPreferences.svelte.ts';
   import { layoutStore } from '$lib/state/layout.svelte.ts';
   import CommandShortcutBar from '$lib/components/shared/CommandShortcutBar.svelte';
@@ -45,7 +45,6 @@
 
   let activeChangesSortMode = $state<ExplorerSortMode>('date');
   let archiveSortMode = $state<ExplorerSortMode>('date');
-  let specsSortMode = $state<ExplorerSortMode>('name');
 
 </script>
 
@@ -64,14 +63,12 @@
     <ExplorerSortControl value={archiveSortMode} onValueChange={(value) => (archiveSortMode = value)} ariaLabel={`${FIXED_LABELS.explorer.archive} ${FIXED_LABELS.explorer.sortBy}`} />
   {/snippet}
 
-  {#snippet specsRight()}
-    <ExplorerSortControl value={specsSortMode} onValueChange={(value) => (specsSortMode = value)} ariaLabel={`${FIXED_LABELS.explorer.specs} ${FIXED_LABELS.explorer.sortBy}`} />
-  {/snippet}
-
   {#if layoutStore.activityPreset === 'search'}
     <SearchExplorerSection {onItemSelected} />
   {:else if layoutStore.activityPreset === 'validate'}
     <ValidationExplorerSection {onItemSelected} />
+  {:else if layoutStore.activityPreset === 'specs'}
+    <SpecsTreePanel {onItemSelected} />
   {:else}
     <ScrollArea.Root class="min-h-0 flex-1" viewportClass="h-full">
       <div class="divide-y divide-border/70">
@@ -88,13 +85,6 @@
           {onItemSelected}
           headerRight={archiveRight}
           sortMode={archiveSortMode}
-        />
-
-        <SpecsExplorerSection
-          specs={specs.value}
-          {onItemSelected}
-          headerRight={specsRight}
-          sortMode={specsSortMode}
         />
       </div>
     </ScrollArea.Root>

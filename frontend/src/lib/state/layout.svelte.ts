@@ -46,7 +46,7 @@ function getResponsiveMode(width: number): ResponsiveMode {
 function createDefaultSectionState() {
   return {
     'active-changes': false,
-    archive: true,
+    archive: false,
     specs: true,
     search: true,
     validate: true,
@@ -56,7 +56,9 @@ function createDefaultSectionState() {
 function createPresetSectionState(section: ExplorerSection) {
   return {
     'active-changes': section !== 'active-changes',
-    archive: section !== 'archive',
+    // The default group holds only Active Changes and Archive, so the Home
+    // preset keeps Archive open below Active Changes.
+    archive: section !== 'archive' && section !== 'active-changes',
     specs: section !== 'specs',
     search: section !== 'search',
     validate: section !== 'validate',
@@ -257,7 +259,7 @@ function createLayoutStore() {
     },
 
     syncActivityPreset(preset: ActivityPreset) {
-      if (state.activityPreset === 'search' || state.activityPreset === 'validate') {
+      if (state.activityPreset === 'specs' || state.activityPreset === 'search' || state.activityPreset === 'validate') {
         return;
       }
 

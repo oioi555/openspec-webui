@@ -17,6 +17,7 @@
     name: string;
     onItemSelected?: () => void;
     class?: string;
+    tabindex?: number;
     date?: string | null;
     specDeltaCount?: number | null;
     taskProgress?: { done: number; total: number; percentage: number } | null;
@@ -33,6 +34,7 @@
     name,
     onItemSelected = () => {},
     class: className = '',
+    tabindex,
     date,
     specDeltaCount,
     taskProgress,
@@ -89,6 +91,7 @@
   {validationStatus}
   active={isActive}
   class={className}
+  {tabindex}
   onclick={handleClick}
 >
   {#if date || specDeltaCount != null || taskProgress}

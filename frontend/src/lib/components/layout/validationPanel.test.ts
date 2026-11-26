@@ -34,7 +34,9 @@ test('ExplorerPane default sections use a flush list wrapper without card-stack 
   assert.doesNotMatch(source, /space-y-4 p-3/);
   assert.match(source, /<ActiveChangesExplorerSection/);
   assert.match(source, /<ArchiveExplorerSection/);
-  assert.match(source, /<SpecsExplorerSection/);
+  assert.doesNotMatch(source, /SpecsExplorerSection/);
+  assert.doesNotMatch(source, /specsSortMode/);
+  assert.match(source, /\{:else if layoutStore\.activityPreset === 'specs'\}\s*<SpecsTreePanel \{onItemSelected\} \/>/);
 });
 
 test('ExplorerSection uses flush headers, preserves collapse wiring, and frames empty states without card chrome', async () => {
@@ -42,7 +44,6 @@ test('ExplorerSection uses flush headers, preserves collapse wiring, and frames 
   const itemSource = await readFile(new URL('../shared/explorer-section/explorer-section-item.svelte', import.meta.url), 'utf8');
   const activeChangesSource = await readFile(new URL('../shared/explorer-section/active-changes-explorer-section.svelte', import.meta.url), 'utf8');
   const archiveSource = await readFile(new URL('../shared/explorer-section/archive-explorer-section.svelte', import.meta.url), 'utf8');
-  const specsSource = await readFile(new URL('../shared/explorer-section/specs-explorer-section.svelte', import.meta.url), 'utf8');
 
   assert.doesNotMatch(sectionSource, /rounded-lg border border-border\/70 bg-card/);
   assert.doesNotMatch(sectionSource, /ring-1 ring-ring\/40/);
@@ -58,7 +59,6 @@ test('ExplorerSection uses flush headers, preserves collapse wiring, and frames 
   assert.match(itemSource, /active=\{isActive\}/);
   assert.match(activeChangesSource, /class=\{index === sortedChanges\.length - 1 \? 'border-b-0' : ''\}/);
   assert.match(archiveSource, /class=\{index === sortedChanges\.length - 1 \? 'border-b-0' : ''\}/);
-  assert.match(specsSource, /class=\{index === sortedSpecs\.length - 1 \? 'border-b-0' : ''\}/);
 });
 
 test('Dashboard renders a validation summary card in the five-card top grid and opens the validate preset', async () => {
@@ -287,7 +287,7 @@ test('Explorer row plumbing supports optional trailing validation icons without 
   const explorerItemSource = await readFile(new URL('../shared/explorer-section/explorer-section-item.svelte', import.meta.url), 'utf8');
   const activeChangesSource = await readFile(new URL('../shared/explorer-section/active-changes-explorer-section.svelte', import.meta.url), 'utf8');
   const archiveSource = await readFile(new URL('../shared/explorer-section/archive-explorer-section.svelte', import.meta.url), 'utf8');
-  const specsSource = await readFile(new URL('../shared/explorer-section/specs-explorer-section.svelte', import.meta.url), 'utf8');
+  const specsSource = await readFile(new URL('../shared/explorer-section/specs-tree-panel.svelte', import.meta.url), 'utf8');
 
   assert.match(listItemButtonSource, /import \{ StatusIndicator \} from "\$lib\/components\/shared\/status-indicator";/);
   assert.match(listItemButtonSource, /validationStatus\?: ValidationStatusKind \| null;/);
@@ -307,7 +307,8 @@ test('Explorer row plumbing supports optional trailing validation icons without 
 
   assert.match(specsSource, /import \{ validationStore \} from '\$lib\/state\/validation\.svelte\.ts';/);
   assert.match(specsSource, /deriveValidationTargetSummary\(validationStore, \{ type: 'spec', name \}\)\.state/);
-  assert.match(specsSource, /validationStatus=\{validationStatusForSpec\(spec\.name\)\}/);
+  assert.match(specsSource, /validationStatus=\{deriveValidationListIconState\('spec', specState\(spec\.name\)\)\}/);
+  assert.match(specsSource, /validationStatus=\{summarizeValidation\(row\.node, specState\)\}/);
 });
 
 test('StatusIndicator minimal format is icon-only and colored for compact explorer rows', async () => {

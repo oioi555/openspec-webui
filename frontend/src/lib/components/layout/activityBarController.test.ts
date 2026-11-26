@@ -154,3 +154,21 @@ test('ActivityBar shows a search highlight-state dot only while highlight mode i
   assert.match(source, /\{#if searchHighlightActive\}/);
   assert.match(source, /absolute right-1 top-1 inline-flex size-2 rounded-full border border-warning-border bg-warning-bg/);
 });
+
+test('spec tabs do not move the highlight to Specs', () => {
+  assert.equal(activitySectionFromPath('/specs/authentication', []), 'home');
+  assert.equal(activitySectionFromPath(`/specs/${encodeURIComponent('network/auth/token')}`, []), 'home');
+  assert.equal(activitySectionFromPath('/specs', []), 'home');
+});
+
+test('preset sync leaves the Specs, Search, and Validation panels in place', async () => {
+  const layoutSource = await readFile(new URL('../../state/layout.svelte.ts', import.meta.url), 'utf8');
+  const dashboardSource = await readFile(new URL('../../views/Dashboard.svelte', import.meta.url), 'utf8');
+
+  assert.match(
+    layoutSource,
+    /syncActivityPreset\(preset: ActivityPreset\) \{\s*if \(state\.activityPreset === 'specs' \|\| state\.activityPreset === 'search' \|\| state\.activityPreset === 'validate'\) \{\s*return;/
+  );
+  assert.doesNotMatch(dashboardSource, /focusSection\('specs'\)/);
+  assert.match(dashboardSource, /function focusSpecsSection\(\) \{\s*layoutStore\.setActivityPreset\('specs'\);/);
+});

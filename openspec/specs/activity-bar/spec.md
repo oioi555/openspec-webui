@@ -48,7 +48,7 @@ The system SHALL respond to Activity Bar control clicks as each control's scenar
 - **THEN** the Explorer Pane opens with the Dashboard tab focused in the Main Viewer
 - **AND** the existing Dashboard tab is focused without opening a new tab
 - **AND** the ACTIVE CHANGES section is expanded and focused
-- **AND** the ARCHIVE and SPECS sections are collapsed
+- **AND** the ARCHIVE section is expanded below it
 
 #### Scenario: Dashboard icon toggles explorer visibility
 - **WHEN** the operator clicks the Dashboard icon while it is already active and the explorer surface is open
@@ -59,7 +59,7 @@ The system SHALL respond to Activity Bar control clicks as each control's scenar
 #### Scenario: Archive icon focuses archive section
 - **WHEN** the operator clicks the Archive icon
 - **THEN** the Explorer Pane opens with the Archive section focused
-- **AND** the ACTIVE CHANGES and SPECS sections are collapsed
+- **AND** the ACTIVE CHANGES section is collapsed
 - **AND** no tab is opened or focused in the Main Viewer
 - **AND** the Archive icon is highlighted even though the current Main Viewer tab does not change
 
@@ -70,8 +70,7 @@ The system SHALL respond to Activity Bar control clicks as each control's scenar
 
 #### Scenario: Specs icon focuses specs
 - **WHEN** the operator clicks the Specs icon
-- **THEN** the Explorer Pane opens with the Specs section focused
-- **AND** the ACTIVE CHANGES and ARCHIVE sections are collapsed
+- **THEN** the Explorer Pane opens with the Specs panel shown instead of the Active Changes and Archive sections
 - **AND** no tab is opened or focused in the Main Viewer
 
 #### Scenario: Specs icon toggles explorer visibility
@@ -123,3 +122,16 @@ The Activity Bar SHALL resolve the active section from refreshed Change archive 
 - **WHEN** the active tab shows a Change under its original name
 - **AND** refreshed workspace data contains a date-prefixed archive entry corresponding to that original name
 - **THEN** the Activity Bar highlights Archive without requiring the tab to be closed or reopened
+
+### Requirement: Activity Bar highlight ignores spec tabs outside the Specs panel
+The Activity Bar SHALL NOT move its highlight to Specs, and SHALL NOT switch the Explorer Pane to the Specs panel, when a spec tab becomes active. Only the Specs icon and the Dashboard Specs summary card SHALL show the Specs panel.
+
+#### Scenario: Spec tab does not move the highlight
+- **WHEN** the Dashboard preset is active and the operator opens a spec tab from the Dashboard or from a change
+- **THEN** the Dashboard icon stays highlighted
+- **AND** the Explorer Pane keeps showing the default section group
+
+#### Scenario: Dashboard Specs summary card opens the Specs panel
+- **WHEN** the operator clicks the Specs summary card on the Dashboard
+- **THEN** the Explorer Pane shows the Specs panel
+- **AND** the Specs icon is highlighted

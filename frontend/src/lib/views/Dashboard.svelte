@@ -181,7 +181,6 @@
   }
 
   function openSpec(name: string) {
-    layoutStore.focusSection('specs');
     tabStore.open(`/specs/${encodeURIComponent(name)}`);
   }
 
