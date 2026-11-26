@@ -343,5 +343,7 @@
   "settings_open_files_custom": "Plantilla de URL personalizada",
   "settings_open_files_custom_hint": "{pathToken} se reemplaza por la ruta absoluta codificada en URL y {lineToken} por el número de línea (1 si el enlace no tiene).",
   "settings_open_files_custom_invalid": "Introduce una URL que empiece con un esquema (por ejemplo myeditor://) y contenga {pathToken}. No se permiten javascript:, data: ni vbscript:. Mientras tanto, los enlaces copian la ruta.",
-  "settings_open_files_editor_note": "El editor debe estar instalado en la máquina que ejecuta este navegador, con su manejador de URL registrado. Las rutas provienen de la máquina que ejecuta el servidor de la WebUI."
+  "settings_open_files_editor_note": "El editor debe estar instalado en la máquina que ejecuta este navegador, con su manejador de URL registrado. Las rutas provienen de la máquina que ejecuta el servidor de la WebUI.",
+  "markdown_link_missing_title": "Archivo no encontrado: {path}",
+  "markdown_link_missing_toast": "Archivo no encontrado. Ruta copiada: {path}"
 }

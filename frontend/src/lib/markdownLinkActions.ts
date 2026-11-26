@@ -21,6 +21,7 @@ export interface MarkdownLinkData {
   mdFragment?: string;
   mdPath?: string;
   mdLine?: string;
+  mdMissing?: string;
 }
 
 export interface MarkdownLinkActionDeps {
@@ -28,7 +29,7 @@ export interface MarkdownLinkActionDeps {
   openChangeFile(changeName: string, route: string, filePath: string): void;
   /** Scroll to the element with this id inside the renderer root; return false if absent. */
   scrollToId(id: string): boolean;
-  openFile(path: string, line: number | null): void;
+  openFile(path: string, line: number | null, missing: boolean): void;
 }
 
 function isModifiedClick(event: MarkdownLinkClickEvent): boolean {
@@ -77,7 +78,7 @@ export function handleMarkdownLinkClick(
         return false;
       }
       const line = data.mdLine ? Number(data.mdLine) : null;
-      deps.openFile(data.mdPath, Number.isFinite(line) ? line : null);
+      deps.openFile(data.mdPath, Number.isFinite(line) ? line : null, data.mdMissing === 'true');
       return true;
     }
     default:

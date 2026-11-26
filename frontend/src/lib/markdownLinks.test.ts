@@ -3,10 +3,12 @@ import { test } from 'node:test';
 
 import {
   buildEditorUrl,
+  isViewableChangePath,
   createSlugger,
   isValidEditorTemplate,
   matchLocationForChangeFile,
   normalizeAbsolutePath,
+  preArchiveSourcePath,
   resolveMarkdownLink,
   type MarkdownLinkContext,
 } from './markdownLinks';
@@ -200,4 +202,123 @@ test('slugger produces GitHub-style ids with duplicate suffixes', () => {
   assert.equal(slug('Requirement: User login'), 'requirement-user-login');
   assert.equal(slug('Requirement: User login'), 'requirement-user-login-1');
   assert.equal(slug('日本語 見出し'), '日本語-見出し');
+});
+
+test('line fragments accept bare numbers and ranges, using the start line', () => {
+  for (const [href, line] of [
+    ['../../../src/a.ts#42', 42],
+    ['../../../src/a.ts#849-851', 849],
+    ['../../../src/a.ts#L10-20', 10],
+    ['../../../src/a.ts#L10-L20', 10],
+    ['../../../src/a.ts#L7', 7],
+  ] as const) {
+    assert.deepEqual(resolveMarkdownLink(href, proposal), { kind: 'file', path: '/repo/src/a.ts', line }, href);
+  }
+
+  assert.deepEqual(resolveMarkdownLink('file:///repo/src/jobs.py#849-851', proposal), {
+    kind: 'file',
+    path: '/repo/src/jobs.py',
+    line: 849,
+  });
+  assert.deepEqual(resolveMarkdownLink('../../../src/a.ts#section-1', proposal), {
+    kind: 'file',
+    path: '/repo/src/a.ts',
+    line: null,
+  });
+});
+
+test('change files the ChangeViewer cannot show resolve as local files', () => {
+  assert.deepEqual(resolveMarkdownLink('evidence/pytest-full.txt', proposal), {
+    kind: 'file',
+    path: `${ROOT}/changes/add-auth/evidence/pytest-full.txt`,
+    line: null,
+  });
+  assert.equal(resolveMarkdownLink('evidence/report.json', proposal).kind, 'file');
+  assert.equal(resolveMarkdownLink('evidence/', proposal).kind, 'file');
+  assert.equal(resolveMarkdownLink('notes/a.md', proposal).kind, 'change');
+  assert.equal(resolveMarkdownLink('revisions.json', proposal).kind, 'change');
+  assert.equal(resolveMarkdownLink('specs/auth/spec.md', proposal).kind, 'change');
+  assert.equal(resolveMarkdownLink('specs/identity/user-auth/', proposal).kind, 'change');
+  assert.equal(resolveMarkdownLink('specs/auth/notes.txt', proposal).kind, 'file');
+});
+
+test('isViewableChangePath mirrors what the ChangeViewer shows', () => {
+  assert.equal(isViewableChangePath(''), true);
+  assert.equal(isViewableChangePath('proposal.md'), true);
+  assert.equal(isViewableChangePath('.openspec.yaml'), true);
+  assert.equal(isViewableChangePath('specs'), true);
+  assert.equal(isViewableChangePath('evidence'), false);
+  assert.equal(isViewableChangePath('notes/deep/a.MD'), true);
+  assert.equal(isViewableChangePath('specs/auth/spec.md'), true);
+  assert.equal(isViewableChangePath('specs/auth'), true);
+  assert.equal(isViewableChangePath('evidence/run.txt'), false);
+  assert.equal(isViewableChangePath('evidence\\run.json'), false);
+});
+
+// ---------------------------------------------------------------------------
+// Existence status and archived-change fallback
+// ---------------------------------------------------------------------------
+
+function withStatus(base: MarkdownLinkContext, statuses: Record<string, boolean | null>) {
+  const unknown: string[] = [];
+  return {
+    unknown,
+    ctx: {
+      ...base,
+      pathStatus: (path: string) => statuses[path],
+      onUnknownPath: (path: string) => unknown.push(path),
+    } satisfies MarkdownLinkContext,
+  };
+}
+
+const archivedProposal = context(`${ROOT}/changes/archive/2026-01-15-add-line/proposal.md`);
+
+test('preArchiveSourcePath maps archived documents back to their pre-archive directory', () => {
+  assert.equal(
+    preArchiveSourcePath(`${ROOT}/changes/archive/2026-01-15-add-line/specs/a/spec.md`),
+    `${ROOT}/changes/add-line/specs/a/spec.md`,
+  );
+  assert.equal(preArchiveSourcePath(`${ROOT}/changes/add-line/proposal.md`), null);
+  assert.equal(preArchiveSourcePath(`${ROOT}/changes/archive/no-date/proposal.md`), null);
+});
+
+test('missing, existing and unknown local targets', () => {
+  const { ctx, unknown } = withStatus(proposal, { '/repo/src/gone.ts': false, '/repo/src/here.ts': true, '/etc/hosts': null });
+
+  assert.deepEqual(resolveMarkdownLink('../../../src/gone.ts', ctx), { kind: 'file', path: '/repo/src/gone.ts', line: null, missing: true });
+  assert.deepEqual(resolveMarkdownLink('../../../src/here.ts', ctx), { kind: 'file', path: '/repo/src/here.ts', line: null });
+  assert.deepEqual(resolveMarkdownLink('/etc/hosts', ctx), { kind: 'file', path: '/etc/hosts', line: null });
+  assert.deepEqual(resolveMarkdownLink('../../../src/new.ts', ctx), { kind: 'file', path: '/repo/src/new.ts', line: null });
+  assert.deepEqual(unknown, ['/repo/src/new.ts']);
+});
+
+test('archived docs link written before archiving falls back to the pre-archive location', () => {
+  const shallow = '/repo/openspec/docs/design.md';
+  const real = '/repo/docs/design.md';
+  const { ctx } = withStatus(archivedProposal, { [shallow]: false, [real]: true });
+
+  assert.deepEqual(resolveMarkdownLink('../../../docs/design.md', ctx), { kind: 'file', path: real, line: null });
+});
+
+test('archived spec link written before archiving opens the spec', () => {
+  const { ctx } = withStatus(archivedProposal, { [`${ROOT}/changes/specs/auth/spec.md`]: false });
+
+  assert.deepEqual(resolveMarkdownLink('../../specs/auth/spec.md', ctx), { kind: 'spec', name: 'auth', route: '/specs/auth' });
+});
+
+test('archived link already written for the archived location keeps its first target', () => {
+  const real = '/repo/docs/design.md';
+  const { ctx, unknown } = withStatus(archivedProposal, { [real]: true });
+
+  assert.deepEqual(resolveMarkdownLink('../../../../docs/design.md', ctx), { kind: 'file', path: real, line: null });
+  assert.deepEqual(unknown, [], 'no fallback lookup once the first target exists');
+});
+
+test('archived fallback is not used when neither target exists, and both are requested together', () => {
+  const { ctx: loading, unknown } = withStatus(archivedProposal, {});
+  assert.deepEqual(resolveMarkdownLink('../../../docs/x.md', loading), { kind: 'file', path: '/repo/openspec/docs/x.md', line: null });
+  assert.deepEqual(unknown, ['/repo/openspec/docs/x.md', '/repo/docs/x.md']);
+
+  const { ctx } = withStatus(archivedProposal, { '/repo/openspec/docs/x.md': false, '/repo/docs/x.md': false });
+  assert.deepEqual(resolveMarkdownLink('../../../docs/x.md', ctx), { kind: 'file', path: '/repo/openspec/docs/x.md', line: null, missing: true });
 });

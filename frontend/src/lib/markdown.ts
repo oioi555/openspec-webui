@@ -34,6 +34,8 @@ export interface RenderMarkdownOptions {
   links?: MarkdownLinkContext | null;
   openFilesWith?: OpenFilesWith;
   customEditorTemplate?: string;
+  /** Tooltip for links whose target does not exist; `{path}` is replaced. */
+  missingFileTitle?: string;
 }
 
 function renderAttributes(attributes: Record<string, string | null | undefined>): string {
@@ -90,13 +92,17 @@ function renderLink(token: Tokens.Link, inner: string, options: RenderMarkdownOp
         resolved.line,
         options.customEditorTemplate,
       );
-      const fileUrl = `file://${resolved.path.startsWith('/') ? '' : '/'}${resolved.path}`;
+      const fileUrl = safeEncodeUri(`file://${resolved.path.startsWith('/') ? '' : '/'}${resolved.path}`);
+      const missingTitle = (options.missingFileTitle ?? 'File not found: {path}').replace('{path}', resolved.path);
       return `<a${renderAttributes({
-        href: editorUrl ?? safeEncodeUri(fileUrl),
-        title: title ?? resolved.path,
+        // A missing target never gets an editor URL, so middle-click cannot open one either.
+        href: resolved.missing ? fileUrl : editorUrl ?? fileUrl,
+        title: resolved.missing ? missingTitle : title ?? resolved.path,
+        class: resolved.missing ? 'md-link-missing' : null,
         'data-md-link': 'file',
         'data-md-path': resolved.path,
         'data-md-line': resolved.line == null ? null : String(resolved.line),
+        'data-md-missing': resolved.missing ? 'true' : null,
       })}>${inner}</a>`;
     }
   }

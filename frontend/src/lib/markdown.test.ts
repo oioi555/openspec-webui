@@ -95,3 +95,25 @@ test('search highlighting keeps heading ids and link attributes intact', () => {
   assert.match(html, /<h2 id="md-auth-notes"><mark class="search-highlight">auth<\/mark> notes<\/h2>/);
   assert.match(html, /href="\/specs\/auth"/);
 });
+
+test('renderMarkdown renders change evidence links as local file links', () => {
+  const html = renderMarkdown('[log](evidence/pytest-full.txt#12-14)', { links: LINK_CONTEXT, openFilesWith: 'zed' });
+
+  assert.match(html, /href="zed:\/\/file\/repo\/openspec\/changes\/add-auth\/evidence\/pytest-full\.txt:12"/);
+  assert.match(html, /data-md-link="file"/);
+  assert.doesNotMatch(html, /data-md-link="change"/);
+});
+
+test('renderMarkdown marks missing local file links and never gives them an editor URL', () => {
+  const html = renderMarkdown('[gone](../../../src/gone.ts#L3)', {
+    links: { ...LINK_CONTEXT, pathStatus: (path) => (path === '/repo/src/gone.ts' ? false : undefined) },
+    openFilesWith: 'vscode',
+    missingFileTitle: 'Missing: {path}',
+  });
+
+  assert.match(html, /href="file:\/\/\/repo\/src\/gone\.ts"/);
+  assert.match(html, /title="Missing: \/repo\/src\/gone\.ts"/);
+  assert.match(html, /class="md-link-missing"/);
+  assert.match(html, /data-md-missing="true"/);
+  assert.doesNotMatch(html, /vscode:/);
+});

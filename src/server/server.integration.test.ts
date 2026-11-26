@@ -2576,3 +2576,39 @@ test('availability route reports project-only, global-only, and mixed skill scop
     }
   }
 });
+
+test('POST /api/path-status reports existence only for paths inside the active project', async () => {
+  const configHome = await createTempDir('openspec-webui-server-config-');
+  process.env.XDG_CONFIG_HOME = configHome;
+  const projectRoot = await createProjectFixture('path-status-project');
+  await mkdir(join(projectRoot, 'docs'), { recursive: true });
+  await writeFile(join(projectRoot, 'docs', 'present.md'), '# present\n', 'utf8');
+
+  const runtime = await startServer({ cwd: join(projectRoot, 'openspec') });
+
+  try {
+    const post = (body: unknown) => apiJson(runtime.baseUrl, '/api/path-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    const present = join(projectRoot, 'docs', 'present.md');
+    const missing = join(projectRoot, 'docs', 'missing.md');
+    const escaping = `${projectRoot}/docs/../../outside.md`;
+    const result = await post({ paths: [present, missing, '/etc/hosts', escaping] });
+
+    assert.equal(result.response.status, 200);
+    assert.deepEqual(result.body, {
+      statuses: { [present]: true, [missing]: false, '/etc/hosts': null, [escaping]: null },
+    });
+
+    const tooMany = await post({ paths: Array.from({ length: 201 }, (_, i) => `${projectRoot}/f${i}`) });
+    assert.equal(tooMany.response.status, 400);
+
+    const invalid = await post({ paths: 'nope' });
+    assert.equal(invalid.response.status, 400);
+  } finally {
+    await runtime.close();
+  }
+});

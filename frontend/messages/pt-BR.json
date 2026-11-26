@@ -343,5 +343,7 @@
   "settings_open_files_custom": "Modelo de URL personalizado",
   "settings_open_files_custom_hint": "{pathToken} é substituído pelo caminho absoluto codificado em URL e {lineToken} pelo número da linha (1 quando o link não tem).",
   "settings_open_files_custom_invalid": "Informe uma URL que comece com um esquema (por exemplo myeditor://) e contenha {pathToken}. javascript:, data: e vbscript: não são permitidos. Até lá, os links copiam o caminho.",
-  "settings_open_files_editor_note": "O editor precisa estar instalado na máquina que executa este navegador, com o manipulador de URL registrado. Os caminhos vêm da máquina que executa o servidor da WebUI."
+  "settings_open_files_editor_note": "O editor precisa estar instalado na máquina que executa este navegador, com o manipulador de URL registrado. Os caminhos vêm da máquina que executa o servidor da WebUI.",
+  "markdown_link_missing_title": "Arquivo não encontrado: {path}",
+  "markdown_link_missing_toast": "Arquivo não encontrado. Caminho copiado: {path}"
 }

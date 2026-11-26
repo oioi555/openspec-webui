@@ -17,6 +17,13 @@ export interface MarkdownLinkContext {
   sourcePath: string;
   specs: readonly MarkdownLinkEntry[];
   changes: readonly MarkdownLinkEntry[];
+  /**
+   * Existence of a local path: `true`/`false` when checked, `null` when the
+   * server does not check it, `undefined` when not loaded yet.
+   */
+  pathStatus?: (path: string) => boolean | null | undefined;
+  /** Called for each local path whose status is not loaded yet. */
+  onUnknownPath?: (path: string) => void;
 }
 
 export type ResolvedMarkdownLink =
@@ -26,7 +33,7 @@ export type ResolvedMarkdownLink =
   | { kind: 'raw'; href: string }
   | { kind: 'spec'; name: string; route: string }
   | { kind: 'change'; name: string; route: string; filePath: string }
-  | { kind: 'file'; path: string; line: number | null };
+  | { kind: 'file'; path: string; line: number | null; missing?: boolean };
 
 const EXTERNAL_SCHEMES = new Set(['http', 'https', 'mailto']);
 const BLOCKED_TEMPLATE_SCHEMES = new Set(['javascript', 'data', 'vbscript']);
@@ -89,9 +96,34 @@ function joinPath(base: string, relative: string): string {
   return normalizeAbsolutePath(`${base.replace(/\/$/, '')}/${relative}`);
 }
 
+/** `#L12`, `#12`, `#12-20`, `#L12-20`, `#L12-L20` → start line. */
 function parseLineFragment(fragment: string): number | null {
-  const match = /^L(\d+)/.exec(fragment);
+  const match = /^L?(\d+)(?:-L?\d+)?$/.exec(fragment);
   return match ? Number(match[1]) : null;
+}
+
+/**
+ * Whether the ChangeViewer can show a path relative to a change directory:
+ * the directory itself, root-level files (not folders), delta specs (or capability dirs)
+ * under `specs/`, and Markdown files in other subfolders.
+ */
+export function isViewableChangePath(filePath: string): boolean {
+  const relative = toSlashPath(filePath).replace(/\/$/, '');
+  if (!relative) {
+    return true;
+  }
+
+  if (!relative.includes('/')) {
+    // Root-level files are listed; an extensionless entry is almost always a folder.
+    return relative.includes('.') || relative === 'specs';
+  }
+
+  if (relative.startsWith('specs/')) {
+    const last = relative.slice(relative.lastIndexOf('/') + 1);
+    return last === 'spec.md' || !last.includes('.');
+  }
+
+  return relative.toLowerCase().endsWith('.md');
 }
 
 function splitLineSuffix(path: string): { path: string; line: number | null } {
@@ -178,6 +210,59 @@ export function resolveMarkdownLink(href: string, context?: MarkdownLinkContext 
     return { kind: 'raw', href: trimmed };
   }
 
+  const primary = resolveLocalTarget(trimmed, context.sourcePath, context);
+  if (primary.kind !== 'file') {
+    return primary;
+  }
+
+  const primaryStatus = statusOf(primary.path, context);
+  const fallbackSource = isRelativeHref(trimmed) ? preArchiveSourcePath(context.sourcePath) : null;
+
+  // Archived change documents: links written before archiving are one level too shallow.
+  // Look the pre-archive candidate up while the first status loads, so both arrive in one batch.
+  if (fallbackSource && (primaryStatus === false || primaryStatus === undefined)) {
+    const fallback = resolveLocalTarget(trimmed, fallbackSource, context);
+    const fallbackStatus = fallback.kind === 'file' ? statusOf(fallback.path, context) : undefined;
+
+    if (primaryStatus === false && (fallback.kind !== 'file' || fallbackStatus === true)) {
+      return fallback;
+    }
+  }
+
+  return primaryStatus === false ? { ...primary, missing: true } : primary;
+}
+
+function statusOf(path: string, context: MarkdownLinkContext): boolean | null | undefined {
+  if (!context.pathStatus) {
+    return undefined;
+  }
+
+  const status = context.pathStatus(path);
+  if (status === undefined) {
+    context.onUnknownPath?.(path);
+  }
+  return status;
+}
+
+function isRelativeHref(href: string): boolean {
+  return !isAbsolutePath(toSlashPath(safeDecode(href)));
+}
+
+/**
+ * For a document inside `…/changes/archive/YYYY-MM-DD-<name>/`, return the same
+ * document path under its pre-archive directory `…/changes/<name>/`.
+ */
+export function preArchiveSourcePath(sourcePath: string): string | null {
+  const normalized = normalizeAbsolutePath(sourcePath);
+  const match = /^(.*\/changes)\/archive\/\d{4}-\d{2}-\d{2}-([^/]+)(\/.*)$/.exec(normalized);
+  return match ? `${match[1]}/${match[2]}${match[3]}` : null;
+}
+
+function resolveLocalTarget(
+  trimmed: string,
+  sourcePath: string,
+  context: MarkdownLinkContext,
+): Extract<ResolvedMarkdownLink, { kind: 'spec' | 'change' | 'file' }> {
   const hashIndex = trimmed.indexOf('#');
   const fragment = hashIndex >= 0 ? trimmed.slice(hashIndex + 1) : '';
   const withoutFragment = hashIndex >= 0 ? trimmed.slice(0, hashIndex) : trimmed;
@@ -188,7 +273,7 @@ export function resolveMarkdownLink(href: string, context?: MarkdownLinkContext 
 
   const target = isAbsolutePath(suffix.path)
     ? normalizeAbsolutePath(suffix.path)
-    : joinPath(dirname(context.sourcePath), suffix.path);
+    : joinPath(dirname(sourcePath), suffix.path);
 
   const spec = findSpec(target, context.specs);
   if (spec) {
@@ -196,7 +281,7 @@ export function resolveMarkdownLink(href: string, context?: MarkdownLinkContext 
   }
 
   const changeMatch = findChange(target, context.changes);
-  if (changeMatch) {
+  if (changeMatch && isViewableChangePath(changeMatch.filePath)) {
     return {
       kind: 'change',
       name: changeMatch.change.name,

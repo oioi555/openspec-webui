@@ -343,5 +343,7 @@
   "settings_open_files_custom": "Eigene URL-Vorlage",
   "settings_open_files_custom_hint": "{pathToken} wird durch den URL-kodierten absoluten Pfad ersetzt und {lineToken} durch die Zeilennummer (1, wenn der Link keine hat).",
   "settings_open_files_custom_invalid": "Gib eine URL ein, die mit einem Schema beginnt (zum Beispiel myeditor://) und {pathToken} enthält. javascript:, data: und vbscript: sind nicht erlaubt. Bis dahin kopieren Links den Pfad.",
-  "settings_open_files_editor_note": "Der Editor muss auf dem Rechner installiert sein, auf dem dieser Browser läuft, und seinen URL-Handler registriert haben. Die Pfade stammen von dem Rechner, auf dem der WebUI-Server läuft."
+  "settings_open_files_editor_note": "Der Editor muss auf dem Rechner installiert sein, auf dem dieser Browser läuft, und seinen URL-Handler registriert haben. Die Pfade stammen von dem Rechner, auf dem der WebUI-Server läuft.",
+  "markdown_link_missing_title": "Datei nicht gefunden: {path}",
+  "markdown_link_missing_toast": "Datei nicht gefunden. Pfad kopiert: {path}"
 }

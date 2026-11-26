@@ -10,6 +10,7 @@ import {
   type CommandAvailability,
 } from '../openspec-config.js';
 import { execOpenSpec } from '../openspec-cli.js';
+import { checkPathStatuses, parsePathStatusBody, PathStatusRequestError } from '../path-status.js';
 import { getSupportedToolOptions, type ToolIntegrationDetectionDependencies } from '../tool-integration-detection.js';
 import { TOOL_COMPATIBILITY_REFERENCE } from '../tool-compatibility-reference.js';
 import {
@@ -472,6 +473,27 @@ export async function registerApiRoutes(
 
     const results = searchOpenSpec(context.data, q);
     return { results };
+  });
+
+  // Report whether Markdown link targets exist (existence only, project-scoped)
+  fastify.post('/api/path-status', async (request, reply) => {
+    let paths: string[];
+    try {
+      paths = parsePathStatusBody(request.body);
+    } catch (error) {
+      if (error instanceof PathStatusRequestError) {
+        return reply.status(400).send({ error: error.message });
+      }
+      throw error;
+    }
+
+    const context = await resolveProjectContext(request, reply);
+    if (!context) {
+      return reply;
+    }
+
+    const statuses = await checkPathStatuses(paths, [context.projectRoot, dirname(context.openspecPath)]);
+    return { statuses };
   });
 
   // Run validation for the active project

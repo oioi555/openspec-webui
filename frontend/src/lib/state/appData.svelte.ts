@@ -24,6 +24,7 @@ import { storeDiscoveryStore } from './storeDiscovery.svelte.ts';
 import { tabStore } from './tabs.svelte.ts';
 import { validationStore } from './validation.svelte.ts';
 import { createArtifactValidationScheduler } from './validationAutoRunCore';
+import { pathStatusStore } from '$lib/state/pathStatus.svelte.ts';
 
 function createBox<T>(read: () => T, write: (value: T) => void) {
   return {
@@ -128,6 +129,7 @@ export const changesRefreshTrigger = createBox(
 );
 
 function clearLoadedWorkspaceState() {
+  pathStatusStore.clear();
   state.project = null;
   state.stats = null;
   state.specs = [];
@@ -312,6 +314,7 @@ export function setupWebSocket() {
         }
 
         artifactValidationScheduler.syncProject();
+        pathStatusStore.clear();
 
         const entity = message.entity;
         const scrollY = window.scrollY;

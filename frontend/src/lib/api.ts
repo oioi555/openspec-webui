@@ -252,6 +252,15 @@ export async function getStats(): Promise<Stats> {
   return data.stats;
 }
 
+/** Ask the server whether local paths exist. `null` means the server did not check the path. */
+export async function getPathStatuses(paths: string[]): Promise<Record<string, boolean | null>> {
+  const data = await fetchApi<{ statuses: Record<string, boolean | null> }>('/path-status', {
+    method: 'POST',
+    body: JSON.stringify({ paths }),
+  });
+  return data.statuses;
+}
+
 export async function search(query: string): Promise<SearchResult[]> {
   const data = await fetchApi<{ results: SearchResult[] }>(`/search?q=${encodeURIComponent(query)}`);
   return data.results;

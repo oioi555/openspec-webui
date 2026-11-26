@@ -343,5 +343,7 @@
   "settings_open_files_custom": "カスタム URL テンプレート",
   "settings_open_files_custom_hint": "{pathToken} は URL エンコードした絶対パスに、{lineToken} は行番号（リンクに行番号がなければ 1）に置き換わります。",
   "settings_open_files_custom_invalid": "スキームで始まり（例: myeditor://）、{pathToken} を含む URL を入力してください。javascript:、data:、vbscript: は使えません。有効になるまでリンクはパスをコピーします。",
-  "settings_open_files_editor_note": "エディタはこのブラウザを実行しているマシンにインストールされ、URL ハンドラが登録されている必要があります。パスは WebUI サーバーを実行しているマシンのものです。"
+  "settings_open_files_editor_note": "エディタはこのブラウザを実行しているマシンにインストールされ、URL ハンドラが登録されている必要があります。パスは WebUI サーバーを実行しているマシンのものです。",
+  "markdown_link_missing_title": "ファイルが見つかりません: {path}",
+  "markdown_link_missing_toast": "ファイルが見つかりません。パスをコピーしました: {path}"
 }

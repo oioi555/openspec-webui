@@ -343,5 +343,7 @@
   "settings_open_files_custom": "自定义 URL 模板",
   "settings_open_files_custom_hint": "{pathToken} 会替换为 URL 编码的绝对路径，{lineToken} 会替换为行号（链接没有行号时为 1）。",
   "settings_open_files_custom_invalid": "请输入以协议开头（例如 myeditor://）并包含 {pathToken} 的 URL。不允许 javascript:、data: 和 vbscript:。在此之前，链接会复制路径。",
-  "settings_open_files_editor_note": "编辑器必须安装在运行此浏览器的机器上，并已注册其 URL 处理程序。路径来自运行 WebUI 服务器的机器。"
+  "settings_open_files_editor_note": "编辑器必须安装在运行此浏览器的机器上，并已注册其 URL 处理程序。路径来自运行 WebUI 服务器的机器。",
+  "markdown_link_missing_title": "未找到文件：{path}",
+  "markdown_link_missing_toast": "未找到文件。已复制路径：{path}"
 }

@@ -266,6 +266,20 @@ body {
 }
 
 
+/* Links whose local target does not exist (markdown-links). */
+.markdown-body a.md-link-missing {
+  color: var(--muted-foreground);
+  text-decoration-line: line-through;
+  cursor: help;
+}
+
+/* Links with an unsafe scheme are rendered without an href. */
+.markdown-body .md-link-disabled {
+  color: var(--muted-foreground);
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+}
+
 .markdown-body > :first-child {
   margin-top: 0;
 }

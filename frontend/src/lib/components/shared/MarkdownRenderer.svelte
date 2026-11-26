@@ -6,7 +6,9 @@
   import type { SearchNavigationState } from '$lib/state/search.svelte.ts';
   import { tabStore } from '$lib/state/tabs.svelte.ts';
   import { uiPreferencesStore } from '$lib/state/uiPreferences.svelte.ts';
+  import { pathStatusStore } from '$lib/state/pathStatus.svelte.ts';
   import { copyToClipboard } from '$lib/utils';
+  import { toast } from 'svelte-sonner';
   import { t } from '$lib/i18n';
   import * as m from '$lib/paraglide/messages.js';
 
@@ -22,23 +24,38 @@
 
   let root = $state<HTMLDivElement | null>(null);
 
+  // Filled during rendering (a plain Set: state writes are not allowed inside $derived),
+  // then handed to the path status store by the effect below.
+  let unknownPaths = new Set<string>();
+
   let linkContext = $derived<MarkdownLinkContext | null>(
     sourcePath
       ? {
           sourcePath,
           specs: specs.value,
           changes: [...activeChanges.value, ...archivedChanges.value],
+          pathStatus: (path) => pathStatusStore.get(path),
+          onUnknownPath: (path) => unknownPaths.add(path),
         }
       : null,
   );
 
-  let baseHtml = $derived(
-    renderMarkdown(content, {
+  let baseHtml = $derived.by(() => {
+    unknownPaths = new Set();
+    return renderMarkdown(content, {
       links: linkContext,
       openFilesWith: uiPreferencesStore.openFilesWith,
       customEditorTemplate: uiPreferencesStore.customEditorTemplate,
-    }),
-  );
+      missingFileTitle: t(m.markdown_link_missing_title, { path: '{path}' }),
+    });
+  });
+
+  $effect(() => {
+    void baseHtml;
+    if (unknownPaths.size > 0) {
+      pathStatusStore.request(unknownPaths);
+    }
+  });
   let decoratedHtml = $derived(highlightDiff ? highlightDeltas(baseHtml) : baseHtml);
   let html = $derived(highlightQuery ? highlightSearchMatches(decoratedHtml, highlightQuery) : decoratedHtml);
 
@@ -53,7 +70,21 @@
     tabStore.open(route);
   }
 
-  function openFile(path: string, line: number | null) {
+  async function copyMissingPath(path: string) {
+    try {
+      await navigator.clipboard.writeText(path);
+    } catch {
+      // The warning below still names the path.
+    }
+    toast.warning(t(m.markdown_link_missing_toast, { path }));
+  }
+
+  function openFile(path: string, line: number | null, missing: boolean) {
+    if (missing) {
+      void copyMissingPath(path);
+      return;
+    }
+
     const url = buildEditorUrl(
       uiPreferencesStore.openFilesWith,
       path,

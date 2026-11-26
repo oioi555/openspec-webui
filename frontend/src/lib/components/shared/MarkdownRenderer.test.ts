@@ -9,6 +9,7 @@ await register(new URL('../layout/settings-ssr-loader.mjs', import.meta.url));
 
 const { specs, activeChanges } = await import('../../state/appData.svelte.ts');
 const { uiPreferencesStore } = await import('../../state/uiPreferences.svelte.ts');
+const { pathStatusStore } = await import('../../state/pathStatus.svelte.ts');
 const { default: MarkdownRenderer } = await import('./MarkdownRenderer.svelte');
 
 specs.value = [{ name: 'auth', path: '/repo/openspec/specs/auth', lastModified: null }];
@@ -69,4 +70,17 @@ test('MarkdownRenderer copies the path when no editor URL is available', async (
   assert.match(source, /const url = buildEditorUrl\(/);
   assert.match(source, /window\.location\.href = url;/);
   assert.match(source, /copyToClipboard\(path, t\(m\.markdown_link_path_label\)\)/);
+});
+
+test('MarkdownRenderer feeds unknown paths to the path status store and copies missing paths with a warning', async () => {
+  // The store fetches over HTTP, which SSR tests cannot serve. Rendering of missing links is
+  // covered in markdown.test.ts; this checks the renderer wiring to the store and the click path.
+  const source = await readFile(new URL('./MarkdownRenderer.svelte', import.meta.url), 'utf8');
+
+  assert.match(source, /pathStatus: \(path\) => pathStatusStore\.get\(path\)/);
+  assert.match(source, /onUnknownPath: \(path\) => unknownPaths\.add\(path\)/);
+  assert.match(source, /pathStatusStore\.request\(unknownPaths\)/);
+  assert.match(source, /if \(missing\) \{\s*void copyMissingPath\(path\);/);
+  assert.match(source, /toast\.warning\(t\(m\.markdown_link_missing_toast/);
+  assert.equal(pathStatusStore.get('/never-requested'), undefined);
 });

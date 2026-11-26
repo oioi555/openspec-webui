@@ -71,10 +71,12 @@ test('file links hand path and line to openFile', () => {
   const { calls, deps } = recorder();
   handleMarkdownLinkClick({ mdLink: 'file', mdPath: '/repo/a.ts', mdLine: '42' }, PLAIN, deps);
   handleMarkdownLinkClick({ mdLink: 'file', mdPath: '/repo/b.ts' }, PLAIN, deps);
+  handleMarkdownLinkClick({ mdLink: 'file', mdPath: '/repo/gone.ts', mdMissing: 'true' }, PLAIN, deps);
 
   assert.deepEqual(calls, [
-    ['openFile', '/repo/a.ts', 42],
-    ['openFile', '/repo/b.ts', null],
+    ['openFile', '/repo/a.ts', 42, false],
+    ['openFile', '/repo/b.ts', null, false],
+    ['openFile', '/repo/gone.ts', null, true],
   ]);
 });
 
