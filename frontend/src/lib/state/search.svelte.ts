@@ -8,9 +8,15 @@ import { createDefaultSearchState, createSearchStateController } from './searchC
 
 export const SEARCH_MIN_QUERY_LENGTH = 2;
 
+/**
+ * One-shot viewer navigation request, consumed by the viewer when it loads.
+ * Written by search results and by Markdown link clicks.
+ */
 export interface SearchNavigationState {
   requestKey: number;
   matchLocation?: SearchMatchLocation;
+  /** Change-relative file path from a Markdown link; mapped to a location by the ChangeViewer. */
+  changeFilePath?: string;
 }
 
 const state = $state({

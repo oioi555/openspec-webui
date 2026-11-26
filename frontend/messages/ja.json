@@ -333,5 +333,15 @@
   "tool_reference_shared_source": "出典",
   "tool_reference_shared_updated": "最終更新",
   "tool_reference_open_spec_link": "OpenSpec",
-  "tool_reference_note": "備考"
+  "tool_reference_note": "備考",
+  "markdown_link_path_label": "パス",
+  "settings_heading_links": "リンク",
+  "settings_links_description": "Markdown 内のリンクの開き方です。spec と change へのリンクは常に WebUI 内で開きます。",
+  "settings_open_files_with": "ファイルを開く方法",
+  "settings_open_files_with_description": "ソースコードなど、その他のローカルファイルへのリンクに適用されます。",
+  "settings_open_files_copy": "パスをコピー",
+  "settings_open_files_custom": "カスタム URL テンプレート",
+  "settings_open_files_custom_hint": "{pathToken} は URL エンコードした絶対パスに、{lineToken} は行番号（リンクに行番号がなければ 1）に置き換わります。",
+  "settings_open_files_custom_invalid": "スキームで始まり（例: myeditor://）、{pathToken} を含む URL を入力してください。javascript:、data:、vbscript: は使えません。有効になるまでリンクはパスをコピーします。",
+  "settings_open_files_editor_note": "エディタはこのブラウザを実行しているマシンにインストールされ、URL ハンドラが登録されている必要があります。パスは WebUI サーバーを実行しているマシンのものです。"
 }

@@ -247,7 +247,7 @@ test('SpecViewer places validation status between metadata and markdown content 
   assert.match(source, /contentRef\?\.querySelector<HTMLElement>\('mark\.search-highlight'\)/);
   assert.match(source, /firstHighlight\?\.scrollIntoView\(\{ behavior: 'auto', block: 'center' \}\)/);
   assert.match(source, /<\/div>\s*\n\s*<ValidationViewerStatus itemType="spec" itemName=\{specName\} \/>\s*\n\s*\{#if loading\}/);
-  assert.match(source, /<MarkdownRenderer content=\{spec\.specContent\} highlightQuery=\{highlightQuery\} \/>/);
+  assert.match(source, /<MarkdownRenderer content=\{spec\.specContent\} highlightQuery=\{highlightQuery\}[^>]*\/>/);
 });
 
 test('ChangeViewer places validation status between metadata and tabs for the current change', async () => {
@@ -275,8 +275,8 @@ test('ChangeViewer places validation status between metadata and tabs for the cu
   assert.match(source, /\{#if !change\.isArchived\}\s*\n\s*<ValidationViewerStatus itemType="change" itemName=\{changeName\} \/>/);
   assert.match(source, /<UnderlineTabs tabs=\{primaryTabs\} activeId=\{activePrimaryTabId\} onSelect=\{handlePrimaryTabSelect\} \/>/);
   assert.match(source, /FIXED_LABELS\.viewer\.specDeltas/);
-  assert.match(source, /<MarkdownRenderer content=\{delta\.content\} highlightDiff=\{true\} highlightQuery=\{highlightQuery\} \/>/);
-  assert.match(source, /<MarkdownRenderer content=\{activeFile\.content\} highlightQuery=\{highlightQuery\} \/>/);
+  assert.match(source, /<MarkdownRenderer content=\{delta\.content\} highlightDiff=\{true\} highlightQuery=\{highlightQuery\}[^>]*\/>/);
+  assert.match(source, /<MarkdownRenderer content=\{activeFile\.content\} highlightQuery=\{highlightQuery\}[^>]*\/>/);
   assert.match(underlineTabsSource, /import \{ Highlighter \} from '@lucide\/svelte';/);
   assert.match(underlineTabsSource, /hitIndicator\?: boolean/);
   assert.match(underlineTabsSource, /<Highlighter class="h-3 w-3" \/>/);

@@ -31,6 +31,7 @@
   import { Progress } from '$lib/components/ui/progress';
   import CommandShortcutBar from '$lib/components/shared/CommandShortcutBar.svelte';
   import { formatChangeName, formatDate } from '$lib/utils';
+  import { matchLocationForChangeFile } from '$lib/markdownLinks';
   import { FIXED_LABELS } from '$lib/uiText';
   import { tabStore } from '$lib/state/tabs.svelte.ts';
 
@@ -317,6 +318,11 @@
     }
   }
 
+  function deltaSourcePath(capability: string) {
+    // The link resolver normalizes Windows separators, so `/` is safe here.
+    return change ? `${change.path}/specs/${capability}/spec.md` : null;
+  }
+
   function selectGroup(index: number) {
     activeGroupIndex = index;
     activeFileIndex = 0;
@@ -457,19 +463,27 @@
       }
     }
 
-    if (searchNavigation.matchLocation?.specDeltaCapability) {
+    const fromLink = !searchNavigation.matchLocation && Boolean(searchNavigation.changeFilePath);
+    const matchLocation = searchNavigation.matchLocation
+      ?? (searchNavigation.changeFilePath
+        ? matchLocationForChangeFile(change, searchNavigation.changeFilePath) ?? undefined
+        : undefined);
+
+    if (matchLocation?.specDeltaCapability) {
       selectDeltas();
 
       const nextDeltaOpenStates: Record<number, boolean> = {};
-      change.specDeltas.forEach((delta, index) => {
-        if ((specDeltaHitCounts.get(delta.capability) ?? 0) > 0) {
-          nextDeltaOpenStates[index] = true;
-        }
-      });
+      if (!fromLink) {
+        change.specDeltas.forEach((delta, index) => {
+          if ((specDeltaHitCounts.get(delta.capability) ?? 0) > 0) {
+            nextDeltaOpenStates[index] = true;
+          }
+        });
+      }
 
       if (Object.keys(nextDeltaOpenStates).length === 0) {
         const targetIndex = change.specDeltas.findIndex(
-          (delta) => delta.capability === searchNavigation.matchLocation?.specDeltaCapability,
+          (delta) => delta.capability === matchLocation?.specDeltaCapability,
         );
         if (targetIndex >= 0) {
           nextDeltaOpenStates[targetIndex] = true;
@@ -477,22 +491,22 @@
       }
 
       deltaOpenStates = nextDeltaOpenStates;
-    } else if (searchNavigation.matchLocation?.fileGroupName) {
-      const targetGroup = sortedFileGroups.find((group) => group.name === searchNavigation.matchLocation?.fileGroupName);
+    } else if (matchLocation?.fileGroupName) {
+      const targetGroup = sortedFileGroups.find((group) => group.name === matchLocation?.fileGroupName);
       if (targetGroup) {
         activeGroupIndex = change.fileGroups.indexOf(targetGroup);
 
-        if (searchNavigation.matchLocation.fileName) {
+        if (matchLocation.fileName) {
           const targetFileIndex = targetGroup.files.findIndex(
-            (file) => file.name === searchNavigation.matchLocation?.fileName,
+            (file) => file.name === matchLocation?.fileName,
           );
           activeFileIndex = targetFileIndex >= 0 ? targetFileIndex : 0;
         } else {
           activeFileIndex = 0;
         }
       }
-    } else if (searchNavigation.matchLocation?.otherFilePath) {
-      targetOtherFilePath = searchNavigation.matchLocation.otherFilePath;
+    } else if (matchLocation?.otherFilePath) {
+      targetOtherFilePath = matchLocation.otherFilePath;
       selectOtherFiles();
       otherFileOpenStates[targetOtherFilePath] = true;
     }
@@ -502,6 +516,11 @@
         const otherFileElement = getOtherFileElement(targetOtherFilePath);
         const target = otherFileElement?.querySelector<HTMLElement>('mark.search-highlight') ?? otherFileElement;
         target?.scrollIntoView({ behavior: 'auto', block: 'center' });
+        return;
+      }
+
+      if (fromLink) {
+        contentRef?.scrollIntoView({ behavior: 'auto', block: 'start' });
         return;
       }
 
@@ -631,7 +650,7 @@
                     </Collapsible.Trigger>
                     <Collapsible.Content>
                       <div class="border-t border-border/60 px-5 py-4">
-                        <MarkdownRenderer content={delta.content} highlightDiff={true} highlightQuery={highlightQuery} />
+                        <MarkdownRenderer content={delta.content} highlightDiff={true} highlightQuery={highlightQuery} sourcePath={deltaSourcePath(delta.capability)} />
                       </div>
                     </Collapsible.Content>
                   </InteractiveCard>
@@ -757,7 +776,7 @@
                           {/if}
                         </div>
                       {:else if otherFile.type === 'markdown'}
-                        <MarkdownRenderer content={otherFile.content} highlightQuery={highlightQuery} />
+                        <MarkdownRenderer content={otherFile.content} highlightQuery={highlightQuery} sourcePath={otherFile.absolutePath} />
                       {:else}
                         <pre class="overflow-x-auto whitespace-pre-wrap rounded-lg border border-border/60 bg-muted/30 p-4 text-sm leading-6 text-foreground"><code>{getOtherFileDisplayContent(otherFile)}</code></pre>
                       {/if}
@@ -771,7 +790,7 @@
           <ContextMenu.Root onOpenChange={handleMenuOpenChange}>
             <div>
               {#if activeFile.content}
-                <MarkdownRenderer content={activeFile.content} highlightQuery={highlightQuery} />
+                <MarkdownRenderer content={activeFile.content} highlightQuery={highlightQuery} sourcePath={activeFile.absolutePath} />
               {/if}
             </div>
             <ContextMenu.Content>

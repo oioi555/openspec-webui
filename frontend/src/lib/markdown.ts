@@ -1,20 +1,129 @@
-import { marked } from 'marked';
+import { Marked, type Tokens } from 'marked';
+
+import {
+  buildEditorUrl,
+  createSlugger,
+  HEADING_ID_PREFIX,
+  resolveMarkdownLink,
+  type MarkdownLinkContext,
+  type OpenFilesWith,
+} from './markdownLinks';
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-// Configure marked for better rendering
-marked.setOptions({
-  gfm: true,
-  breaks: true,
-});
+function escapeAttribute(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function safeEncodeUri(value: string): string {
+  try {
+    return encodeURI(value).replace(/%25/g, '%');
+  } catch {
+    return value;
+  }
+}
+
+export interface RenderMarkdownOptions {
+  /** Resolve relative links against this document. Omit to keep raw hrefs. */
+  links?: MarkdownLinkContext | null;
+  openFilesWith?: OpenFilesWith;
+  customEditorTemplate?: string;
+}
+
+function renderAttributes(attributes: Record<string, string | null | undefined>): string {
+  return Object.entries(attributes)
+    .filter((entry): entry is [string, string] => entry[1] != null)
+    .map(([name, value]) => ` ${name}="${escapeAttribute(value)}"`)
+    .join('');
+}
+
+function renderLink(token: Tokens.Link, inner: string, options: RenderMarkdownOptions): string {
+  const title = token.title ?? null;
+  const resolved = resolveMarkdownLink(token.href, options.links);
+
+  switch (resolved.kind) {
+    case 'unsafe':
+      return `<span class="md-link-disabled">${inner}</span>`;
+    case 'external':
+      return `<a${renderAttributes({
+        href: safeEncodeUri(resolved.href),
+        title,
+        target: '_blank',
+        rel: 'noopener noreferrer',
+        'data-md-link': 'external',
+      })}>${inner}</a>`;
+    case 'anchor':
+      return `<a${renderAttributes({
+        href: `#${resolved.fragment}`,
+        title,
+        'data-md-link': 'anchor',
+        'data-md-fragment': resolved.fragment,
+      })}>${inner}</a>`;
+    case 'raw':
+      return `<a${renderAttributes({ href: safeEncodeUri(resolved.href), title })}>${inner}</a>`;
+    case 'spec':
+      return `<a${renderAttributes({
+        href: resolved.route,
+        title,
+        'data-md-link': 'spec',
+        'data-md-route': resolved.route,
+      })}>${inner}</a>`;
+    case 'change':
+      return `<a${renderAttributes({
+        href: resolved.route,
+        title,
+        'data-md-link': 'change',
+        'data-md-route': resolved.route,
+        'data-md-change': resolved.name,
+        'data-md-change-file': resolved.filePath,
+      })}>${inner}</a>`;
+    case 'file': {
+      const editorUrl = buildEditorUrl(
+        options.openFilesWith ?? 'copy',
+        resolved.path,
+        resolved.line,
+        options.customEditorTemplate,
+      );
+      const fileUrl = `file://${resolved.path.startsWith('/') ? '' : '/'}${resolved.path}`;
+      return `<a${renderAttributes({
+        href: editorUrl ?? safeEncodeUri(fileUrl),
+        title: title ?? resolved.path,
+        'data-md-link': 'file',
+        'data-md-path': resolved.path,
+        'data-md-line': resolved.line == null ? null : String(resolved.line),
+      })}>${inner}</a>`;
+    }
+  }
+}
 
 /**
- * Render markdown to HTML
+ * Render markdown to HTML.
+ * Headings get `md-<slug>` ids; links are rewritten per `markdown-links`.
  */
-export function renderMarkdown(content: string): string {
-  return marked(content) as string;
+export function renderMarkdown(content: string, options: RenderMarkdownOptions = {}): string {
+  const slug = createSlugger();
+  const instance = new Marked({
+    gfm: true,
+    breaks: true,
+    renderer: {
+      heading({ tokens, depth }) {
+        const inner = this.parser.parseInline(tokens);
+        const text = this.parser.parseInline(tokens, this.parser.textRenderer);
+        return `<h${depth} id="${escapeAttribute(HEADING_ID_PREFIX + slug(text))}">${inner}</h${depth}>\n`;
+      },
+      link(token) {
+        return renderLink(token, this.parser.parseInline(token.tokens), options);
+      },
+    },
+  });
+
+  return instance.parse(content, { async: false }) as string;
 }
 
 /**
@@ -25,20 +134,20 @@ export function highlightDeltas(html: string): string {
   // Add classes to section headers
   return html
     .replace(
-      /<h2>ADDED\s+Requirements?<\/h2>/gi,
-      '<h2 class="diff-added">ADDED Requirements</h2>'
+      /<h2([^>]*)>ADDED\s+Requirements?<\/h2>/gi,
+      '<h2$1 class="diff-added">ADDED Requirements</h2>'
     )
     .replace(
-      /<h2>MODIFIED\s+Requirements?<\/h2>/gi,
-      '<h2 class="diff-modified">MODIFIED Requirements</h2>'
+      /<h2([^>]*)>MODIFIED\s+Requirements?<\/h2>/gi,
+      '<h2$1 class="diff-modified">MODIFIED Requirements</h2>'
     )
     .replace(
-      /<h2>REMOVED\s+Requirements?<\/h2>/gi,
-      '<h2 class="diff-removed">REMOVED Requirements</h2>'
+      /<h2([^>]*)>REMOVED\s+Requirements?<\/h2>/gi,
+      '<h2$1 class="diff-removed">REMOVED Requirements</h2>'
     )
     .replace(
-      /<h2>RENAMED\s+Requirements?<\/h2>/gi,
-      '<h2 class="diff-modified">RENAMED Requirements</h2>'
+      /<h2([^>]*)>RENAMED\s+Requirements?<\/h2>/gi,
+      '<h2$1 class="diff-modified">RENAMED Requirements</h2>'
     );
 }
 

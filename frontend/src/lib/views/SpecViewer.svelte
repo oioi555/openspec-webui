@@ -211,7 +211,7 @@
     <ContextMenu.Root onOpenChange={handleMenuOpenChange}>
       <SurfaceCard shadow="lg" class="p-6">
         <div bind:this={contentRef}>
-          <MarkdownRenderer content={spec.specContent} highlightQuery={highlightQuery} />
+          <MarkdownRenderer content={spec.specContent} highlightQuery={highlightQuery} sourcePath={`${spec.path}/spec.md`} />
         </div>
       </SurfaceCard>
       <ContextMenu.Content>

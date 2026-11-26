@@ -333,5 +333,15 @@
   "tool_reference_shared_source": "Source",
   "tool_reference_shared_updated": "Updated",
   "tool_reference_open_spec_link": "OpenSpec",
-  "tool_reference_note": "Note"
+  "tool_reference_note": "Note",
+  "markdown_link_path_label": "路径",
+  "settings_heading_links": "链接",
+  "settings_links_description": "Markdown 文档中链接的打开方式。指向 spec 和 change 的链接始终在 WebUI 中打开。",
+  "settings_open_files_with": "打开文件的方式",
+  "settings_open_files_with_description": "适用于指向其他本地文件（例如源代码）的链接。",
+  "settings_open_files_copy": "复制路径",
+  "settings_open_files_custom": "自定义 URL 模板",
+  "settings_open_files_custom_hint": "{pathToken} 会替换为 URL 编码的绝对路径，{lineToken} 会替换为行号（链接没有行号时为 1）。",
+  "settings_open_files_custom_invalid": "请输入以协议开头（例如 myeditor://）并包含 {pathToken} 的 URL。不允许 javascript:、data: 和 vbscript:。在此之前，链接会复制路径。",
+  "settings_open_files_editor_note": "编辑器必须安装在运行此浏览器的机器上，并已注册其 URL 处理程序。路径来自运行 WebUI 服务器的机器。"
 }

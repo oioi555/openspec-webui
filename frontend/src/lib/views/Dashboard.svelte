@@ -802,7 +802,7 @@
 
             {#if parsedPlanningContext.aiContext}
               <InsetPanel>
-                <MarkdownRenderer content={parsedPlanningContext.aiContext} />
+                <MarkdownRenderer content={parsedPlanningContext.aiContext} sourcePath={parsedPlanningContext.source.path} />
               </InsetPanel>
             {:else}
               <InsetPanel dashed class="text-sm text-muted-foreground">
@@ -908,7 +908,7 @@
                     <p class="text-sm text-muted-foreground">
                       {t(m.dashboard_legacy_doc_description)}
                     </p>
-                    <MarkdownRenderer content={legacyProjectDoc.content} />
+                    <MarkdownRenderer content={legacyProjectDoc.content} sourcePath={legacyProjectDoc.path} />
                   </div>
                 </Collapsible.Content>
               </Collapsible.Root>

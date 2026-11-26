@@ -180,7 +180,7 @@ test('ChangeViewer renders Other Files under the isOtherActive branch with colla
   // Markdown other files render with MarkdownRenderer and highlightQuery
   assert.match(
     source,
-    /\{\:else if otherFile\.type === 'markdown'\}\s*\n\s*<MarkdownRenderer content=\{otherFile\.content\} highlightQuery=\{highlightQuery\} \/>/,
+    /\{\:else if otherFile\.type === 'markdown'\}\s*\n\s*<MarkdownRenderer content=\{otherFile\.content\} highlightQuery=\{highlightQuery\} sourcePath=\{otherFile\.absolutePath\} \/>/,
     'Markdown other files must reuse MarkdownRenderer with search highlighting',
   );
 
@@ -205,14 +205,14 @@ test('ChangeViewer search navigation to an otherFilePath selects the Other tab a
   // Search navigation checks for otherFilePath on the match location
   assert.match(
     source,
-    /searchNavigation\.matchLocation\?\.otherFilePath/,
+    /matchLocation\?\.otherFilePath/,
     'Search navigation must handle otherFilePath match location',
   );
 
   // When otherFilePath is present, selectOtherFiles() is called
   assert.match(
     source,
-    /else if \(searchNavigation\.matchLocation\?\.otherFilePath\) \{\s*\n\s*targetOtherFilePath = searchNavigation\.matchLocation\.otherFilePath;\s*\n\s*selectOtherFiles\(\);/,
+    /else if \(matchLocation\?\.otherFilePath\) \{\s*\n\s*targetOtherFilePath = matchLocation\.otherFilePath;\s*\n\s*selectOtherFiles\(\);/,
     'Routing to otherFilePath must call selectOtherFiles()',
   );
 
@@ -236,4 +236,26 @@ test('ChangeViewer search navigation to an otherFilePath selects the Other tab a
     /function getOtherFileElement\(path: string\): HTMLElement \| null \{[\s\S]*contentRef\?\.querySelectorAll<HTMLElement>\('\[data-other-file-path\]'\)/,
     'getOtherFileElement must query for data-other-file-path attribute',
   );
+});
+
+test('ChangeViewer maps Markdown link navigation to a location without search-hit side effects', async () => {
+  const source = await changeViewerSource;
+
+  assert.match(source, /import \{ matchLocationForChangeFile \} from '\$lib\/markdownLinks';/);
+  assert.match(
+    source,
+    /const matchLocation = searchNavigation\.matchLocation\s*\n\s*\?\? \(searchNavigation\.changeFilePath\s*\n\s*\? matchLocationForChangeFile\(change, searchNavigation\.changeFilePath\)/,
+    'Link navigation must resolve changeFilePath through matchLocationForChangeFile',
+  );
+  assert.match(source, /if \(!fromLink\) \{\s*\n\s*change\.specDeltas\.forEach/, 'Link navigation must open only the target delta');
+  assert.match(source, /if \(fromLink\) \{\s*\n\s*contentRef\?\.scrollIntoView/, 'Link navigation must not scroll to search highlights');
+});
+
+test('Viewers pass the rendered document path to MarkdownRenderer', async () => {
+  const changeSource = await changeViewerSource;
+  const specSource = await readFile(new URL('./SpecViewer.svelte', import.meta.url), 'utf8');
+
+  assert.match(changeSource, /sourcePath=\{activeFile\.absolutePath\}/);
+  assert.match(changeSource, /sourcePath=\{deltaSourcePath\(delta\.capability\)\}/);
+  assert.match(specSource, /sourcePath=\{`\$\{spec\.path\}\/spec\.md`\}/);
 });

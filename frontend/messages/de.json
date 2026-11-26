@@ -333,5 +333,15 @@
   "tool_reference_shared_source": "Source",
   "tool_reference_shared_updated": "Updated",
   "tool_reference_open_spec_link": "OpenSpec",
-  "tool_reference_note": "Note"
+  "tool_reference_note": "Note",
+  "markdown_link_path_label": "Pfad",
+  "settings_heading_links": "Links",
+  "settings_links_description": "Wie Links in Markdown-Dokumenten geöffnet werden. Links zu Specs und Changes öffnen sich immer in der WebUI.",
+  "settings_open_files_with": "Dateien öffnen mit",
+  "settings_open_files_with_description": "Gilt für Links auf andere lokale Dateien, zum Beispiel Quellcode.",
+  "settings_open_files_copy": "Pfad kopieren",
+  "settings_open_files_custom": "Eigene URL-Vorlage",
+  "settings_open_files_custom_hint": "{pathToken} wird durch den URL-kodierten absoluten Pfad ersetzt und {lineToken} durch die Zeilennummer (1, wenn der Link keine hat).",
+  "settings_open_files_custom_invalid": "Gib eine URL ein, die mit einem Schema beginnt (zum Beispiel myeditor://) und {pathToken} enthält. javascript:, data: und vbscript: sind nicht erlaubt. Bis dahin kopieren Links den Pfad.",
+  "settings_open_files_editor_note": "Der Editor muss auf dem Rechner installiert sein, auf dem dieser Browser läuft, und seinen URL-Handler registriert haben. Die Pfade stammen von dem Rechner, auf dem der WebUI-Server läuft."
 }

@@ -309,7 +309,7 @@ test('SettingsView renders an independent Language section with guidance before 
   const languageBlock = source.slice(languageStart, toolsStart);
 
   assert.ok(generalStart > 0 && languageStart > generalStart && toolsStart > languageStart);
-  assert.equal(generalBlock.includes('<Select.Root'), false, 'General must not contain the locale selector');
+  assert.equal(/<Select\.Root value=\{localeStore\.value\}/.test(generalBlock), false, 'General must not contain the locale selector');
   assert.match(languageBlock, /<Select\.Root value=\{localeStore\.value\}/);
   assert.match(languageBlock, /OPENSPEC_MULTI_LANGUAGE_DOCS_URL/);
   assert.match(languageBlock, /settings_language_description/);
@@ -978,5 +978,56 @@ test('SettingsView.svelte shows the install-aware OpenSpec update command or the
     assert.ok(catalog.settings_versions_install_docs, `${locale} has install docs label`);
     assert.ok(catalog.settings_versions_openspec_description_install_aware, `${locale} has install-aware description`);
     assert.doesNotMatch(catalog.settings_versions_openspec_description_install_aware, /npm/);
+  }
+});
+
+const OPEN_FILES_WITH_MESSAGE_KEYS = [
+  'markdown_link_path_label',
+  'settings_heading_links',
+  'settings_links_description',
+  'settings_open_files_with',
+  'settings_open_files_with_description',
+  'settings_open_files_copy',
+  'settings_open_files_custom',
+  'settings_open_files_custom_hint',
+  'settings_open_files_custom_invalid',
+  'settings_open_files_editor_note',
+];
+
+test('every locale defines the open-files-with messages', async () => {
+  for (const locale of ['en', 'ja', 'pt-BR', 'es', 'zh-CN', 'fr', 'de']) {
+    const catalog = await readMessageCatalog(locale);
+    for (const key of OPEN_FILES_WITH_MESSAGE_KEYS) {
+      assert.ok(catalog[key], `${locale} is missing ${key}`);
+    }
+  }
+});
+
+test('SettingsView General renders the open-files-with control defaulting to copy path', async () => {
+  const body = await renderSettingsUnderLocale('en');
+  const catalog = await readMessageCatalog('en');
+
+  assert.match(body, /data-settings-open-files-with/);
+  assert.ok(body.includes(catalog.settings_open_files_with));
+  assert.ok(body.includes(catalog.settings_open_files_copy));
+  assert.ok(!body.includes(catalog.settings_open_files_editor_note));
+});
+
+test('SettingsView flags an invalid custom editor template and shows the local-machine note', async () => {
+  const { uiPreferencesStore } = await import('../../state/uiPreferences.svelte.ts');
+  uiPreferencesStore.setOpenFilesWith('custom');
+  uiPreferencesStore.setCustomEditorTemplate('javascript:{path}');
+
+  try {
+    const body = await renderSettingsUnderLocale('en');
+    const catalog = await readMessageCatalog('en');
+
+    assert.ok(body.includes(catalog.settings_open_files_editor_note));
+    assert.ok(body.includes('{path} is replaced with the URL-encoded absolute path'));
+    assert.match(body, /role="alert"/);
+    assert.ok(body.includes('and contains {path}.'));
+  } finally {
+    uiPreferencesStore.setOpenFilesWith('copy');
+    uiPreferencesStore.setCustomEditorTemplate('');
   }
 });

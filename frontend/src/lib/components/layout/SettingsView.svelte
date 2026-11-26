@@ -15,6 +15,8 @@
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
   import * as Select from '$lib/components/ui/select';
+  import { Input } from '$lib/components/ui/input';
+  import { isValidEditorTemplate, OPEN_FILES_WITH_OPTIONS, type OpenFilesWith } from '$lib/markdownLinks';
   import * as Tooltip from '$lib/components/ui/tooltip';
   import { t } from '$lib/i18n';
   import {
@@ -129,6 +131,31 @@
   function setLocale(locale: AppLocale) {
     void localeStore.setLocale(locale);
   }
+
+  const EDITOR_LABELS: Record<Exclude<OpenFilesWith, 'copy' | 'custom'>, string> = {
+    vscode: 'VS Code',
+    cursor: 'Cursor',
+    windsurf: 'Windsurf',
+    vscodium: 'VSCodium',
+    antigravity: 'Antigravity IDE',
+    zed: 'Zed',
+  };
+
+  function openFilesWithLabel(option: OpenFilesWith) {
+    if (option === 'copy') {
+      return t(m.settings_open_files_copy);
+    }
+
+    if (option === 'custom') {
+      return t(m.settings_open_files_custom);
+    }
+
+    return EDITOR_LABELS[option];
+  }
+
+  let customEditorTemplateInvalid = $derived(
+    uiPreferencesStore.openFilesWith === 'custom' && !isValidEditorTemplate(uiPreferencesStore.customEditorTemplate),
+  );
 
   function togglePreviewTabs(event: Event) {
     const target = event.currentTarget as HTMLInputElement;
@@ -503,6 +530,62 @@
             onchange={togglePreviewTabs}
           />
         </label>
+
+        <div>
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{t(m.settings_heading_links)}</h2>
+          <p class="mt-1 text-sm text-muted-foreground">{t(m.settings_links_description)}</p>
+        </div>
+
+        <div class="space-y-3 rounded-md border border-border bg-secondary/50 p-4 text-sm text-card-foreground" data-settings-open-files-with>
+          <div class="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <div class="font-medium text-foreground">{t(m.settings_open_files_with)}</div>
+              <div class="mt-1 text-muted-foreground">{t(m.settings_open_files_with_description)}</div>
+            </div>
+
+            <Select.Root
+              value={uiPreferencesStore.openFilesWith}
+              onValueChange={(value) => uiPreferencesStore.setOpenFilesWith(value as OpenFilesWith)}
+            >
+              <Select.Trigger class="w-full sm:w-64" aria-label={t(m.settings_open_files_with)}>
+                {openFilesWithLabel(uiPreferencesStore.openFilesWith)}
+              </Select.Trigger>
+              <Select.Content>
+                {#each OPEN_FILES_WITH_OPTIONS as option}
+                  <Select.Item value={option}>{openFilesWithLabel(option)}</Select.Item>
+                {/each}
+              </Select.Content>
+            </Select.Root>
+          </div>
+
+          {#if uiPreferencesStore.openFilesWith === 'custom'}
+            <div class="space-y-1">
+              <Input
+                value={uiPreferencesStore.customEditorTemplate}
+                placeholder="myeditor://open?file={'{path}'}&line={'{line}'}"
+                aria-label={t(m.settings_open_files_custom)}
+                aria-invalid={customEditorTemplateInvalid}
+                class="font-mono"
+                oninput={(event: Event) => uiPreferencesStore.setCustomEditorTemplate((event.currentTarget as HTMLInputElement).value)}
+              />
+              <p class="text-muted-foreground">
+                {t(m.settings_open_files_custom_hint, { pathToken: '{path}', lineToken: '{line}' })}
+              </p>
+              {#if customEditorTemplateInvalid}
+                <p class="text-destructive" role="alert">
+                  {t(m.settings_open_files_custom_invalid, { pathToken: '{path}' })}
+                </p>
+              {/if}
+            </div>
+          {/if}
+
+          {#if uiPreferencesStore.openFilesWith !== 'copy'}
+            <p class="flex items-start gap-2 text-muted-foreground">
+              <Info class="mt-0.5 h-4 w-4 shrink-0 text-info" />
+              {t(m.settings_open_files_editor_note)}
+            </p>
+          {/if}
+        </div>
       </div>
     </SurfaceCard>
 

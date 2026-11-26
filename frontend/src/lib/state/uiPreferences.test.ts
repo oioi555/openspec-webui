@@ -53,7 +53,7 @@ test('preview tab preference persists when toggled off', () => {
 
   assert.equal(store.previewTabsEnabled, false);
   assert.equal(store.searchHighlightsEnabled, true);
-  assert.equal(localStorage.getItem(STORAGE_KEY), JSON.stringify({ previewTabsEnabled: false, searchHighlightsEnabled: true }));
+  assert.equal(localStorage.getItem(STORAGE_KEY), JSON.stringify({ previewTabsEnabled: false, searchHighlightsEnabled: true, openFilesWith: 'copy', customEditorTemplate: '' }));
 
   const reloadedStore = createUiPreferencesStore();
   reloadedStore.initialize();
@@ -71,7 +71,7 @@ test('search highlight preference persists when toggled off', () => {
 
   assert.equal(store.previewTabsEnabled, true);
   assert.equal(store.searchHighlightsEnabled, false);
-  assert.equal(localStorage.getItem(STORAGE_KEY), JSON.stringify({ previewTabsEnabled: true, searchHighlightsEnabled: false }));
+  assert.equal(localStorage.getItem(STORAGE_KEY), JSON.stringify({ previewTabsEnabled: true, searchHighlightsEnabled: false, openFilesWith: 'copy', customEditorTemplate: '' }));
 
   const reloadedStore = createUiPreferencesStore();
   reloadedStore.initialize();
@@ -90,4 +90,43 @@ test('invalid stored values fall back to preview tabs enabled', () => {
 
   assert.equal(store.previewTabsEnabled, true);
   assert.equal(store.searchHighlightsEnabled, true);
+});
+
+test('open files with defaults to copy path and an empty custom template', () => {
+  Object.assign(globalThis, { localStorage: new MockStorage() });
+
+  const store = createUiPreferencesStore();
+  store.initialize();
+
+  assert.equal(store.openFilesWith, 'copy');
+  assert.equal(store.customEditorTemplate, '');
+});
+
+test('open files with and the custom template persist across reloads', () => {
+  const localStorage = new MockStorage();
+  Object.assign(globalThis, { localStorage });
+
+  const store = createUiPreferencesStore();
+  store.initialize();
+  store.setOpenFilesWith('zed');
+  store.setCustomEditorTemplate('myeditor://open?file={path}');
+
+  const reloadedStore = createUiPreferencesStore();
+  reloadedStore.initialize();
+  assert.equal(reloadedStore.openFilesWith, 'zed');
+  assert.equal(reloadedStore.customEditorTemplate, 'myeditor://open?file={path}');
+});
+
+test('invalid stored open files with values fall back to defaults', () => {
+  Object.assign(globalThis, {
+    localStorage: new MockStorage({
+      [STORAGE_KEY]: JSON.stringify({ openFilesWith: 'notepad', customEditorTemplate: 42 }),
+    }),
+  });
+
+  const store = createUiPreferencesStore();
+  store.initialize();
+
+  assert.equal(store.openFilesWith, 'copy');
+  assert.equal(store.customEditorTemplate, '');
 });

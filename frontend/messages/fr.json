@@ -333,5 +333,15 @@
   "tool_reference_shared_source": "Source",
   "tool_reference_shared_updated": "Updated",
   "tool_reference_open_spec_link": "OpenSpec",
-  "tool_reference_note": "Note"
+  "tool_reference_note": "Note",
+  "markdown_link_path_label": "Chemin",
+  "settings_heading_links": "Liens",
+  "settings_links_description": "Comment s’ouvrent les liens dans les documents Markdown. Les liens vers les specs et les changes s’ouvrent toujours dans la WebUI.",
+  "settings_open_files_with": "Ouvrir les fichiers avec",
+  "settings_open_files_with_description": "S’applique aux liens qui pointent vers d’autres fichiers locaux, comme le code source.",
+  "settings_open_files_copy": "Copier le chemin",
+  "settings_open_files_custom": "Modèle d’URL personnalisé",
+  "settings_open_files_custom_hint": "{pathToken} est remplacé par le chemin absolu encodé en URL et {lineToken} par le numéro de ligne (1 si le lien n’en a pas).",
+  "settings_open_files_custom_invalid": "Saisissez une URL qui commence par un schéma (par exemple myeditor://) et contient {pathToken}. javascript:, data: et vbscript: ne sont pas autorisés. En attendant, les liens copient le chemin.",
+  "settings_open_files_editor_note": "L’éditeur doit être installé sur la machine qui exécute ce navigateur, avec son gestionnaire d’URL enregistré. Les chemins proviennent de la machine qui exécute le serveur de la WebUI."
 }

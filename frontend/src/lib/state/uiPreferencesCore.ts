@@ -1,6 +1,10 @@
+import { isOpenFilesWith, type OpenFilesWith } from '../markdownLinks';
+
 export interface UiPreferences {
   previewTabsEnabled: boolean;
   searchHighlightsEnabled: boolean;
+  openFilesWith: OpenFilesWith;
+  customEditorTemplate: string;
 }
 
 const STORAGE_KEY = 'openspec-ui-preferences';
@@ -14,6 +18,8 @@ export function createDefaultUiPreferences(): UiPreferences {
   return {
     previewTabsEnabled: true,
     searchHighlightsEnabled: true,
+    openFilesWith: 'copy',
+    customEditorTemplate: '',
   };
 }
 
@@ -33,6 +39,12 @@ function normalizeUiPreferences(value: unknown): UiPreferences {
     searchHighlightsEnabled: typeof candidate.searchHighlightsEnabled === 'boolean'
       ? candidate.searchHighlightsEnabled
       : defaults.searchHighlightsEnabled,
+    openFilesWith: isOpenFilesWith(candidate.openFilesWith)
+      ? candidate.openFilesWith
+      : defaults.openFilesWith,
+    customEditorTemplate: typeof candidate.customEditorTemplate === 'string'
+      ? candidate.customEditorTemplate
+      : defaults.customEditorTemplate,
   };
 }
 
@@ -75,6 +87,14 @@ export function createUiPreferencesStoreWithAdapter(adapter: UiPreferencesAdapte
       return adapter.get().searchHighlightsEnabled;
     },
 
+    get openFilesWith() {
+      return adapter.get().openFilesWith;
+    },
+
+    get customEditorTemplate() {
+      return adapter.get().customEditorTemplate;
+    },
+
     initialize() {
       adapter.set(loadUiPreferences());
     },
@@ -93,6 +113,26 @@ export function createUiPreferencesStoreWithAdapter(adapter: UiPreferencesAdapte
       const nextPreferences = {
         ...adapter.get(),
         searchHighlightsEnabled,
+      };
+
+      saveUiPreferences(nextPreferences);
+      adapter.set(nextPreferences);
+    },
+
+    setOpenFilesWith(openFilesWith: OpenFilesWith) {
+      const nextPreferences = {
+        ...adapter.get(),
+        openFilesWith,
+      };
+
+      saveUiPreferences(nextPreferences);
+      adapter.set(nextPreferences);
+    },
+
+    setCustomEditorTemplate(customEditorTemplate: string) {
+      const nextPreferences = {
+        ...adapter.get(),
+        customEditorTemplate,
       };
 
       saveUiPreferences(nextPreferences);
