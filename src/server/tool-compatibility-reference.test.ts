@@ -13,14 +13,14 @@ function cloneReference(): ToolCompatibilityReferenceResponse {
   return structuredClone(TOOL_COMPATIBILITY_REFERENCE);
 }
 
-test('v2.1.1 official definition snapshot is skills-only and drops the retired tool', () => {
-  assert.equal(TOOL_COMPATIBILITY_REFERENCE.officialSource.version, 'v2.1.1');
+test('v2.2.0 official definition snapshot is skills-only and drops the retired tool', () => {
+  assert.equal(TOOL_COMPATIBILITY_REFERENCE.officialSource.version, 'v2.2.0');
   assert.equal(
     TOOL_COMPATIBILITY_REFERENCE.officialSource.url,
-    'https://github.com/Fission-AI/OpenSpec/blob/v2.1.1/docs-lab/reference/supported-tools.md'
+    'https://github.com/Fission-AI/OpenSpec/blob/v2.2.0/docs-lab/reference/supported-tools.md'
   );
-  assert.equal(OFFICIAL_TOOL_DATASET.source.revision, '0c737dc1b543249b38b0f4716816fcf493d894dd');
-  assert.equal(OFFICIAL_TOOL_DATASET.source.checkedAt, '2026-11-21');
+  assert.equal(OFFICIAL_TOOL_DATASET.source.revision, 'f1cd852f4edce22b8df9548a4df889172ca8ff25');
+  assert.equal(OFFICIAL_TOOL_DATASET.source.checkedAt, '2026-11-27');
   assert.equal(OPEN_SPEC_TOOL_DEFINITIONS.length, 87);
   assert.ok(OPEN_SPEC_TOOL_DEFINITIONS.every((definition) => definition.commands === null && definition.skills));
 

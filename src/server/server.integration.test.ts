@@ -1849,12 +1849,12 @@ test('GET /api/tool-reference returns static reference data without an active pr
   try {
     const result = await apiJson(runtime.baseUrl, '/api/tool-reference');
     assert.equal(result.response.status, 200);
-    assert.equal(result.body.officialSource.version, 'v2.1.1');
-    assert.equal(result.body.officialSource.verifiedAt, '2026-11-21');
+    assert.equal(result.body.officialSource.version, 'v2.2.0');
+    assert.equal(result.body.officialSource.verifiedAt, '2026-11-27');
     assert.equal(result.body.officialDefinitions.length, 87);
     assert.equal(result.body.toolNames.kimi, 'Kimi Code');
     assert.equal(result.body.toolNames['amazon-q'], 'Amazon Q Developer');
-    assert.deepEqual(result.body.scopeSupport.source, { openspecTag: 'v2.1.1', skillsVersion: '1.8.1' });
+    assert.deepEqual(result.body.scopeSupport.source, { openspecTag: 'v2.2.0', skillsVersion: '1.8.1' });
     assert.deepEqual(result.body.scopeSupport.tools.claude, {
       kind: 'linked', globalDir: '.claude/skills', env: { name: 'CLAUDE_CONFIG_DIR', path: 'skills' },
     });

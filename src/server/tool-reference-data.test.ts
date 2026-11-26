@@ -21,9 +21,9 @@ const cloneResearch = (): SharedAgentsResearchDataset => structuredClone(SHARED_
 
 test('external datasets project the current public reference without semantic changes', () => {
   assert.equal(OFFICIAL_TOOL_DATASET.schemaVersion, 1);
-  assert.equal(OFFICIAL_TOOL_DATASET.source.version, 'v2.1.1');
-  assert.equal(OFFICIAL_TOOL_DATASET.source.revision, '0c737dc1b543249b38b0f4716816fcf493d894dd');
-  assert.equal(OFFICIAL_TOOL_DATASET.source.checkedAt, '2026-11-21');
+  assert.equal(OFFICIAL_TOOL_DATASET.source.version, 'v2.2.0');
+  assert.equal(OFFICIAL_TOOL_DATASET.source.revision, 'f1cd852f4edce22b8df9548a4df889172ca8ff25');
+  assert.equal(OFFICIAL_TOOL_DATASET.source.checkedAt, '2026-11-27');
   assert.equal(SHARED_AGENTS_RESEARCH_DATASET.schemaVersion, 1);
   assert.equal(OPEN_SPEC_TOOL_DEFINITIONS.length, 87);
   assert.equal(SHARED_SKILLS_COMPATIBILITY.length, 33);
@@ -33,9 +33,9 @@ test('external datasets project the current public reference without semantic ch
     {
       officialDefinitions: OPEN_SPEC_TOOL_DEFINITIONS,
       officialSource: {
-        version: 'v2.1.1',
-        url: 'https://github.com/Fission-AI/OpenSpec/blob/v2.1.1/docs-lab/reference/supported-tools.md',
-        verifiedAt: '2026-11-21',
+        version: 'v2.2.0',
+        url: 'https://github.com/Fission-AI/OpenSpec/blob/v2.2.0/docs-lab/reference/supported-tools.md',
+        verifiedAt: '2026-11-27',
       },
       sharedSource: SHARED_AGENTS_RESEARCH_DATASET.source,
       sharedCompatibility: SHARED_SKILLS_COMPATIBILITY,
@@ -46,7 +46,7 @@ test('external datasets project the current public reference without semantic ch
 });
 
 test('scope support data covers every official id with the bundled skills version', () => {
-  assert.deepEqual(TOOL_SCOPE_SUPPORT.source, { openspecTag: 'v2.1.1', skillsVersion: '1.8.1' });
+  assert.deepEqual(TOOL_SCOPE_SUPPORT.source, { openspecTag: 'v2.2.0', skillsVersion: '1.8.1' });
   assert.deepEqual(Object.keys(TOOL_SCOPE_SUPPORT.tools).sort(), OPEN_SPEC_TOOL_DEFINITIONS.map((tool) => tool.id).sort());
   assert.deepEqual(TOOL_SCOPE_SUPPORT.tools.eve, { kind: 'project-only' });
   assert.deepEqual(TOOL_SCOPE_SUPPORT.tools.promptscript, { kind: 'project-only' });
