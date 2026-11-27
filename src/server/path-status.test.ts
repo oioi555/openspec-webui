@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { test } from 'node:test';
 
 import { checkPathStatuses, parsePathStatusBody, PATH_STATUS_MAX_PATHS, PathStatusRequestError } from './path-status.js';
@@ -48,7 +48,8 @@ test('checkPathStatuses never checks paths outside the roots or escaping with do
     '/repo/docs/x.md': true,
     '/store/openspec/specs/a/spec.md': true,
   });
-  assert.deepEqual(checked.sort(), ['/repo/docs/x.md', '/store/openspec/specs/a/spec.md']);
+  // The checker resolves paths first, so on Windows they gain a drive letter.
+  assert.deepEqual(checked.sort(), ['/repo/docs/x.md', '/store/openspec/specs/a/spec.md'].map((p) => resolve(p)).sort());
 });
 
 test('parsePathStatusBody enforces an array of strings and the path limit', () => {
